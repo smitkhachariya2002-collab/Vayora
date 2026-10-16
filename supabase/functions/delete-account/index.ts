@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 
 Deno.serve(async (req: Request) => {
   const headers = {"Content-Type":"application/json"};
