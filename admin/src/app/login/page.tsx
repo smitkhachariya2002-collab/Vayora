@@ -1,9 +1,4 @@
-import { signIn } from "../actions";
-export default async function Login({searchParams}:{searchParams:Promise<{error?:string;message?:string}>}) {
- const query=await searchParams;
- return <main><h1>Vayora admin</h1>{query.error&&<p role="alert">{query.error}</p>}{query.message&&<p>{query.message}</p>}
- <form action={signIn} className="panel"><p><input name="email" type="email" required placeholder="Email" autoComplete="username"/></p>
- <p><input name="password" type="password" required minLength={8} placeholder="Password" autoComplete="current-password"/></p>
- <label><input name="signup" type="checkbox" value="yes"/>Create an account first</label><p><button>Continue</button></p></form>
- <p>Confirm your email before signing in. Only accounts granted an admin role can open the dashboard.</p></main>;
-}
+import {signIn} from "../actions";
+import {Logo,Card,Field,Input,Flash} from "@/components/ui";
+import {Submit} from "@/components/interactive";
+export default async function Login({searchParams}:{searchParams:Promise<{error?:string;message?:string}>}){const q=await searchParams;return <main className="grid min-h-screen place-items-center bg-gray-50 p-4"><div className="w-full max-w-md"><div className="mb-8 flex justify-center"><Logo/></div><Card><h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1><p className="mt-2 mb-6 text-sm text-gray-500">Sign in to manage your Vayora workspace.</p><Flash error={q.error==="Admin access required"?"This account is not an admin.":q.error} ok={q.message}/><form action={signIn} className="space-y-5"><Field label="Email address"><Input name="email" type="email" required placeholder="you@example.com" autoComplete="username"/></Field><Field label="Password"><Input name="password" type="password" required minLength={8} placeholder="Enter your password" autoComplete="current-password"/></Field><Submit>Sign in</Submit></form><p className="mt-6 border-t border-gray-100 pt-5 text-xs leading-5 text-gray-500">Access is available to approved administrators only. Contact your workspace owner if you need an invitation.</p></Card><p className="mt-6 text-center text-xs text-gray-400">Vayora administration · Secure workspace</p></div></main>}

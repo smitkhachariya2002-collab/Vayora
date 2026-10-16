@@ -62,13 +62,15 @@ export async function saveUpi(form: FormData) {
 export async function savePlan(form: FormData) {
   const { client } = await requireAdmin(true);
   const values = {name:text(form,"name"),duration_days:Number(text(form,"duration_days")),
-    price_inr:Number(text(form,"price_inr")),perks:text(form,"perks").split("\n").filter(Boolean),active:form.has("active")};
-  checked((await client.from("plans").update(values).eq("id",text(form,"id"))).error);
+    price_inr:Number(text(form,"price_inr")),perks:text(form,"perks").split("\n").filter(Boolean),active:form.has("active"),position:Number(text(form,"position"))||0};
+  const id=text(form,"id");
+  checked((id?await client.from("plans").update(values).eq("id",id):await client.from("plans").insert({...values,code:randomUUID()})).error);
   revalidatePath("/dashboard/plans");
 }
 export async function saveChannel(form: FormData) {
   const { client, user, owner } = await requireAdmin();
   const values: Record<string, unknown> = {name:text(form,"name"),description:text(form,"description"),
+    category:text(form,"category"),icon_url:text(form,"icon_url")||null,
     audience:text(form,"audience") || "all",status:text(form,"status") || "active"};
   if (owner && text(form,"review_status")) values.review_status = text(form,"review_status");
   const id = text(form,"id");
@@ -81,7 +83,8 @@ export async function savePost(form: FormData) {
   const { client, user } = await requireAdmin();
   const id = text(form,"id") || randomUUID();
   const values = {channel_id:text(form,"channel_id"),title:text(form,"title"),description:text(form,"description"),
-    audience:text(form,"audience") || "all",status:text(form,"status") || "draft",publish_at:text(form,"publish_at") || null};
+    audience:text(form,"audience") || "all",status:text(form,"status") || "draft",publish_at:text(form,"publish_at") ? new Date(text(form,"publish_at")+"+05:30").toISOString() : null};
+  if(values.status==="scheduled"&&!values.publish_at)throw new Error("Choose a schedule date and time");
   checked((text(form,"id") ? await client.from("posts").update(values).eq("id",id)
     : await client.from("posts").insert({...values,id,created_by:user.id})).error);
   revalidatePath("/dashboard/posts");

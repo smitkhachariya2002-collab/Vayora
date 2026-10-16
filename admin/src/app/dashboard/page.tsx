@@ -1,12 +1,12 @@
-import { requireAdmin } from "@/lib/supabase";
-export default async function Dashboard() {
- const {client,owner}=await requireAdmin();
- const {count:channels}=await client.from("channels").select("*",{count:"exact",head:true});
- const {count:posts}=await client.from("posts").select("*",{count:"exact",head:true});
- const installs=owner?await client.from("installs").select("source,utm_campaign,created_at").order("created_at",{ascending:false}).limit(1000):null;
- return <><h1>Vayora dashboard</h1><div className="grid"><section>Channels: {channels??0}</section><section>Posts: {posts??0}</section>
- {owner&&<><section>Ads installs: {installs?.data?.filter(i=>i.source==="ads").length??0}</section>
- <section>Organic installs: {installs?.data?.filter(i=>i.source==="organic").length??0}</section></>}</div>
- {owner&&<><small>Install counts cover the most recent 1,000 installs.</small><table><thead><tr><th>Source</th><th>Campaign</th><th>Installed</th></tr></thead><tbody>
- {installs?.data?.map((i,index)=><tr key={index}><td>{i.source}</td><td>{i.utm_campaign??"—"}</td><td>{i.created_at}</td></tr>)}</tbody></table></>}</>;
+import {requireAdmin} from "@/lib/supabase";
+import {PageHeader,Stat,Table,Th,Td,SourceBadge,Card,Flash,LinkButton,SectionTitle,Empty} from "@/components/ui";
+import {object,rows,str} from "@/lib/admin-data";
+export default async function Dashboard({searchParams}:{searchParams:Promise<{ok?:string;error?:string}>}){
+ const {client,owner}=await requireAdmin();const q=await searchParams;
+ const {data,error}=await client.rpc("admin_metrics");
+ const m=object(data);
+ const {count:pending}=await client.from("channels").select("*",{head:true,count:"exact"}).eq("review_status","pending");
+ const {count:approvals}=owner?await client.from("profiles").select("*",{head:true,count:"exact"}).eq("ads_access_status","pending"):{count:0};
+ const tiles=owner?[["Installs from ads","ads"],["Organic installs","organic"],["App users","users"],["Logged in","members"],["Premium users","premium"],["Channels","channels"],["Published posts","posts"]]:[["Channels","channels"],["Published posts","posts"]];
+ return <><PageHeader title="Dashboard" subtitle="Overview of installs, users and content" action={<LinkButton href="/dashboard/posts/new">+ New post</LinkButton>}/><Flash ok={q.ok} error={q.error||error?.message}/><div className="mb-6 space-y-3">{!!pending&&<Card className="border-amber-200 bg-amber-50"><div className="flex flex-wrap items-center justify-between gap-3 text-sm text-amber-900"><span>{pending} new channel requests to review</span><LinkButton href="/dashboard/channels" variant="secondary">Review →</LinkButton></div></Card>}{!!approvals&&<div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-red-700 p-5 text-sm text-white"><span>{approvals} organic buyers waiting for approval</span><LinkButton href="/dashboard/approvals" variant="secondary">Review →</LinkButton></div>}</div><div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">{tiles.map(([label,key])=><Stat key={key} label={label} value={Number(m[key]??0).toLocaleString("en-IN")}/>)}</div>{owner&&<><div className="mb-4 flex items-center justify-between"><SectionTitle>Installs by source and campaign</SectionTitle><span className="text-xs text-gray-400">All time</span></div>{rows(m.campaigns).length?<Table><thead><tr>{["Source","Campaign","Installs","Registrations","Buyers"].map(x=><Th key={x}>{x}</Th>)}</tr></thead><tbody>{rows(m.campaigns).map((c,i)=><tr key={i}><Td><SourceBadge value={str(c.source)}/></Td><Td>{str(c.campaign)}</Td><Td>{str(c.installs)}</Td><Td>{str(c.registrations)}</Td><Td>{str(c.buyers)}</Td></tr>)}</tbody></Table>:<Empty>No installs yet. Campaign performance will appear here.</Empty>}</>}</>;
 }

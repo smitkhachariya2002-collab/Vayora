@@ -1,0 +1,33 @@
+import Link from "next/link";
+import type {ReactNode,ButtonHTMLAttributes,InputHTMLAttributes,SelectHTMLAttributes,TextareaHTMLAttributes} from "react";
+export const APP_NAME="Vayora",LOGO_LETTERS="V";
+export function Logo(){return <span className="flex items-center gap-3 font-semibold tracking-tight text-gray-900"><span className="grid h-10 w-10 place-items-center rounded-xl bg-red-700 text-lg font-bold text-white">{LOGO_LETTERS}</span><span>{APP_NAME}<span className="block text-[10px] font-medium uppercase tracking-[.2em] text-gray-400">Workspace</span></span></span>}
+export function PageHeader({title,subtitle,action}:{title:string;subtitle?:string;action?:ReactNode}){return <header className="mb-6 flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-2xl font-semibold tracking-tight text-gray-900">{title}</h1>{subtitle&&<p className="mt-1 text-sm text-gray-500">{subtitle}</p>}</div>{action}</header>}
+export function Card({children,className=""}:{children:ReactNode;className?:string}){return <section className={"min-w-0 rounded-xl border border-gray-200 bg-white p-5 shadow-sm "+className}>{children}</section>}
+const variants={primary:"bg-red-700 text-white hover:bg-red-800",secondary:"bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50",danger:"bg-white text-red-700 ring-1 ring-red-300 hover:bg-red-50",success:"bg-green-700 text-white hover:bg-green-800"};
+export type Variant=keyof typeof variants;
+export function buttonClass(variant:Variant="primary"){return "inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50 disabled:cursor-not-allowed "+variants[variant]}
+export function Button({variant="primary",className="",...props}:ButtonHTMLAttributes<HTMLButtonElement>&{variant?:Variant}){return <button className={buttonClass(variant)+" "+className} {...props}/>}
+export function LinkButton({href,children,variant="primary"}:{href:string;children:ReactNode;variant?:Variant}){return <Link href={href} className={buttonClass(variant)}>{children}</Link>}
+export function Field({label,hint,children}:{label:string;hint?:string;children:ReactNode}){return <label className="flex min-w-0 flex-col gap-1.5"><span className="text-sm font-medium text-gray-700">{label}</span>{children}{hint&&<span className="text-xs leading-5 text-gray-500">{hint}</span>}</label>}
+const control="w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none placeholder:text-gray-400 focus:border-red-600 focus:ring-1 focus:ring-red-600 disabled:bg-gray-50 disabled:text-gray-500";
+export function Input(props:InputHTMLAttributes<HTMLInputElement>){return <input {...props} className={control+" "+(props.className??"")}/>}
+export function Textarea(props:TextareaHTMLAttributes<HTMLTextAreaElement>){return <textarea rows={3} {...props} className={control+" "+(props.className??"")}/>}
+export function Select(props:SelectHTMLAttributes<HTMLSelectElement>){return <select {...props} className={control+" "+(props.className??"")}/>}
+const tones={gray:"bg-gray-100 text-gray-800",red:"bg-red-100 text-red-800",green:"bg-green-100 text-green-800",amber:"bg-amber-100 text-amber-800",blue:"bg-blue-100 text-blue-800",purple:"bg-purple-100 text-purple-800"};
+export function Badge({children,tone="gray"}:{children:ReactNode;tone?:keyof typeof tones}){return <span className={"inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium "+tones[tone]}>{children}</span>}
+export function AudienceBadge({value}:{value:string}){return <Badge tone={value==="ads"?"purple":value==="organic"?"blue":"gray"}>{value==="ads"?"Ads only":value==="organic"?"Organic only":"Everyone"}</Badge>}
+export function SourceBadge({value}:{value:string}){return <Badge tone={value==="ads"?"purple":"blue"}>{value==="ads"?"Ads":"Organic"}</Badge>}
+export function StatusBadge({value}:{value:string}){return <Badge tone={["published","active","approved","success","closed"].includes(value)?"green":["hidden","rejected","revoked"].includes(value)?"red":["pending","created","draft","scheduled","open"].includes(value)?"amber":"gray"}>{value.replaceAll("_"," ")}</Badge>}
+export function Table({children}:{children:ReactNode}){return <div className="min-w-0 max-w-full overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm"><table className="w-full text-left text-sm">{children}</table></div>}
+export function Th({children}:{children?:ReactNode}){return <th className="whitespace-nowrap bg-gray-50 px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">{children}</th>}
+export function Td({children}:{children?:ReactNode}){return <td className="border-t border-gray-100 px-4 py-3 align-top text-gray-700">{children}</td>}
+export function Empty({children="Nothing here yet"}:{children?:ReactNode}){return <div className="rounded-xl border border-dashed border-gray-300 bg-white px-5 py-12 text-center text-sm text-gray-500">{children}</div>}
+export function Flash({ok,error}:{ok?:string;error?:string}){return <>{ok&&<p role="status" className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{ok}</p>}{error&&<p role="alert" className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}</>}
+export function SectionTitle({children}:{children:ReactNode}){return <h2 className="mb-4 text-base font-semibold text-gray-900">{children}</h2>}
+export function FormGrid({children}:{children:ReactNode}){return <div className="grid gap-4 sm:grid-cols-2">{children}</div>}
+export function Stat({label,value}:{label:string;value:ReactNode}){return <Card><p className="text-xs font-medium text-gray-500">{label}</p><p className="mt-3 text-2xl font-semibold tabular-nums tracking-tight text-gray-900">{value}</p></Card>}
+export function Hidden({name,value}:{name:string;value:string}){return <input type="hidden" name={name} value={value}/>}
+export function AudienceSelect({value="all"}:{value?:string}){return <Select name="audience" defaultValue={value}><option value="all">Everyone</option><option value="organic">Organic only</option><option value="ads">Ads only</option></Select>}
+export function date(value:unknown){if(!value)return "—";const d=new Date(String(value));if(Number.isNaN(d.valueOf()))return "—";return d.toLocaleString("en-IN",{timeZone:"Asia/Kolkata",day:"2-digit",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",hour12:true});}
+export function money(value:unknown){return new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:2}).format(Number(value)||0);}
