@@ -54,7 +54,7 @@ as $$ select auth.uid() is not null and exists(select 1 from public.subscription
  where user_id=auth.uid() and revoked_at is null and starts_at<=now() and ends_at>now()) $$;
 create function private.is_premium_user() returns boolean language sql stable security definer set search_path=''
 as $$ select private.is_member() and (private.has_plan() or (private.has_ads_access() and exists(
- select 1 from public.app_mode where id and (free_mode or free_access_enabled)))) $$;
+ select 1 from public.app_mode where id and free_mode))) $;
 create function public.is_premium_user() returns boolean language sql stable set search_path='' as $$ select private.is_premium_user() $$;
 create function private.quota_bytes(p_user uuid) returns bigint language sql stable security definer set search_path='' as $$
  select case when p_user<>auth.uid() or not private.is_member() then 0::bigint

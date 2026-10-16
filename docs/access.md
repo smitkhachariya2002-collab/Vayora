@@ -12,8 +12,10 @@ supersedes the original all-or-nothing MONETISATION switch.
 | Paid premium | false | false | true |
 
 Free posts still require a permanent account for full playback.
-Ads users can watch trailers while guests. In hybrid/free modes, ads users and
-approved organic users get full premium content after login.
+Ads users can watch trailers while guests. In hybrid mode, premium full videos
+require a paid plan; approved organic users can see ads content but still need a
+plan for premium videos. In exclusive free-only mode, ads users and approved
+organic users get full premium content after login.
 Every permanent account gets 15 GiB in hybrid/free modes. An active paid plan
 gets 2 TiB and full premium playback, regardless of source.
 Organic users need owner approval to see ads-audience channels/posts even after

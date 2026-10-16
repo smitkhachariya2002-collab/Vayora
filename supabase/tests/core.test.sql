@@ -59,7 +59,7 @@ select is(public.source_of('10000000-0000-0000-0000-000000000003'),'ads','Ads at
 select is(public.has_ads_access(),true,'Ads access works');
 select is((select count(*) from public.channels where name in ('All','Ads','Organic')),2::bigint,'Ads cannot read organic-only channel');
 select is(public.can_read_media('10000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000002/trailer'),true,'Ads trailer allowed');
-select is(public.is_premium_user(),true,'Hybrid free ads member gets full content');
+select is(public.is_premium_user(),false,'Hybrid free ads member needs a paid plan for full premium');
 insert into test_orders select (j->>'id')::uuid,j->>'reference','second' from (select public.create_payment_order((select id from public.plans where code='silver')) j) a;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000004',true);

@@ -14,7 +14,7 @@ Check the PR's GitHub Actions results for actual validation status.
 9. ✅ Channel/post/item audience RLS.
 10. ✅ Pending user channels, approved admin channels, member-only join.
 11. ✅ Private media and database-gated signed URLs.
-12. ✅ Free/premium/ads/organic playback paths and trailer-end upgrade prompt.
+12. ✅ Free/premium/ads/organic playback paths and trailer-end upgrade prompt. Hybrid mode requires a paid plan for full premium videos; the exclusive free-only override grants eligible members full playback.
 13. ✅ Post details, Trailer/Play, related posts, sharing/channel/report/download actions, and a report reason/details dialog.
 14. ✅ Status RPC and refresh after login/payment/resume.
 15. ✅ Five seeded plans with fixed durations/prices and no auto-renew.
