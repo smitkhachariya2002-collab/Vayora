@@ -1,0 +1,19 @@
+name: Edge Function verification
+on:
+  pull_request:
+    paths: ['supabase/functions/**', '.github/workflows/functions.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.5.4
+      - run: deno check supabase/functions/delete-account/index.ts
