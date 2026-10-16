@@ -2,7 +2,7 @@ name: Prepare generated platform and lockfiles
 on:
   push:
     branches: [build/core-flow]
-    paths: ['mobile/**', 'admin/package.json', '.github/workflows/bootstrap.yml']
+    paths: ['mobile/pubspec.yaml', 'mobile/android_overlay/**', 'admin/package.json', '.github/workflows/bootstrap.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -30,7 +30,7 @@ jobs:
           cd mobile
           flutter pub get
           cd ../admin
-          npm install --save-exact --ignore-scripts @supabase/ssr@latest @supabase/supabase-js@latest react@latest react-dom@latest
+          npm install --package-lock-only --ignore-scripts
           npm audit --omit=dev --audit-level=high
       - name: Commit generated sources and lockfiles to this PR branch
         run: |

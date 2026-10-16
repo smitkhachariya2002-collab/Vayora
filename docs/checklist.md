@@ -1,6 +1,6 @@
 # Core-flow delivery checklist
 
-✅ = implemented and covered by the relevant code/checks; ⏳ = external setup or verification required; ⚠️ = deliberate deviation or partial delivery.
+✅ = implemented; ⏳ = external setup or verification required; ⚠️ = deliberate deviation or partial delivery.
 Check the PR's GitHub Actions results for actual validation status.
 
 1. ✅ Automatic anonymous session; ⏳ enable live anonymous sign-ins.
@@ -15,7 +15,7 @@ Check the PR's GitHub Actions results for actual validation status.
 10. ✅ Pending user channels, approved admin channels, member-only join.
 11. ✅ Private media and database-gated signed URLs.
 12. ✅ Free/premium/ads/organic playback paths and trailer-end upgrade prompt.
-13. ✅ Post details, Trailer/Play, related posts and actions; ⚠️ reporting currently submits a fixed reason, no detailed reason picker.
+13. ✅ Post details, Trailer/Play, related posts, sharing/channel/report/download actions, and a report reason/details dialog.
 14. ✅ Status RPC and refresh after login/payment/resume.
 15. ✅ Five seeded plans with fixed durations/prices and no auto-renew.
 16. ✅ Subscription entitlement and extensions.
@@ -28,11 +28,11 @@ Check the PR's GitHub Actions results for actual validation status.
 23. ✅ Internal idempotent activation, amount checks, unique UTR, stacked duration.
 24. ✅ Owner mark/revoke and scheduled stale-order cancellation.
 25. ✅ Organic plan activation requests approval.
-26. ✅ Polling/history and plan checkout; ⚠️ open orders are accessible via the history link rather than a dedicated banner.
+26. ✅ Polling/history, plan checkout, and an open-order banner.
 27. ✅ Owner operating modes; hybrid free+paid is the owner-confirmed launch default.
 28. ✅ Exclusive-free override, ads-approved entitlement, request access and 15 GiB/2 TiB quotas.
 29. ✅ Hybrid, free-only and paid modes; owner approval stays independent of payment.
-30. ✅ Core admin pages, approvals, users/grants, plans, payments/sales/repeat buyers, channel approvals, post uploads, mode controls; ⚠️ repeat buyer statistics are displayed, but no dedicated buyer-history drilldown.
+30. ✅ Core admin pages, approvals, users/grants, plans, payments/sales/repeat buyers, channel approvals, post uploads, mode controls, and repeat-buyer payment-history links.
 31. ✅ Main-only migration/function deployment workflow; ⏳ production secrets and first merge.
 32. ✅ Disposable Supabase SQL test workflow and security assertions.
 33. ✅ Flutter verification and both signed release build definitions; ⏳ supply one fixed release key and configure the client key.

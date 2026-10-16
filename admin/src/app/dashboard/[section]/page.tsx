@@ -1,3 +1,4 @@
+import PostUploader from "../post-uploader";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase";
@@ -63,12 +64,10 @@ export default async function Page({params,searchParams}:{params:Promise<{sectio
   return <><h1>Channels</h1>{channelForm()}{channels?.map(c=>channelForm(c))}</>;
  }
  const {data:posts}=await client.from("posts").select().order("created_at",{ascending:false}).limit(100);
- const postForm=(p?:Record<string,string>)=><form action={savePost} className="panel" key={p?.id??"new"}>
+ const postForm=(p?:Record<string,string>)=><section key={p?.id??"new"}><form action={savePost} className="panel">
   <Hidden name="id" value={p?.id??""}/><input name="title" placeholder="Post title" defaultValue={p?.title} required/>
   <textarea name="description" placeholder="Description" defaultValue={p?.description}/><select name="channel_id" defaultValue={p?.channel_id}>{channels?.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><Audience value={p?.audience}/>
   <select name="status" defaultValue={p?.status??"draft"}><option>draft</option><option>scheduled</option><option>published</option></select><input name="publish_at" type="datetime-local" aria-label="Publish at" defaultValue={p?.publish_at?.slice(0,16)}/>
-  <p><label>Main media <input type="file" name="media" accept="video/*,image/*"/></label></p>
-  <p><label>Trailer <input type="file" name="trailer" accept="video/*"/></label></p><p><label>Thumbnail <input type="file" name="thumbnail" accept="image/jpeg,image/png,image/webp"/></label></p>
-  <label><input type="checkbox" name="premium"/>Premium media</label><button>Save post</button></form>;
+  <button>Save post details</button></form>{p?<PostUploader postId={p.id} creator={p.created_by}/>:<p>Save the post first, then add its media below.</p>}</section>;
  return <><h1>Posts</h1><p>Uploads are limited to 50 MB per file. Adding media appends an item to the post.</p>{postForm()}{posts?.map(p=>postForm(p))}</>;
 }

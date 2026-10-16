@@ -337,7 +337,12 @@ class PostPage extends StatelessWidget {
       if (key == null) throw StateError('Trailer unavailable');
       final url = await state.db.storage.from('media').createSignedUrl(key, 3600);
       if (!context.mounted) return;
-      await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Watch(url: url, trailer: trailer, state: state)));
+      if (!trailer && (item['mime'] as String).startsWith('image/')) {
+        await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Scaffold(appBar: AppBar(title: Text(post['title'] as String)),
+          body: Center(child: InteractiveViewer(child: Image.network(url))))));
+      } else {
+        await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Watch(url: url, trailer: trailer, state: state)));
+      }
     });
   }
   @override

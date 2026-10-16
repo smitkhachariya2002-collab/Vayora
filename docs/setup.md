@@ -98,5 +98,4 @@ UPI payment, cancellation/app kill/resume recovery, downloads/rotation, and acco
 deletion. SQL/Flutter unit tests cannot prove real UPI apps or OAuth providers work.
 Debug artifacts without a configured publishable key display a setup message.
 
-The full cloud browser/upload flow, Meta tracking, report reasons/details UI,
-creator mobile uploads, and detailed policy/public-form milestone remain future work.
+The full cloud browser/upload flow, Meta tracking, creator mobile uploads, and detailed policy/public-form milestone remain future work.

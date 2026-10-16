@@ -80,32 +80,9 @@ export async function saveChannel(form: FormData) {
 export async function savePost(form: FormData) {
   const { client, user } = await requireAdmin();
   const id = text(form,"id") || randomUUID();
-  const existing = text(form,"id") ? await client.from("posts").select("created_by").eq("id",id).single() : null;
-  const creator = existing?.data?.created_by ?? user.id;
   const values = {channel_id:text(form,"channel_id"),title:text(form,"title"),description:text(form,"description"),
     audience:text(form,"audience") || "all",status:text(form,"status") || "draft",publish_at:text(form,"publish_at") || null};
   checked((text(form,"id") ? await client.from("posts").update(values).eq("id",id)
     : await client.from("posts").insert({...values,id,created_by:user.id})).error);
-  const media = form.get("media") as File | null;
-  if (media && media.size > 0) {
-    if (media.size > 52428800) throw new Error("50 MB maximum");
-    const key = creator + "/" + id + "/" + randomUUID();
-    checked((await client.storage.from("media").upload(key,media,{contentType:media.type || "application/octet-stream"})).error);
-    let trailerKey: string | null = null, thumbnailKey: string | null = null;
-    const trailer = form.get("trailer") as File | null;
-    if (trailer && trailer.size>0) {
-      if (trailer.size>52428800) throw new Error("50 MB maximum");
-      trailerKey=creator+"/"+id+"/"+randomUUID();
-      checked((await client.storage.from("media").upload(trailerKey,trailer,{contentType:trailer.type})).error);
-    }
-    const thumbnail=form.get("thumbnail") as File | null;
-    if (thumbnail && thumbnail.size>0) {
-      if (thumbnail.size>52428800) throw new Error("50 MB maximum");
-      thumbnailKey=user.id+"/"+randomUUID();
-      checked((await client.storage.from("public").upload(thumbnailKey,thumbnail,{contentType:thumbnail.type})).error);
-    }
-    checked((await client.from("post_items").insert({post_id:id,media_key:key,trailer_key:trailerKey,
-      thumbnail_key:thumbnailKey,is_premium:form.has("premium"),mime:media.type || "video/mp4"})).error);
-  }
   revalidatePath("/dashboard/posts");
 }
