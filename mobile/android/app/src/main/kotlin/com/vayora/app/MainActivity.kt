@@ -79,7 +79,11 @@ class MainActivity : FlutterActivity() {
                         val name = (call.argument<String>("name") ?: "vayora-video.mp4").replace(Regex("[^A-Za-z0-9._-]"), "_")
                         val request = DownloadManager.Request(uri).setTitle(name)
                             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
+                        if (android.os.Build.VERSION.SDK_INT >= 29) {
+                            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
+                        } else {
+                            request.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, name)
+                        }
                         val manager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
                         result.success(manager.enqueue(request))
                     } catch (_: Exception) { result.error("download_failed", "Could not start download", null) }
