@@ -30,4 +30,4 @@ export function Stat({label,value}:{label:string;value:ReactNode}){return <Card>
 export function Hidden({name,value}:{name:string;value:string}){return <input type="hidden" name={name} value={value}/>}
 export function AudienceSelect({value="all"}:{value?:string}){return <Select name="audience" defaultValue={value}><option value="all">Everyone</option><option value="organic">Organic only</option><option value="ads">Ads only</option></Select>}
 export function date(value:unknown){if(!value)return "—";const d=new Date(String(value));if(Number.isNaN(d.valueOf()))return "—";return d.toLocaleString("en-IN",{timeZone:"Asia/Kolkata",day:"2-digit",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",hour12:true});}
-export function money(value:unknown){return new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:2}).format(Number(value)||0);}
+export function money(value:unknown){return new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",minimumFractionDigits:0,maximumFractionDigits:2}).format(Number(value)||0);}

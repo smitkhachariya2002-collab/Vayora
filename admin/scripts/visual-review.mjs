@@ -18,6 +18,11 @@ const member=await admin.auth.admin.createUser({email:"creator@example.test",pas
 if(member.error)throw member.error;
 await admin.from("support_requests").insert({user_id:member.data.user.id,email:"creator@example.test",kind:"content",reason:"Review this content",details:"Example content report for the review screen.",post_id:postId});
 await client.rpc("set_ads_access",{user_id:member.data.user.id,status:"pending"});
+await admin.from("channels").insert({name:"Community channel request",description:"A creator is waiting for review.",category:"Community",created_by:member.data.user.id,audience:"organic"});
+await client.rpc("record_install",{install_id:randomUUID(),referrer_status:"provided",raw_referrer:"utm_source=meta&utm_campaign=India_creators",install_secret:randomUUID()+randomUUID()});
+const {data:fixturePlans}=await admin.from("plans").select("id,duration_days,price_inr").limit(1);
+if(fixturePlans?.[0]){const plan=fixturePlans[0];await client.rpc("grant_premium",{user_id:member.data.user.id,plan_id:plan.id});await admin.from("payment_orders").insert({user_id:member.data.user.id,plan_id:plan.id,duration_days:plan.duration_days,amount_paise:Math.round(plan.price_inr*100),reference:"VISUAL_PENDING_ORDER",status:"pending"});}
+
 const content=await admin.auth.admin.createUser({email:"editor@example.test",password,email_confirm:true});if(content.error)throw content.error;
 await admin.from("admins").insert({user_id:content.data.user.id,role:"content"});
 await admin.from("admin_channel_access").insert({user_id:content.data.user.id,channel_id:channelId});
