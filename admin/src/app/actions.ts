@@ -14,7 +14,7 @@ export async function signIn(form: FormData) {
     : await client.auth.signInWithPassword(credentials);
   if (error) redirect("/login?error=" + encodeURIComponent(error.message));
   if (form.get("signup") === "yes") redirect("/login?message=Check+your+email+then+ask+the+owner+to+grant+access");
-  redirect("/dashboard");
+  redirect("/");
 }
 export async function signOut() {
   const client = await db();
@@ -88,4 +88,5 @@ export async function savePost(form: FormData) {
   checked((text(form,"id") ? await client.from("posts").update(values).eq("id",id)
     : await client.from("posts").insert({...values,id,created_by:user.id})).error);
   revalidatePath("/dashboard/posts");
+  return id;
 }

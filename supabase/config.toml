@@ -24,3 +24,6 @@ enabled = true
 file_size_limit = "50MiB"
 [functions.delete-account]
 verify_jwt = false
+
+[functions.admin-delete-account]
+verify_jwt = false
