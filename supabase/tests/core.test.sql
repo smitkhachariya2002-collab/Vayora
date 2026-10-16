@@ -28,13 +28,13 @@ set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
 
-select lives_ok($select public.record_install('40000000-0000-0000-0000-000000000001','none','','abcdefghijklmnopqrstuvwxyz123456')$$,'Record organic install');
+select lives_ok($$select public.record_install('40000000-0000-0000-0000-000000000001','none','','abcdefghijklmnopqrstuvwxyz123456')$$,'Record organic install');
 select is(public.source_of('10000000-0000-0000-0000-000000000002'),'organic','Organic attribution');
 select lives_ok($$select public.record_install('40000000-0000-0000-0000-000000000001','provided','utm_source=meta','abcdefghijklmnopqrstuvwxyz123456')$$,'Repeat install is idempotent');
 select is(public.source_of('10000000-0000-0000-0000-000000000002'),'organic','First touch cannot change');
 select is((select count(*) from public.channels),2::bigint,'Organic cannot read ads channels');
 select is(public.has_ads_access(),false,'Organic has no ads access');
-select throws_ok($select public.request_full_access()$,'P0001',null,'Paid mode cannot request free full access');
+select throws_ok($$select public.request_full_access()$$,'P0001',null,'Paid mode cannot request free full access');
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000005","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000005',true);
 select is(public.has_ads_access(),false,'Paid mode approval without a plan does not unlock ads');
@@ -124,7 +124,7 @@ select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-00000000
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000003',true);
 
 select is(public.quota_bytes('10000000-0000-0000-0000-000000000003'),16106127360::bigint,'Free mode gives members 15 GiB');
-select lives_ok($select public.request_full_access()$,'Access requests are allowed without payment in free mode');
+select lives_ok($$select public.request_full_access()$$,'Access requests are allowed without payment in free mode');
 
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
