@@ -1,0 +1,22 @@
+name: vayora
+description: Cloud storage and creator channels for India.
+publish_to: none
+version: 0.1.0+1
+environment:
+  sdk: '>=3.9.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  supabase_flutter: 2.10.0
+  shared_preferences: 2.5.3
+  uuid: 4.5.1
+  video_player: 2.10.0
+  chewie: 1.12.1
+  url_launcher: 6.3.2
+  http: 1.5.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: 6.0.0
+flutter:
+  uses-material-design: true

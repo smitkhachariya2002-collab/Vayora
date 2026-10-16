@@ -1,0 +1,162 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
+import 'upi.dart';
+
+const backendUrl = String.fromEnvironment('SUPABASE_URL',
+    defaultValue: 'https://fzloulsjhkdxwagonsgt.supabase.co');
+const backendKey = String.fromEnvironment('SUPABASE_KEY');
+const apkReferrer = String.fromEnvironment('APK_REFERRER');
+
+class AppState extends ChangeNotifier {
+  AppState(this.db, this.prefs);
+  final SupabaseClient db;
+  final SharedPreferences prefs;
+  Map<String, dynamic> status = {};
+  bool busy = false;
+  bool _reporting = false;
+  String? error;
+  bool get guest => status['is_guest'] != false;
+  bool get premium => status['is_premium'] == true;
+  bool get adsAccess => status['has_ads_access'] == true;
+  bool get paidEnabled => status['paid_enabled'] == true;
+  String get userId => db.auth.currentUser!.id;
+  String get installId => prefs.getString('install_id')!;
+  String get installSecret => prefs.getString('install_secret')!;
+  Set<String> get blocked => (prefs.getStringList('blocked_channels') ?? []).toSet();
+
+  Future<void> initialize() async {
+    if (!prefs.containsKey('install_id')) {
+      await prefs.setString('install_id', const Uuid().v4());
+      await prefs.setString('install_secret', '${const Uuid().v4()}${const Uuid().v4()}');
+    }
+    if (db.auth.currentSession == null) await db.auth.signInAnonymously();
+    if (prefs.getBool('install_recorded') != true) {
+      await db.rpc('record_install', params: {
+        'install_id': installId,
+        'referrer_status': apkReferrer.isEmpty ? 'none' : 'provided',
+        'raw_referrer': apkReferrer,
+        'install_secret': installSecret,
+      });
+      await prefs.setBool('install_recorded', true);
+    }
+    await afterLogin();
+  }
+
+  Future<void> afterLogin() async {
+    await db.rpc('attribute_user',
+        params: {'install_id': installId, 'install_secret': installSecret});
+    await refreshStatus();
+    if (prefs.getBool('consent_v1') == true) await syncConsent();
+    await retryPayments();
+  }
+
+  Future<void> refreshStatus() async {
+    status = Map<String, dynamic>.from(await db.rpc('my_status') as Map);
+    notifyListeners();
+  }
+
+  Future<void> acceptConsent() async {
+    await syncConsent();
+    await prefs.setBool('consent_v1', true);
+    notifyListeners();
+  }
+
+  Future<void> syncConsent() async {
+    final rows = await db.from('consents').select('policy_version')
+        .eq('user_id', userId).eq('policy_version', 'v1');
+    if (rows.isEmpty) {
+      await db.from('consents').insert({'user_id': userId, 'policy_version': 'v1'});
+    }
+  }
+
+  Future<void> login(String email, String password, {bool create = false}) async {
+    if (create && db.auth.currentUser?.isAnonymous == true) {
+      await db.auth.updateUser(UserAttributes(email: email, password: password));
+    } else {
+      await db.auth.signInWithPassword(email: email, password: password);
+    }
+    await afterLogin();
+  }
+
+  Future<void> google({bool linkGuest = false}) async {
+    if (linkGuest && db.auth.currentUser?.isAnonymous == true) {
+      await db.auth.linkIdentity(OAuthProvider.google,
+          redirectTo: 'com.vayora.app://login-callback');
+    } else {
+      await db.auth.signInWithOAuth(OAuthProvider.google,
+          redirectTo: 'com.vayora.app://login-callback');
+    }
+  }
+
+  Future<void> logout() async {
+    await db.auth.signOut();
+    await db.auth.signInAnonymously();
+    await afterLogin();
+  }
+
+  Future<void> block(String channelId) async {
+    final values = blocked;
+    if (!values.add(channelId)) values.remove(channelId);
+    await prefs.setStringList('blocked_channels', values.toList());
+    notifyListeners();
+  }
+
+  Future<void> requestAccess() async {
+    await db.rpc('request_full_access');
+    await refreshStatus();
+  }
+
+  Future<void> pay(String planId) async {
+    final order = Map<String, dynamic>.from(
+        await db.rpc('create_payment_order', params: {'plan_id': planId}) as Map);
+    const channel = MethodChannel('app/upi');
+    final raw = await channel.invokeMethod<String>('pay', {
+      'uri': buildUpiLink(
+          upiId: order['upi_id'] as String,
+          payeeName: order['payee_name'] as String,
+          reference: order['reference'] as String,
+          amountPaise: (order['amount_paise'] as num).toInt()),
+      'order_id': order['id'],
+    });
+    if (raw != null) {
+      final pending = readPendingPayments(prefs.getString('pending_payments'));
+      pending[order['id'] as String] = raw;
+      await prefs.setString('pending_payments', jsonEncode(pending));
+      await retryPayments();
+    }
+  }
+
+  Future<void> retryPayments() async {
+    if (_reporting) return;
+    _reporting = true;
+    try {
+      const native = MethodChannel('app/upi');
+      final queue = readPendingPayments(prefs.getString('pending_payments'));
+      try {
+        final recovered = await native.invokeMapMethod<String, String>('pending');
+        if (recovered != null) queue.addAll(recovered);
+      } on MissingPluginException {
+        // Native recovery is only available on Android.
+      }
+      await prefs.setString('pending_payments', jsonEncode(queue));
+      for (final entry in Map<String, String>.from(queue).entries) {
+        try {
+          await db.rpc('report_payment_result',
+              params: {'order_id': entry.key, 'raw': entry.value});
+          queue.remove(entry.key);
+          await prefs.setString('pending_payments', jsonEncode(queue));
+          await native.invokeMethod<void>('ack', {'order_id': entry.key});
+        } on Object {
+          // Keep the response until the server accepts it; retry on resume/start.
+        }
+      }
+      await refreshStatus();
+    } finally {
+      _reporting = false;
+    }
+  }
+}

@@ -1,0 +1,42 @@
+name: Prepare generated platform and lockfiles
+on:
+  push:
+    branches: [build/core-flow]
+    paths: ['mobile/**', 'admin/package.json', '.github/workflows/bootstrap.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: prepare-platform
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/build/core-flow'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+      - name: Generate Android platform and resolve lockfiles
+        run: |
+          flutter create --platforms android --org com.vayora --project-name vayora --no-pub /tmp/vayora-platform
+          if [ ! -d mobile/android ]; then cp -R /tmp/vayora-platform/android mobile/android; fi
+          cp -R mobile/android_overlay/. mobile/android/
+          cd mobile
+          flutter pub get
+          cd ../admin
+          npm install --package-lock-only --ignore-scripts
+      - name: Commit generated sources and lockfiles to this PR branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mobile/android mobile/pubspec.lock admin/package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: generate Android platform and dependency lockfiles"
+            git push origin HEAD:build/core-flow
+          fi

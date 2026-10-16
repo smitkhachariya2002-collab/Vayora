@@ -1,0 +1,14 @@
+**/node_modules/
+**/.next/
+**/.dart_tool/
+**/build/
+**/.flutter-plugins*
+**/android/local.properties
+**/android/key.properties
+*.jks
+*.keystore
+.env*
+!.env.example
+**/.supabase/
+supabase/.temp/
+supabase/.branches/

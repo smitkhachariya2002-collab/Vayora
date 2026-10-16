@@ -1,0 +1,22 @@
+name: Database security tests
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.81.3
+      - name: Confirm CLI interfaces
+        run: |
+          supabase start --help > /dev/null
+          supabase test db --help > /dev/null
+      - run: supabase start
+      - run: supabase test db
+      - if: always()
+        run: supabase stop --no-backup
