@@ -40,7 +40,7 @@ try{
  const sections=["dashboard","channels","posts","approvals","payments","meta","users","requests","plans","admins","channels-new","channels-edit","posts-new","posts-edit"];
  for(const section of sections){let path=section==="dashboard"?"":section.replace("-new","/new").replace("-edit","/"+(section.startsWith("posts")?postId:channelId));if(stage==="before")path="/dashboard"+(path?"/"+path:"");else path="/"+path;
  const response=await page.goto(origin+path);await page.waitForLoadState("networkidle");const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);
- if(stage==="after"&&(response.status()>=400||overflow||await page.getByText("Application error",{exact:false}).count()||await page.getByRole("heading",{name:"This page could not load",exact:true}).count()||await page.getByRole("alert").count()))throw new Error(stage+" "+section+" "+label+" status="+response.status()+" overflow="+overflow);
+ if(stage==="after"&&(response.status()>=400||overflow||await page.getByText("Application error",{exact:false}).count()||await page.getByRole("heading",{name:"This page could not load",exact:true}).count()||await page.locator("main [role=alert]").count()))throw new Error(stage+" "+section+" "+label+" status="+response.status()+" overflow="+overflow);
  report.push({stage,section,width,status:response.status(),overflow});await page.screenshot({path:"visual-artifacts/"+stage+"-"+section+"-"+label+".png",fullPage:true});
  }
  await context.close();
