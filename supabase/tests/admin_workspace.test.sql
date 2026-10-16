@@ -34,8 +34,8 @@ select ok(not has_function_privilege('anon','public.admin_reorder_post_items(uui
 insert into public.channels(id,name,created_by) values('b0000000-0000-0000-0000-000000000001','Reorder test','a0000000-0000-0000-0000-000000000001');
 insert into public.posts(id,channel_id,title,created_by) values('b0000000-0000-0000-0000-000000000002','b0000000-0000-0000-0000-000000000001','Reorder','a0000000-0000-0000-0000-000000000001');
 insert into public.post_items(id,post_id,media_key) values
-('b0000000-0000-0000-0000-000000000003','b0000000-0000-0000-0000-000000000002','reorder1'),
-('b0000000-0000-0000-0000-000000000004','b0000000-0000-0000-0000-000000000002','reorder2');
+('b0000000-0000-0000-0000-000000000003','b0000000-0000-0000-0000-000000000002','a0000000-0000-0000-0000-000000000001/b0000000-0000-0000-0000-000000000002/reorder1'),
+('b0000000-0000-0000-0000-000000000004','b0000000-0000-0000-0000-000000000002','a0000000-0000-0000-0000-000000000001/b0000000-0000-0000-0000-000000000002/reorder2');
 select lives_ok($$select public.admin_reorder_post_items('b0000000-0000-0000-0000-000000000002',array['b0000000-0000-0000-0000-000000000004','b0000000-0000-0000-0000-000000000003']::uuid[])$$,'Owner reorders media atomically');
 select is((select position from public.post_items where id='b0000000-0000-0000-0000-000000000004'),0,'First item position updated');
 select throws_ok($$select public.admin_reorder_post_items('b0000000-0000-0000-0000-000000000002',array['b0000000-0000-0000-0000-000000000003']::uuid[])$$,'P0001','Media list changed; refresh and try again','Incomplete media list rejected');
