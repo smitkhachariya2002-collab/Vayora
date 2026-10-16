@@ -78,7 +78,7 @@ Set:
 Current admin pages use the signed-in user's session and RLS, not a service key.
 Never prefix a secret key with NEXT_PUBLIC_.
 
-After owner setup, open Settings and choose the operating mode. Hybrid is seeded.
+After owner setup, open Settings and choose the operating mode. Paid mode (free_mode=false) is seeded.
 Open Payments, enter your real UPI ID and payee name, and enable payments only
 when ready. UPI checkout stays disabled until these are configured.
 

@@ -85,11 +85,11 @@ create table public.audit_logs (
 );
 create index audit_actor_idx on public.audit_logs(actor_id);
 create table public.app_mode (
- id boolean primary key default true check(id), free_mode boolean not null default false,
- free_access_enabled boolean not null default true, paid_enabled boolean not null default true
+ id boolean primary key default true check(id), free_mode boolean not null default false
 );
--- Hybrid launch: free access AND upgrades. free_mode is a separate exclusive-free override.
-insert into public.app_mode(id,free_mode,free_access_enabled,paid_enabled) values(true,false,true,true);
+-- Owner-confirmed launch: paid mode. The server flag switches the entire app.
+insert into public.app_mode(id,free_mode) values(true,false);
+alter publication supabase_realtime add table public.app_mode;
 
 create function private.is_owner() returns boolean language sql stable security definer set search_path=''
 as $$ select auth.uid() is not null and exists(select 1 from public.admins where user_id=auth.uid() and role='owner') $$;

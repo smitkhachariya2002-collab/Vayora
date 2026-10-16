@@ -11,8 +11,7 @@ Android cloud storage and creator channels for users across India.
 ## Current milestone
 
 Guest onboarding, consent, install attribution, audience rules, channels, posts,
-signed media playback, plan/order backend, manual bank verification, hybrid free
-access plus paid upgrades, admin pages, and GitHub Actions.
+signed media playback, plan/order backend, manual bank verification, server-switched free and paid modes, admin pages, and GitHub Actions.
 
 See [setup](docs/setup.md), [access rules](docs/access.md), and
 [delivery checklist](docs/checklist.md). Cloud uploads and the full public-site/Meta

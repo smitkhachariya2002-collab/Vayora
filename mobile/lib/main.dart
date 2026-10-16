@@ -123,7 +123,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final s = widget.state;
     return Scaffold(
       appBar: AppBar(title: Text(['Cloud','Feed','Explore','Channels','Profile'][selected]), actions: [
-        IconButton(tooltip: 'Access and plans', icon: const Icon(Icons.workspace_premium, color: Colors.amber),
+        IconButton(tooltip: 'Account access', icon: const Icon(Icons.workspace_premium, color: Colors.amber),
           onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Plans(state: s)))),
       ]),
       body: [
@@ -161,7 +161,7 @@ class Policy extends StatelessWidget {
         'Privacy' => 'Vayora stores account details, install attribution, consent, uploaded content and payment records to provide the service. Contact help.vayora@gmail.com to request access or deletion.',
         'Refund' => 'Plans do not renew automatically. If a verified payment does not unlock your plan, contact help.vayora@gmail.com with your order reference. Refund requests are reviewed by support.',
         'Community rules' => 'Upload only content you have permission to share. Illegal, abusive or infringing content is prohibited. Report content from its post or channel page. User channels require review.',
-        _ => 'Use Vayora lawfully and respect other users and creators. Paid access lasts for the selected plan duration. Payment access begins after verification. Contact help.vayora@gmail.com for assistance.',
+        _ => 'Use Vayora lawfully and respect other users and creators. Account access follows the current service mode. Contact help.vayora@gmail.com for assistance.',
       }),
       const SizedBox(height: 20), const Text('Contact: help.vayora@gmail.com'),
     ]),
@@ -341,7 +341,7 @@ class PostPage extends StatelessWidget {
         await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Scaffold(appBar: AppBar(title: Text(post['title'] as String)),
           body: Center(child: InteractiveViewer(child: Image.network(url))))));
       } else {
-        await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Watch(url: url, trailer: trailer, state: state)));
+        await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Watch(url: url, trailer: trailer, isPremium: item['is_premium'] == true, state: state)));
       }
     });
   }
@@ -388,9 +388,10 @@ class PostPage extends StatelessWidget {
 }
 
 class Watch extends StatefulWidget {
-  const Watch({super.key,required this.url,required this.trailer,required this.state});
+  const Watch({super.key,required this.url,required this.trailer,required this.isPremium,required this.state});
   final String url;
   final bool trailer;
+  final bool isPremium;
   final AppState state;
   @override
   State<Watch> createState()=>_WatchState();
@@ -402,7 +403,11 @@ class _WatchState extends State<Watch> {
   String? failure;
   int rotation=0;
   @override
-  void initState(){super.initState();video=VideoPlayerController.networkUrl(Uri.parse(widget.url));unawaited(prepare());}
+  void initState(){super.initState();video=VideoPlayerController.networkUrl(Uri.parse(widget.url));widget.state.addListener(accessChanged);unawaited(prepare());}
+  void accessChanged(){
+    final allowed=widget.trailer?widget.state.adsAccess:!widget.state.guest&&(!widget.isPremium||widget.state.premium);
+    if(!allowed&&mounted){unawaited(video.pause());if(ModalRoute.of(context)?.isCurrent==true)Navigator.pop(context);}
+  }
   Future<void> prepare() async {
     try {
       await video.initialize();
@@ -427,7 +432,7 @@ class _WatchState extends State<Watch> {
     }
   }
   @override
-  void dispose(){video.removeListener(checkEnd);controls?.dispose();video.dispose();
+  void dispose(){widget.state.removeListener(accessChanged);video.removeListener(checkEnd);controls?.dispose();video.dispose();
     unawaited(const MethodChannel('app/screen').invokeMethod<void>('rotation',{'mode':'auto'}));super.dispose();}
   @override
   Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:Text(widget.trailer?'Trailer':'Now playing'),
@@ -444,19 +449,24 @@ class Plans extends StatefulWidget {
   State<Plans> createState()=>_PlansState();
 }
 class _PlansState extends State<Plans> {
-  late final Future<List<Map<String,dynamic>>> plans;
-  late final Future<List<Map<String,dynamic>>> openOrders;
+  late Future<List<Map<String,dynamic>>> plans;
+  late Future<List<Map<String,dynamic>>> openOrders;
   @override
-  void initState(){super.initState();plans=widget.state.db.from('plans').select().eq('active',true).order('position');
-    openOrders=widget.state.db.from('payment_orders').select().eq('user_id',widget.state.userId).inFilter('status',['created','pending']);}
+  void initState(){super.initState();reload();widget.state.addListener(reload);}
+  void reload(){
+    plans=widget.state.db.from('plans').select().eq('active',true).order('position');
+    openOrders=widget.state.db.from('payment_orders').select().eq('user_id',widget.state.userId).inFilter('status',['created','pending']);
+  }
+  @override
+  void dispose(){widget.state.removeListener(reload);super.dispose();}
   @override
   Widget build(BuildContext context)=>ListenableBuilder(listenable:widget.state,builder:(context,_){
     final s=widget.state;
-    return Scaffold(appBar:AppBar(title:const Text('Access and plans')),body:ListView(padding:const EdgeInsets.all(20),children:[
-      Text(s.status['plan_name']!=null?'Active: ${s.status['plan_name']} until ${s.status['plan_ends_at']}':'Free account'),
+    return Scaffold(appBar:AppBar(title:Text(s.paidEnabled?'Premium plans':'Free access')),body:ListView(padding:const EdgeInsets.all(20),children:[
+      if(s.paidEnabled)Text(s.status['plan_name']!=null?'Active: ${s.status['plan_name']} until ${s.status['plan_ends_at']}':'No active plan'),
       Text('Cloud allowance: ${s.status['quota_bytes']??0} bytes'),
       Text('Full access: ${s.status['access_status']??'none'}'),
-      if(!s.adsAccess) OutlinedButton(onPressed:()=>runAction(context,()async{
+      if(!s.paidEnabled && !s.adsAccess) OutlinedButton(onPressed:()=>runAction(context,()async{
         if(await loginGate(context,s))await s.requestAccess();
       }),child:const Text('Request full access')),
       if(s.paidEnabled)...[
@@ -505,7 +515,9 @@ class _PaymentsState extends State<Payments> with WidgetsBindingObserver {
   @override
   void dispose(){poll?.cancel();WidgetsBinding.instance.removeObserver(this);super.dispose();}
   @override
-  Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:const Text('Payments')),body:FutureBuilder(future:rows,builder:(context,snap){
+  Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:const Text('Payments')),body:ListenableBuilder(listenable:widget.state,builder:(context,_){
+    if(!widget.state.paidEnabled)return const Center(child:Text('Payments are unavailable in free mode.'));
+    return FutureBuilder(future:rows,builder:(context,snap){
     if(snap.hasError)return const Center(child:Text('Could not load payments.'));
     if(!snap.hasData)return const Center(child:CircularProgressIndicator());
     return ListView(children:[
@@ -513,7 +525,7 @@ class _PaymentsState extends State<Payments> with WidgetsBindingObserver {
       for(final o in snap.data!)ListTile(title:Text('${o['reference']} · ${o['status']}'),
         subtitle:Text('₹${(o['amount_paise'] as num)/100} · ${o['reason']??''}')),
     ]);
-  }));
+  });}));
 }
 
 class Profile extends StatelessWidget {
@@ -522,7 +534,7 @@ class Profile extends StatelessWidget {
   @override
   Widget build(BuildContext context)=>ListView(padding:const EdgeInsets.all(20),children:[
     Text(state.guest?'Guest account':state.db.auth.currentUser?.email??'Your account',style:Theme.of(context).textTheme.titleLarge),
-    Text('Source: ${state.status['source']} · Plan: ${state.status['plan_name']??'Free'}'),
+    Text(state.paidEnabled?'Source: ${state.status['source']} · Plan: ${state.status['plan_name']??'None'}':'Source: ${state.status['source']} · Access: ${state.status['access_status']}'),
     if(state.guest)FilledButton(onPressed:()=>loginGate(context,state),child:const Text('Log in / create account')),
     if(!state.guest)TextButton(onPressed:()=>runAction(context,state.logout),child:const Text('Log out')),
     if(state.paidEnabled)TextButton(onPressed:()=>Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>Payments(state:state))),child:const Text('Payment history')),

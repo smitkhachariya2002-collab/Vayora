@@ -45,10 +45,10 @@ export async function revokePayment(form: FormData) {
 }
 export async function saveMode(form: FormData) {
   const { client } = await requireAdmin(true);
-  const mode = text(form,"mode");
-  if (!["hybrid","free","paid"].includes(mode)) throw new Error("Invalid mode");
+  const mode = text(form,"free_mode");
+  if (!["true","false"].includes(mode)) throw new Error("Invalid mode");
   checked((await client.from("app_mode").update({
-    free_mode: mode === "free", free_access_enabled: mode !== "paid", paid_enabled: mode !== "free",
+    free_mode: mode === "true",
   }).eq("id",true)).error);
   revalidatePath("/dashboard","layout");
 }

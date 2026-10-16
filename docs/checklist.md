@@ -14,7 +14,7 @@ Check the PR's GitHub Actions results for actual validation status.
 9. ✅ Channel/post/item audience RLS.
 10. ✅ Pending user channels, approved admin channels, member-only join.
 11. ✅ Private media and database-gated signed URLs.
-12. ✅ Free/premium/ads/organic playback paths and trailer-end upgrade prompt. Hybrid mode requires a paid plan for full premium videos; the exclusive free-only override grants eligible members full playback.
+12. ✅ Free/premium/ads/organic playback paths and trailer-end upgrade prompt. Paid mode requires a plan for full premium videos; free mode grants approved/ads members full playback after login.
 13. ✅ Post details, Trailer/Play, related posts, sharing/channel/report/download actions, and a report reason/details dialog.
 14. ✅ Status RPC and refresh after login/payment/resume.
 15. ✅ Five seeded plans with fixed durations/prices and no auto-renew.
@@ -29,9 +29,9 @@ Check the PR's GitHub Actions results for actual validation status.
 24. ✅ Owner mark/revoke and scheduled stale-order cancellation.
 25. ✅ Organic plan activation requests approval.
 26. ✅ Polling/history, plan checkout, and an open-order banner.
-27. ✅ Owner operating modes; hybrid free+paid is the owner-confirmed launch default.
-28. ✅ Exclusive-free override, ads-approved entitlement, request access and 15 GiB/2 TiB quotas.
-29. ✅ Hybrid, free-only and paid modes; owner approval stays independent of payment.
+27. ✅ Owner operating modes; paid mode is seeded, and the owner switches free_mode.
+28. ✅ Free mode hides paid UI, grants full videos to ads/approved members after login, and gives every logged-in account 15 GiB; paid mode gives plan holders 2 TiB.
+29. ✅ Mutually exclusive free and paid modes; organic ads access in paid mode requires both an active plan and owner approval.
 30. ✅ Core admin pages, approvals, users/grants, plans, payments/sales/repeat buyers, channel approvals, post uploads, mode controls, and repeat-buyer payment-history links.
 31. ✅ Main-only migration/function deployment workflow; ⏳ production secrets and first merge.
 32. ✅ Disposable Supabase SQL test workflow and security assertions.

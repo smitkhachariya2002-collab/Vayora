@@ -52,20 +52,28 @@ as $$ select free_mode from public.app_mode where id $$;
 create function private.has_plan() returns boolean language sql stable security definer set search_path=''
 as $$ select auth.uid() is not null and exists(select 1 from public.subscriptions
  where user_id=auth.uid() and revoked_at is null and starts_at<=now() and ends_at>now()) $$;
-create function private.is_premium_user() returns boolean language sql stable security definer set search_path=''
-as $$ select private.is_member() and (private.has_plan() or (private.has_ads_access() and exists(
- select 1 from public.app_mode where id and free_mode))) $$;
+-- In paid mode, organic ads access requires BOTH approval and an active plan.
+create or replace function private.has_ads_access() returns boolean language sql stable security definer set search_path='' as $$
+ select auth.uid() is not null and (private.source_of(auth.uid())='ads' or
+ (exists(select 1 from public.profiles where id=auth.uid() and ads_access_status='approved')
+ and (private.has_plan() or exists(select 1 from public.app_mode where id and free_mode))))
+$$;
+create function private.is_premium_user() returns boolean language sql stable security definer set search_path='' as $$
+ select private.is_member() and case when exists(select 1 from public.app_mode where id and free_mode)
+ then private.has_ads_access() else private.has_plan() end
+$$;
 create function public.is_premium_user() returns boolean language sql stable set search_path='' as $$ select private.is_premium_user() $$;
 create function private.quota_bytes(p_user uuid) returns bigint language sql stable security definer set search_path='' as $$
  select case when p_user<>auth.uid() or not private.is_member() then 0::bigint
- when private.has_plan() then 2199023255552::bigint
- when exists(select 1 from public.app_mode where id and (free_mode or free_access_enabled)) then 16106127360::bigint else 0::bigint end
+ when exists(select 1 from public.app_mode where id and free_mode) then 16106127360::bigint
+ when private.has_plan() then 2199023255552::bigint else 0::bigint end
 $$;
 create function public.quota_bytes(user_id uuid) returns bigint language sql stable set search_path='' as $$ select private.quota_bytes(user_id) $$;
 
 create function private.request_full_access() returns void language plpgsql security definer set search_path='' as $$
 begin
  if not private.is_member() then raise exception 'Login required'; end if;
+ if not exists(select 1 from public.app_mode where id and free_mode) then raise exception 'Full access requests require free mode'; end if;
  update public.profiles set ads_access_status='pending' where id=auth.uid() and ads_access_status in ('none','rejected');
 end $$;
 create function public.request_full_access() returns void language sql set search_path='' as $$ select private.request_full_access() $$;
@@ -82,7 +90,7 @@ create function private.create_payment_order(p_plan uuid) returns jsonb language
 declare pl public.plans; settings public.payment_settings; ord public.payment_orders;
 begin
  if not private.is_member() then raise exception 'Login required'; end if;
- if not exists(select 1 from public.app_mode where id and paid_enabled and not free_mode) then raise exception 'Payments unavailable in free mode'; end if;
+ if not exists(select 1 from public.app_mode where id and not free_mode) then raise exception 'Payments unavailable in free mode'; end if;
  select * into settings from public.payment_settings where id and enabled and length(upi_id)>2 and length(payee_name)>0;
  if not found then raise exception 'Payments are not configured yet'; end if;
  -- Serialize all orders for this user, including different plans.
@@ -200,7 +208,7 @@ create function private.my_status() returns jsonb language sql stable security d
  'plan_name',(select pl.name from public.subscriptions s join public.plans pl on pl.id=s.plan_id where s.user_id=p.id and s.revoked_at is null and s.starts_at<=now() and s.ends_at>now() order by s.ends_at desc limit 1),
  'plan_ends_at',(select max(ends_at) from public.subscriptions where user_id=p.id and revoked_at is null and starts_at<=now() and ends_at>now()),
  'used_bytes',p.used_bytes,'quota_bytes',private.quota_bytes(p.id),'free_mode',m.free_mode,
- 'free_access_enabled',m.free_access_enabled,'paid_enabled',m.paid_enabled and not m.free_mode,'access_status',p.ads_access_status)
+ 'paid_enabled',not m.free_mode,'access_status',p.ads_access_status)
  from public.profiles p cross join public.app_mode m where p.id=auth.uid()
 $$;
 create function public.my_status() returns jsonb language sql stable set search_path='' as $$ select private.my_status() $$;
@@ -224,7 +232,7 @@ grant select on public.plans,public.payment_settings,public.payment_orders,publi
 grant insert,update,delete on public.plans to authenticated;
 grant update on public.payment_settings,public.support_requests to authenticated;
 create policy plans_read on public.plans for select to authenticated using((select private.is_owner()) or
- (active and exists(select 1 from public.app_mode where paid_enabled and not free_mode)));
+ (active and exists(select 1 from public.app_mode where not free_mode)));
 create policy plans_create on public.plans for insert to authenticated with check((select private.is_owner()));
 create policy plans_edit on public.plans for update to authenticated using((select private.is_owner())) with check((select private.is_owner()));
 create policy plans_delete on public.plans for delete to authenticated using((select private.is_owner()));

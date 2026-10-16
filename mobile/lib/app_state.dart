@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +19,7 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic> status = {};
   bool busy = false;
   bool _reporting = false;
+  RealtimeChannel? _modeChannel;
   String? error;
   bool get guest => status['is_guest'] != false;
   bool get premium => status['is_premium'] == true;
@@ -44,6 +46,9 @@ class AppState extends ChangeNotifier {
       await prefs.setBool('install_recorded', true);
     }
     await afterLogin();
+    _modeChannel ??= db.channel('vayora-operating-mode')
+      .onPostgresChanges(event: PostgresChangeEvent.update, schema: 'public', table: 'app_mode',
+        callback: (_) { unawaited(refreshStatus()); }).subscribe();
   }
 
   Future<void> afterLogin() async {

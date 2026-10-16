@@ -1,61 +1,54 @@
 # Access decisions
 
-## Launch decision
+The owner confirmed mutually exclusive modes controlled by app_mode.free_mode.
+The launch seed is false (paid mode). There is no hybrid mode.
 
-The owner explicitly chose **free access and paid upgrades together**. This
-supersedes the original all-or-nothing MONETISATION switch.
+| Rule | Paid mode: false | Free mode: true |
+|---|---|---|
+| Plans/prices/UPI in mobile | Shown | Hidden |
+| Ads account before purchase | Free posts + trailers | Full videos after login |
+| Organic ads access | Active plan AND owner approval | Request full access, then owner approval |
+| Full premium videos | Active plan | Ads access after login |
+| Cloud for permanent account | 2 TiB with plan, otherwise 0 | 15 GiB for every logged-in account |
+| Guest cloud | 0 | 0 |
 
-| Mode | free_mode | free_access_enabled | paid_enabled |
-|---|---:|---:|---:|
-| Hybrid (launch default) | false | true | true |
-| Free-only override | true | true | false |
-| Paid premium | false | false | true |
+Stored subscriptions remain recorded when switching modes; paid-mode entitlement
+returns when switching back if the subscription has not expired. A paid subscription
+does not bypass organic approval in free mode. The app subscribes to operating-mode
+changes through Supabase Realtime and refreshes its status. Resuming also refreshes
+status. Playback pauses if a mode change removes entitlement. The database enforces
+new access decisions immediately; previously issued signed URLs remain valid until
+expiry, so this is not DRM or immediate revocation of an already copied URL.
 
-Free posts still require a permanent account for full playback.
-Ads users can watch trailers while guests. In hybrid mode, premium full videos
-require a paid plan; approved organic users can see ads content but still need a
-plan for premium videos. In exclusive free-only mode, ads users and approved
-organic users get full premium content after login.
-Every permanent account gets 15 GiB in hybrid/free modes. An active paid plan
-gets 2 TiB and full premium playback, regardless of source.
-Organic users need owner approval to see ads-audience channels/posts even after
-buying a plan. Buying a plan sets their access request to pending.
-
-## Attribution
+## Attribution and permissions
 
 An install stores its source once. A separate immutable per-user first source
 survives switching accounts and install reattribution. The app uses a random
-install UUID and a second secret saved on device; another account cannot claim
-an install just by knowing its UUID. The original referrer source is app-reported,
-so this distinguishes APK distributions, not cryptographically verified Meta
-conversions. Client IP is not accepted from a mobile argument.
+install UUID and a second secret saved on device. The original referrer is
+app-reported and distinguishes APK distributions, not verified Meta conversions.
+Client IP is never accepted from a mobile argument.
 
 RLS protects every exposed table. Admins can browse content; content admins can
-only mutate channels they created or have been assigned. Only the owner can
-change payments, plans, operating mode, user approvals, or subscription grants.
-Profile display fields are editable; access/usage/guest fields are protected.
-User channel approval and creator ownership cannot be changed by creators.
+mutate only channels they created or have been assigned. Only owners change
+payments, plans, operating mode, approvals and subscription grants. User-created
+channels stay pending until owner review. Guest status and access cannot be
+changed through editable profile metadata.
 
 ## Payment integrity
 
-Amounts and plan durations are snapshotted by the database. Orders are serialized
-per user. Activation is idempotent, checks the amount and unique bank UTR, and
-extends the remaining subscription duration. Phone UPI responses are untrusted:
-even a well-formed SUCCESS response stays pending for bank verification.
+Amounts and durations are snapshotted by the database. Orders are serialized per
+user. Activation is idempotent, checks the amount and unique bank UTR, and extends
+remaining subscription duration. Phone UPI responses are untrusted: even a
+well-formed SUCCESS stays pending until the owner verifies receipt in the bank.
 
-This deliberately differs from reference point 22: formatting, matching references
-and unique IDs do not prove a transfer occurred. Only owner verification currently
-activates a plan. No provider verification API has been integrated.
+This deliberately differs from reference point 22. Formatting and matching IDs
+cannot prove a transfer occurred. No provider verification API is integrated.
 
-## Storage
+## Storage and policy copy
 
-Media keys use creator/post/file paths and a private bucket. Full-video signed URLs
-require a permanent account and the item's entitlement. Trailer URLs require ads
-access. Public buckets contain thumbnails/icons and APKs only. Maximum upload size
-is 50 MiB. Cloud writes are closed in this milestone; no unmetered upload path is
-exposed. Existing signed URLs remain usable until expiry; no DRM is claimed.
+Media uses creator/post/file keys in a private bucket. Full signed URLs require
+a permanent account and entitlement; trailers require ads access. Public buckets
+contain images and APKs. Uploads are limited to 50 MiB. Cloud writes remain closed
+until atomic quota reservations and upload finalization are implemented.
 
-## Policy copy
-
-The policy pages are starter copy. The product owner must review policies, refund
-terms and retention before public launch. They are not a completed legal review.
+Policies are starter copy requiring owner review before public launch.

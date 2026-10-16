@@ -13,9 +13,9 @@ export default async function Page({params,searchParams}:{params:Promise<{sectio
  const {client,owner}=await requireAdmin(!["channels","posts"].includes(section));
  if(section==="settings"){
   const {data:m}=await client.from("app_mode").select().single();
-  return <><h1>Operating mode</h1><form action={saveMode} className="panel"><select name="mode" defaultValue={m?.free_mode?"free":m?.free_access_enabled?"hybrid":"paid"}>
-    <option value="hybrid">Free access + paid upgrades</option><option value="free">Free only · hide paid plans</option><option value="paid">Paid premium · free posts remain available</option></select><button>Save mode</button></form>
-    <p>Ads accounts get ads access automatically. Organic accounts need owner approval for ads content.</p></>;
+  return <><h1>Operating mode</h1><form action={saveMode} className="panel"><select name="free_mode" defaultValue={m?.free_mode?"true":"false"}>
+    <option value="false">Paid mode · premium requires a plan</option><option value="true">Free mode · hide all paid plans and payments</option></select><button>Save mode</button></form>
+    <p>Ads accounts get ads access automatically. In paid mode, organic accounts need both an active plan and owner approval for ads content. In free mode, they can request approval without payment.</p></>;
  }
  if(section==="users"||section==="approvals"){
   const {data,error}=await client.rpc("admin_users");if(error)throw new Error(error.message);
