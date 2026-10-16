@@ -1,6 +1,7 @@
 name: Admin verification
 on:
   pull_request:
+    paths: ['admin/**', '.github/workflows/admin.yml']
   push:
     branches: [main]
   workflow_dispatch:

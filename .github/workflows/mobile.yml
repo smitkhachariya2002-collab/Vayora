@@ -1,6 +1,7 @@
 name: Android verification and APKs
 on:
   pull_request:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
   push:
     branches: [main]
   workflow_dispatch:

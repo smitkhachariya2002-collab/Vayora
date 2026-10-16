@@ -1,6 +1,7 @@
 name: Edge Function verification
 on:
   pull_request:
+    paths: ['supabase/functions/**', '.github/workflows/functions.yml']
   workflow_dispatch:
 permissions:
   contents: read

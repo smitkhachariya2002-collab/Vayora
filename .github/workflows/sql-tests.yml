@@ -1,6 +1,7 @@
 name: Database security tests
 on:
   pull_request:
+    paths: ['supabase/**', '.github/workflows/sql-tests.yml']
   workflow_dispatch:
 permissions:
   contents: read
