@@ -1,1 +1,2 @@
-export {default,dynamic} from "../dashboard/layout";
+export {default} from "../dashboard/layout";
+export const dynamic="force-dynamic";

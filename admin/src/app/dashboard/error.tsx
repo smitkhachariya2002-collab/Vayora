@@ -1,0 +1,3 @@
+"use client";
+import {Card,Button} from "@/components/ui";
+export default function ErrorPage({reset}:{error:Error;reset:()=>void}){return <Card><h1 className="text-xl font-semibold">This page could not load</h1><p className="my-4 text-sm text-gray-500">Try again. If this continues, check that the admin migrations are deployed and your account still has access.</p><Button onClick={reset}>Try again</Button></Card>}
