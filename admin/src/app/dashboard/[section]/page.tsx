@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase";
 import { changeAccess,grantPlan,markPaid,revokePayment,saveMode,saveUpi,savePlan,saveChannel,savePost } from "../../actions";
@@ -34,6 +35,7 @@ export default async function Page({params,searchParams}:{params:Promise<{sectio
  if(section==="payments"){
   const {data:settings}=await client.from("payment_settings").select().single();
   let orders=client.from("payment_orders").select("*,plans(name)").order(query.sort==="amount"?"amount_paise":"created_at",{ascending:false}).limit(200);
+  if(query.buyer)orders=orders.eq("user_id",query.buyer);
   if(query.status)orders=orders.eq("status",query.status);
   if(query.plan)orders=orders.eq("plan_id",query.plan);
   if(query.from)orders=orders.gte("created_at",query.from);
@@ -49,7 +51,7 @@ export default async function Page({params,searchParams}:{params:Promise<{sectio
    {data?.map(o=><section key={o.id}><h2>{o.reference} · ₹{o.amount_paise/100}</h2><p>{o.plans?.name} · {o.status} · {o.reason}</p>
     {o.status!=="success"&&o.status!=="revoked"&&<form action={markPaid}><Hidden name="order_id" value={o.id}/><input name="utr" placeholder="Verified bank UTR" required pattern="[A-Za-z0-9]{6,40}"/><button>Mark paid</button></form>}
     {o.status==="success"&&<form action={revokePayment}><Hidden name="order_id" value={o.id}/><input name="reason" placeholder="Reason" required/><button>Revoke</button></form>}</section>)}
-   <h2>Sales by plan</h2><pre>{JSON.stringify(sales,null,2)}</pre><h2>Repeat buyers</h2><pre>{JSON.stringify(buyers,null,2)}</pre><small>Orders show at most 200 matching rows.</small></>;
+   <h2>Sales by plan</h2><pre>{JSON.stringify(sales,null,2)}</pre><h2>Repeat buyers</h2>{(buyers as Row[]|null)?.map(b=><section key={String(b.user_id)}><p>{String(b.user_id)} · {String(b.purchases)} payments · ₹{Number(b.total_paise)/100}</p><Link href={"?buyer="+String(b.user_id)}>View buyer payment history</Link></section>)}<small>Orders show at most 200 matching rows.</small></>;
  }
  const {data:channels}=await client.from("channels").select().order("created_at",{ascending:false});
  if(section==="channels"){

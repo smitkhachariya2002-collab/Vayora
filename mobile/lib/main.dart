@@ -88,6 +88,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     auth = widget.state.db.auth.onAuthStateChange.listen((event) {
+      if (!mounted) return;
       if (event.event == AuthChangeEvent.signedIn || event.event == AuthChangeEvent.userUpdated) {
         unawaited(runAction(context, widget.state.afterLogin));
       }
@@ -175,9 +176,12 @@ class Login extends StatefulWidget {
 }
 class _LoginState extends State<Login> {
   final email = TextEditingController(), password = TextEditingController();
+  @override
+  void initState() { super.initState(); widget.state.addListener(accountChanged); }
+  void accountChanged() { if (mounted && !widget.state.guest && ModalRoute.of(context)?.isCurrent == true) Navigator.pop(context); }
   bool create = false, busy = false;
   @override
-  void dispose() { email.dispose(); password.dispose(); super.dispose(); }
+  void dispose() { widget.state.removeListener(accountChanged); email.dispose(); password.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Your Vayora account')),
     body: ListView(padding: const EdgeInsets.all(24), children: [
@@ -188,7 +192,6 @@ class _LoginState extends State<Login> {
         setState(() => busy = true);
         await runAction(context, () async {
           await widget.state.login(email.text.trim(), password.text, create: create);
-          if (context.mounted && !widget.state.guest) Navigator.pop(context);
         });
         if (mounted) setState(() => busy = false);
       }, child: Text(create ? 'Create account' : 'Log in')),
@@ -214,6 +217,8 @@ class _ContentListState extends State<ContentList> {
   late Future<List<Map<String, dynamic>>> data;
   @override
   void initState() { super.initState(); data = load(); }
+  @override
+  void didUpdateWidget(covariant ContentList oldWidget) { super.didUpdateWidget(oldWidget); data = load(); }
   Future<List<Map<String, dynamic>>> load() async {
     List<String>? joined;
     if (widget.feed) {
@@ -252,6 +257,8 @@ class _ChannelListState extends State<ChannelList> {
   late Future<List<Map<String, dynamic>>> rows;
   @override
   void initState() { super.initState(); reload(); }
+  @override
+  void didUpdateWidget(covariant ChannelList oldWidget) { super.didUpdateWidget(oldWidget); reload(); }
   void reload() { rows = widget.state.db.from('channels').select().order('created_at', ascending: false).limit(100); }
   @override
   Widget build(BuildContext context) => FutureBuilder(future: rows, builder: (context, snap) {
@@ -293,6 +300,27 @@ class PostPage extends StatelessWidget {
   const PostPage({super.key, required this.state, required this.post});
   final AppState state;
   final Map<String, dynamic> post;
+  Future<void> report(BuildContext context) async {
+    final details = TextEditingController();
+    var reason = 'Copyright';
+    final send = await showDialog<bool>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, update) => AlertDialog(
+      title: const Text('Report content'), content: Column(mainAxisSize: MainAxisSize.min, children: [
+        DropdownButton<String>(value: reason, items: ['Copyright','Abuse','Illegal content','Other']
+          .map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+          onChanged: (value) => update(() => reason = value ?? reason)),
+        TextField(controller: details, maxLength: 4000, maxLines: 3, decoration: const InputDecoration(labelText: 'Details')),
+      ]), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Submit'))],
+    )));
+    final text = details.text;
+    details.dispose();
+    if (send == true && context.mounted) {
+      await runAction(context, () async {
+        await state.db.rpc('report_content_in_app', params: {'post_id': post['id'], 'channel_id': post['channel_id'], 'reason': reason, 'details': text});
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report submitted')));
+      });
+    }
+  }
   Future<void> play(BuildContext context, Map<String, dynamic> item, {bool trailer = false}) async {
     if (!trailer && !await loginGate(context, state)) return;
     if (!context.mounted) return;
@@ -335,11 +363,7 @@ class PostPage extends StatelessWidget {
           TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Scaffold(
             appBar: AppBar(title: const Text('Channel')), body: ContentList(state: state, channel: post['channel_id'] as String)))),
             child: const Text('Channel')),
-          TextButton(onPressed: () => runAction(context, () async {
-            await state.db.rpc('report_content_in_app', params: {'post_id':post['id'],'channel_id':post['channel_id'],
-              'reason':'Content review requested','details':''});
-            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report submitted')));
-          }), child: const Text('Report')),
+          TextButton(onPressed: () => report(context), child: const Text('Report')),
           TextButton(onPressed: () => runAction(context, () async {
             if (!await loginGate(context,state) || !context.mounted) return;
             if (!state.premium) { await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>Plans(state:state))); return; }
@@ -416,8 +440,10 @@ class Plans extends StatefulWidget {
 }
 class _PlansState extends State<Plans> {
   late final Future<List<Map<String,dynamic>>> plans;
+  late final Future<List<Map<String,dynamic>>> openOrders;
   @override
-  void initState(){super.initState();plans=widget.state.db.from('plans').select().eq('active',true).order('position');}
+  void initState(){super.initState();plans=widget.state.db.from('plans').select().eq('active',true).order('position');
+    openOrders=widget.state.db.from('payment_orders').select().eq('user_id',widget.state.userId).inFilter('status',['created','pending']);}
   @override
   Widget build(BuildContext context)=>ListenableBuilder(listenable:widget.state,builder:(context,_){
     final s=widget.state;
@@ -429,6 +455,9 @@ class _PlansState extends State<Plans> {
         if(await loginGate(context,s))await s.requestAccess();
       }),child:const Text('Request full access')),
       if(s.paidEnabled)...[
+        FutureBuilder(future:openOrders,builder:(context,snap)=>snap.hasData&&snap.data!.isNotEmpty?Card(child:ListTile(
+          title:const Text('You have an open payment order'),subtitle:const Text('View payment status before starting another payment'),
+          onTap:()=>Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>Payments(state:s))))):const SizedBox.shrink()),
         const Text('Upgrade for 2 TB cloud storage and premium videos. No automatic renewal.'),
         FutureBuilder(future:plans,builder:(context,snap){
           if(snap.hasError)return const Text('Plans unavailable. Please try again later.');
@@ -491,7 +520,7 @@ class Profile extends StatelessWidget {
     Text('Source: ${state.status['source']} · Plan: ${state.status['plan_name']??'Free'}'),
     if(state.guest)FilledButton(onPressed:()=>loginGate(context,state),child:const Text('Log in / create account')),
     if(!state.guest)TextButton(onPressed:()=>runAction(context,state.logout),child:const Text('Log out')),
-    TextButton(onPressed:()=>Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>Payments(state:state))),child:const Text('Payment history')),
+    if(state.paidEnabled)TextButton(onPressed:()=>Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>Payments(state:state))),child:const Text('Payment history')),
     for(final name in ['Privacy','Terms','Refund','Community rules'])TextButton(
       onPressed:()=>Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>Policy(name:name))),child:Text(name)),
     TextButton(onPressed:()=>launchUrl(Uri(scheme:'mailto',path:'help.vayora@gmail.com')),child:const Text('Contact support')),
@@ -501,10 +530,10 @@ class Profile extends StatelessWidget {
         content:const Text('This permanently deletes your account and uploaded content. Payment records are retained.'),
         actions:[TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),
           TextButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Delete'))]));
-      if(yes==true&&context.mounted)await runAction(context,()async{
+      if(yes==true&&context.mounted) { await runAction(context,()async{
         await state.db.functions.invoke('delete-account',body:{'confirm':true});
         await state.logout();
-      });
+      }); }
     },child:const Text('Delete account')),
   ]);
 }

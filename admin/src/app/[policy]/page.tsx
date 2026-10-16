@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 const policies:Record<string,{title:string;body:string}>={
  privacy:{title:"Privacy",body:"Vayora stores account details, consent, install attribution, content and payment records to provide the service. Contact help.vayora@gmail.com to request access or deletion."},
@@ -7,5 +8,5 @@ const policies:Record<string,{title:string;body:string}>={
 };
 export default async function Policy({params}:{params:Promise<{policy:string}>}){
  const {policy}=await params,p=policies[policy];if(!p)notFound();
- return <main><a href="/">Vayora</a><h1>{p.title}</h1><p>{p.body}</p><p>Policy version v1 · Support: help.vayora@gmail.com</p></main>;
+ return <main><Link href="/">Vayora</Link><h1>{p.title}</h1><p>{p.body}</p><p>Policy version v1 · Support: help.vayora@gmail.com</p></main>;
 }

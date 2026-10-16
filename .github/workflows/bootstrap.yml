@@ -30,12 +30,13 @@ jobs:
           cd mobile
           flutter pub get
           cd ../admin
-          npm install --package-lock-only --ignore-scripts
+          npm install --save-exact --ignore-scripts @supabase/ssr@latest @supabase/supabase-js@latest react@latest react-dom@latest
+          npm audit --omit=dev --audit-level=high
       - name: Commit generated sources and lockfiles to this PR branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add mobile/android mobile/pubspec.lock admin/package-lock.json
+          git add mobile/android mobile/pubspec.lock admin/package.json admin/package-lock.json
           if ! git diff --cached --quiet; then
             git commit -m "chore: generate Android platform and dependency lockfiles"
             git push origin HEAD:build/core-flow
