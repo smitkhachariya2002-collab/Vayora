@@ -8,7 +8,7 @@ The launch seed is false (paid mode). There is no hybrid mode.
 | Plans/prices/UPI in mobile | Shown | Hidden |
 | Ads account before purchase | Free posts + trailers | Full videos after login |
 | Organic ads access | Active plan AND owner approval | Request full access, then owner approval |
-| Full premium videos | Active plan | Ads access after login |
+| Full premium videos | Active plan; organic users also require owner approval | Ads access after login |
 | Cloud for permanent account | 2 TiB with plan, otherwise 0 | 15 GiB for every logged-in account |
 | Guest cloud | 0 | 0 |
 

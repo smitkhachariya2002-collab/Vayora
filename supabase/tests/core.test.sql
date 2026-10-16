@@ -86,6 +86,12 @@ select lives_ok($$select public.admin_mark_payment_paid((select id from test_ord
 select throws_ok($$select public.admin_mark_payment_paid((select id from test_orders where kind='second'),'UTR123456789')$$,'P0001',null,'UTR usable once');
 select is((select count(*) from public.subscriptions where order_id=(select id from test_orders where kind='first')),1::bigint,'One subscription per order');
 select is((select ads_access_status::text from public.profiles where id='10000000-0000-0000-0000-000000000002'),'pending','Organic buyer becomes pending');
+select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+select is(public.is_premium_user(),false,'Organic buyer waits for approval before premium playback');
+select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
+
 select lives_ok($$select public.set_ads_access('10000000-0000-0000-0000-000000000002','approved')$$,'Owner approves organic access');
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);

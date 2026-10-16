@@ -346,7 +346,7 @@ class PostPage extends StatelessWidget {
     });
   }
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(listenable: state, builder: (context, _) {
     final items = List<Map<String, dynamic>>.from(post['post_items'] as List)
       ..sort((a,b) => (a['position'] as int).compareTo(b['position'] as int));
     return Scaffold(appBar: AppBar(title: const Text('Vayora')), body: ListView(padding: const EdgeInsets.all(20), children: [
@@ -384,7 +384,7 @@ class PostPage extends StatelessWidget {
       Text('More like this',style:Theme.of(context).textTheme.titleLarge),
       SizedBox(height:320,child:ContentList(state:state,creator:post['created_by'] as String)),
     ]));
-  }
+  });
 }
 
 class Watch extends StatefulWidget {

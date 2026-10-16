@@ -60,7 +60,7 @@ create or replace function private.has_ads_access() returns boolean language sql
 $$;
 create function private.is_premium_user() returns boolean language sql stable security definer set search_path='' as $$
  select private.is_member() and case when exists(select 1 from public.app_mode where id and free_mode)
- then private.has_ads_access() else private.has_plan() end
+ then private.has_ads_access() else private.has_plan() and private.has_ads_access() end
 $$;
 create function public.is_premium_user() returns boolean language sql stable set search_path='' as $$ select private.is_premium_user() $$;
 create function private.quota_bytes(p_user uuid) returns bigint language sql stable security definer set search_path='' as $$
