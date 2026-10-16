@@ -94,3 +94,22 @@ begin
 end $$;
 revoke all on function public.admin_reorder_post_items(uuid,uuid[]) from public,anon;
 grant execute on function public.admin_reorder_post_items(uuid,uuid[]) to authenticated;
+
+create function public.admin_payment_summary() returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+ if not private.is_owner() then raise exception 'Owner required'; end if;
+ return (select jsonb_build_object(
+ 'today',coalesce(sum(amount_paise) filter(where status='success' and (paid_at at time zone 'Asia/Kolkata')::date=(now() at time zone 'Asia/Kolkata')::date),0),
+ 'month',coalesce(sum(amount_paise) filter(where status='success' and date_trunc('month',paid_at at time zone 'Asia/Kolkata')=date_trunc('month',now() at time zone 'Asia/Kolkata')),0),
+ 'success',count(*) filter(where status='success'),
+ 'pending',count(*) filter(where status in ('created','pending'))) from public.payment_orders);
+end $$;
+create function public.admin_user_plans() returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+ if not private.is_owner() then raise exception 'Owner required'; end if;
+ return coalesce((select jsonb_agg(to_jsonb(x)) from (
+ select distinct on(s.user_id) s.user_id,p.name,s.ends_at from public.subscriptions s join public.plans p on p.id=s.plan_id
+ where s.revoked_at is null and s.starts_at<=now() and s.ends_at>now() order by s.user_id,s.ends_at desc) x),'[]');
+end $$;
+revoke all on function public.admin_payment_summary(),public.admin_user_plans() from public,anon;
+grant execute on function public.admin_payment_summary(),public.admin_user_plans() to authenticated;

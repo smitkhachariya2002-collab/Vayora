@@ -41,11 +41,18 @@ try{
  await context.close();
  }
  }
+ // Verify create/save/delete feedback through real server actions.
+ const ownerContext=await browser.newContext(),ownerPage=await ownerContext.newPage();
+ await ownerPage.goto("http://localhost:3000/login");await ownerPage.locator('input[name="email"]').fill(email);await ownerPage.locator('input[name="password"]').fill(password);await ownerPage.getByRole("button",{name:"Sign in",exact:true}).click();await ownerPage.waitForURL("http://localhost:3000/");
+ await ownerPage.goto("http://localhost:3000/channels/new");await ownerPage.getByLabel("Channel name",{exact:true}).fill("Created through the browser");await ownerPage.getByRole("button",{name:"Create channel",exact:true}).click();await ownerPage.waitForURL(url=>url.pathname==="/channels"&&url.searchParams.has("ok"));await ownerPage.getByRole("status").filter({hasText:"Changes saved"}).waitFor();
+ await ownerPage.goto("http://localhost:3000/posts/new");await ownerPage.getByLabel("Title",{exact:true}).fill("Browser-created draft");await ownerPage.getByLabel("Channel",{exact:true}).selectOption(channelId);await ownerPage.getByRole("button",{name:"Create post",exact:true}).click();await ownerPage.waitForURL(url=>url.pathname.startsWith("/posts/")&&url.searchParams.has("ok"));await ownerPage.getByText("No media yet. Add a video or image below.",{exact:true}).waitFor();
+ ownerPage.once("dialog",dialog=>dialog.accept());await ownerPage.getByRole("button",{name:"Delete post",exact:true}).click();await ownerPage.waitForURL(url=>url.pathname==="/posts"&&url.searchParams.has("ok"));await ownerContext.close();
  // Content admins must not see owner navigation or enter owner pages.
  const context=await browser.newContext(),page=await context.newPage();await page.goto("http://localhost:3000/login");await page.locator('input[name="email"]').fill("editor@example.test");await page.locator('input[name="password"]').fill(password);await page.getByRole("button",{name:"Sign in",exact:true}).click();await page.waitForURL("http://localhost:3000/");
  if(await page.getByRole("navigation",{name:"Main navigation"}).getByRole("link",{name:"Payments",exact:true}).count())throw new Error("Content admin sees owner navigation");
  await page.goto("http://localhost:3000/payments");await page.waitForURL(url=>url.pathname==="/");await page.getByRole("alert").filter({hasText:"only available to the owner"}).waitFor();
  // Public invocation must not delete an account.
+ const anonymousInvite=await fetch(api+"/functions/v1/admin-invite",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});if(anonymousInvite.status!==401)throw new Error("Invite endpoint must reject unauthenticated callers");
  const unauthorized=await fetch(api+"/functions/v1/admin-delete-account",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({request_id:randomUUID(),confirm:true})});
  if(unauthorized.status!==401)throw new Error("Deletion endpoint must reject unauthenticated callers");
  await context.close();await writeFile("visual-artifacts/report.json",JSON.stringify(report,null,2));
