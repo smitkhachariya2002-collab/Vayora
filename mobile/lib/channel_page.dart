@@ -94,7 +94,7 @@ class _ChannelListState extends State<ChannelList> {
     final term=search.toLowerCase().trim();
     final visible=rows.where((row)=>!widget.state.blocked.contains(row['id'])&&
       (term.isEmpty||'${row['name']} ${row['description']} ${row['category']} ${row['tags']}'.toLowerCase().contains(term))).toList();
-    return RefreshIndicator(onRefresh:reload,child:PageWidth(child:ListView(
+    return Material(color:AppColors.transparent,child:RefreshIndicator(onRefresh:reload,child:PageWidth(child:ListView(
       controller:scroll,physics:const AlwaysScrollableScrollPhysics(),padding:Gap.page,children:[
         Card(child:DecoratedBox(decoration:const BoxDecoration(gradient:AppColors.softGradient,borderRadius:Radii.cardRadius),
           child:Padding(padding:Gap.page,child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -145,7 +145,7 @@ class _ChannelListState extends State<ChannelList> {
         if(failure!=null&&visible.isNotEmpty)ErrorRetry(onRetry:()=>load()),
         if(hasMore&&!loading)OutlinedButton(onPressed:()=>load(),child:const Text('Load more')),
         const SizedBox(height:Gap.xl),
-      ])));
+      ]))));
   }
 }
 class ChannelEditor extends StatefulWidget {

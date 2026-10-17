@@ -26,6 +26,8 @@ void main() {
   }
   Future<void> submit(WidgetTester tester, String key) async {
     tester.testTextInput.hide();
+    await tester.pump();
+    await tester.scrollUntilVisible(find.byKey(ValueKey(key)), 150, scrollable: find.byType(Scrollable).last);
     await tester.ensureVisible(find.byKey(ValueKey(key)));
     await tester.tap(find.byKey(ValueKey(key)));
     await tester.pumpAndSettle();
