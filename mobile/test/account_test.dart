@@ -44,8 +44,9 @@ class Fixture {
             ...currentStatus};
         } else if (request.url.path.endsWith('/consents')) {
           body = <Object>[];
+        } else if (request.url.path.startsWith('/auth/')) { body = <String, dynamic>{};
         } else { body = null; }
-        return http.Response(jsonEncode(body), 200, headers: {'content-type':'application/json'});
+        return http.Response(jsonEncode(body), 200, request: request, headers: {'content-type':'application/json'});
       }));
     state = AppState(db, await SharedPreferences.getInstance());
     await state.initialize();
