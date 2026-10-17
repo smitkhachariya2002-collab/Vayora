@@ -10,7 +10,8 @@ This change restyles the Flutter app while preserving its account, access, appro
 - Clear Log in / Create account choices with password visibility; no guest-upgrade switch.
 - Channel creation keeps a required name, optional description, tags, photo selection/replacement and submit feedback. Channel screens do not say “owner approval required”.
 - Post actions and a full-screen video player with seeking, play/pause, time and rotation controls.
-- Selected plans with a sticky payment button, payment history and accurate verification status wording.
+- Premium benefits appear once above compact selectable plan rows, with existing prices/durations and a sticky payment button. Payment history retains accurate verification status wording.
+- Channels use search, Discover / Joined tabs, a My channels folder action, and compact rows with actual member counts. Trending and Latest use existing data; there is no ratings system or invented Top Rated ordering.
 - Storage allowance presentation, profile, support and policy screens.
 
 ## Scope boundaries

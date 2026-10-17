@@ -3,11 +3,12 @@
 Validated with the repository's pinned Flutter 3.35.7 / Dart 3.9 toolchain in GitHub Actions.
 
 - `flutter analyze`: no issues.
-- `flutter test`: 25 functional/widget tests pass. The 36 screenshot cases are intentionally skipped in this normal command and run in the dedicated visual workflow.
+- `flutter test`: 29 functional/widget tests pass. The 36 screenshot cases are intentionally skipped in this normal command and run in the dedicated visual workflow.
 - Visual workflow: 36 baseline captures; 39 redesigned reference images (36 screen/size combinations and three component images). All redesigned images are generated and checked again against their references.
 - Phone sizes: 360 × 900 and 430 × 900, each with text scales 1.0 and 1.6. Theme buttons and post cards also cover text scale 2.0.
 - Screen coverage: Explore, Post, Player, Premium, Payment status/history, Cloud, Channels, Profile and Login.
 - Regression coverage: existing-account login, guest signup retaining its user ID, duplicate-email feedback, password reset callback, attribution, free-mode presentation, channel validation, channel photo replacement/rollback, player retry and the existing UPI tests.
+- Reference-layout coverage: benefits appear once, compact plan rows preserve exact prices/durations and selection, and Joined channels use actual membership filters. Discover / Joined tabs remain readable at both text sizes; My channels and Create channel use dedicated actions.
 - Before/after screenshots are linked in [the review document](README.md).
 
 The final GitHub workflow run and normal/ads APK download links are included in the PR description.
