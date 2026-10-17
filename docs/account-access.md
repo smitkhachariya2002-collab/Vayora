@@ -63,3 +63,8 @@ key. These external credentials are not created by this PR. A physical device
 must verify email/Google callbacks and real UPI app round trips before launch.
 Production migrations run only through the main-branch deployment workflow after
 review and merge; this PR does not mutate the live database.
+
+The SQL workflow also performs real Auth/REST round trips against its local mail
+server: guest email upgrade/confirmation preserving UUID and consent, existing
+account attribution, fresh guest logout, and recovery confirmation callbacks.
+No Auth credentials or confirmation links are printed.

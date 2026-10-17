@@ -204,8 +204,10 @@ class _LoginState extends State<Login> {
         setState(() => busy = true);
         await runAction(context, () async {
           await widget.state.login(email.text.trim(), password.text, create: create);
-          if (create && context.mounted && widget.state.guest) ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Check your email to confirm your account.')));
+          if (create && context.mounted && widget.state.guest) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Check your email to confirm your account.')));
+          }
         });
         if (mounted) setState(() => busy = false);
       }, child: Text(create ? 'Create account' : 'Log in')),
@@ -213,8 +215,10 @@ class _LoginState extends State<Login> {
         child: const Text('Continue with Google')),
       TextButton(onPressed: () => runAction(context, () async {
         await widget.state.sendPasswordReset(email.text.trim());
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Check your email for the password reset link.')));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Check your email for the password reset link.')));
+        }
       }), child: const Text('Forgot password?')),
       const Text('Creating an account preserves your guest ID. Check your email to confirm the address.'),
     ]));
