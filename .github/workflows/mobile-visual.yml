@@ -58,8 +58,8 @@ jobs:
         working-directory: after/mobile
         run: |
           flutter pub get --enforce-lockfile
-          flutter test test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/parity_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true --update-goldens
-          flutter test test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/parity_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true
+          flutter test test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/parity_screenshots_test.dart test/plan_management_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true --dart-define=PLAN_SCREENSHOTS=true --update-goldens
+          flutter test test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/parity_screenshots_test.dart test/plan_management_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true --dart-define=PLAN_SCREENSHOTS=true
       - name: Format the redesigned UI sources and verify the complete suite
         working-directory: after/mobile
         run: |
@@ -84,7 +84,7 @@ jobs:
             after/mobile/test/failures/
           retention-days: 7
       - name: Save review screenshots and reference goldens on this PR only
-        if: github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/mobile-cinematic-ui'
+        if: github.head_ref == 'build/live-plan-management' || github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/mobile-cinematic-ui'
         working-directory: after
         env:
           PR_BRANCH: ${{ github.head_ref }}

@@ -351,6 +351,7 @@ class AppState extends ChangeNotifier {
     String planId, {
     String? externalToken,
     String? billingState,
+    Future<void> Function(int amountPaise)? beforeLaunch,
   }) async {
     if (playStore && externalToken == null) {
       throw StateError('Use Google Play billing choice');
@@ -369,6 +370,7 @@ class AppState extends ChangeNotifier {
           )
           as Map,
     );
+    await beforeLaunch?.call((order['amount_paise'] as num).toInt());
     const channel = MethodChannel('app/upi');
     final raw = await channel.invokeMethod<String>('pay', {
       'uri': buildUpiLink(

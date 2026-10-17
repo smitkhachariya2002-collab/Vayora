@@ -120,7 +120,7 @@ select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000006'
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',true);
 select is(public.can_read_media('10000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000003/main'),true,'Free mode ads member reads full premium without plan');
 select is(public.quota_bytes(auth.uid()),16106127360::bigint,'Free mode member gets 15 GiB');
-select is((select count(*) from public.plans),0::bigint,'Free mode hides plan catalog through RLS');
+select ok((select count(*) from public.plans)>0,'Active catalog remains readable; free/Play UI hides purchases');
 select throws_ok($$select public.create_payment_order('00000000-0000-0000-0000-000000000001')$$,'P0001','Payments unavailable in free mode','Free mode disallows UPI orders');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000004',true);
