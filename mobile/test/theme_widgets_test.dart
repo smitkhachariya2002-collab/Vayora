@@ -33,6 +33,8 @@ void main(){
       await tester.pump();
       await tester.tap(find.text('Continue to payment'));expect(tapped,1);
       await tester.tap(find.text('Trailer'));expect(tapped,2);
+      await tester.ensureVisible(find.byType(PostCard));
+      await tester.tap(find.byType(PostCard));expect(tapped,3);
       expect(find.text('Premium'),findsOneWidget);
       expect(find.byTooltip('Get Premium'),findsNothing);
       expect(tester.takeException(),isNull);

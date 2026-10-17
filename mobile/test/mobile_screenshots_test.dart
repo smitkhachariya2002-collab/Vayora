@@ -29,12 +29,8 @@ final post=<String,dynamic>{'id':'post-one','title':'A journey beyond the famili
 final order=<String,dynamic>{'id':'order-one','user_id':existingId,'reference':'VAY-DEMO-2026',
   'amount_paise':9900,'status':'pending','created_at':'2026-10-10T12:00:00Z','plans':{'name':'Silver'}};
 void main(){
-  for(final width in [360.0,430.0]){
-    for(final scale in [1.0,1.6]){
-      for(final name in ['explore','post','player','premium','payment','cloud','channels','profile','login']){
-        testWidgets('$name at $width / $scale',(tester)async{
-          tester.view.physicalSize=Size(width,900);tester.view.devicePixelRatio=1;
-          addTearDown(tester.view.resetPhysicalSize);addTearDown(tester.view.resetDevicePixelRatio);
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(()async{
           if(before){
             final root=Platform.environment['FLUTTER_ROOT'];
             if(root!=null){
@@ -46,6 +42,14 @@ void main(){
             for(final weight in ['Regular','Medium','SemiBold','Bold']){fonts.addFont(rootBundle.load('assets/fonts/Poppins-$weight.ttf'));}
             await fonts.load();
           }
+
+  });
+  for(final width in [360.0,430.0]){
+    for(final scale in [1.0,1.6]){
+      for(final name in ['explore','post','player','premium','payment','cloud','channels','profile','login']){
+        testWidgets('$name at $width / $scale',(tester)async{
+          tester.view.physicalSize=Size(width,900);tester.view.devicePixelRatio=1;
+          addTearDown(tester.view.resetPhysicalSize);addTearDown(tester.view.resetDevicePixelRatio);
           final f=Fixture();
           f.intercept=(request){
             Object? value;
@@ -92,7 +96,7 @@ void main(){
           await expectLater(find.byKey(const ValueKey('screen')),
             matchesGoldenFile('goldens/${before?'before':'after'}/$name-${width.toInt()}-$scale.png'));
           await tester.pumpWidget(const SizedBox.shrink());await tester.pump();
-          await f.close();
+          await tester.runAsync(f.close);
         },skip:!capture,timeout:const Timeout(Duration(seconds:45)));
       }
     }
