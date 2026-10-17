@@ -37,7 +37,7 @@ select is(public.has_ads_access(),false,'Organic has no ads access');
 select throws_ok($$select public.request_full_access()$$,'P0001',null,'Paid mode cannot request free full access');
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000005","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000005',true);
-select is(public.has_ads_access(),false,'Paid mode approval without a plan does not unlock ads');
+select is(public.has_ads_access(),true,'Owner approval unlocks ads audience without a plan');
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
 
@@ -88,7 +88,7 @@ select is((select count(*) from public.subscriptions where order_id=(select id f
 select is((select ads_access_status::text from public.profiles where id='10000000-0000-0000-0000-000000000002'),'pending','Organic buyer becomes pending');
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
-select is(public.is_premium_user(),false,'Organic buyer waits for approval before premium playback');
+select is(public.is_premium_user(),true,'Organic buyer can play visible premium before approval');
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 
