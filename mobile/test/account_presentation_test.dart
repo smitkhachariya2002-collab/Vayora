@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -134,17 +135,22 @@ void main() {
     };
     await tester.runAsync(f.start);
     await tester.runAsync(()=>f.state.login('test@example.test','password123'));
-    final pixel=base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('app/photo'),(_)async=>pixel);
+    late Directory temp;late File photo;
+    await tester.runAsync(()async{
+      temp=await Directory.systemTemp.createTemp('vayora-test-');
+      photo=File('${temp.path}/poster.jpg');await photo.writeAsBytes(base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='));
+    });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('app/media'),(_)async=>{'path':photo.path,'name':'story.mp4','mime':'video/mp4','size':await photo.length(),'thumbnail_path':photo.path,'duration_s':12});
     await tester.pumpWidget(MaterialApp(theme:buildTheme(),home:NewPost(state:f.state,channel:const{'id':'channel','name':'My India'})));
-    await tester.ensureVisible(find.text('Publish post'));
-    await tester.runAsync(() async { await tester.tap(find.text('Publish post')); await Future<void>.delayed(const Duration(milliseconds: 150)); });
-    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Publish post'));await tester.tap(find.text('Publish post'));await tester.pumpAndSettle();
     expect(find.text('Enter a title'),findsOneWidget);
-    await tester.tap(find.text('Choose photo'));await tester.pumpAndSettle();
+    await tester.runAsync(()async{await tester.tap(find.text('Choose video or photo'));await Future<void>.delayed(const Duration(milliseconds:100));});
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).first,'A new story');
     FocusManager.instance.primaryFocus?.unfocus();tester.testTextInput.hide();await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Publish post'));await tester.tap(find.text('Publish post'));await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Publish post'));
+    await tester.runAsync(()async{await tester.tap(find.text('Publish post'));await Future<void>.delayed(const Duration(milliseconds:200));});
+    await tester.pumpAndSettle();
     final draft=f.calls.singleWhere((r)=>r.method=='POST'&&r.url.path.endsWith('/posts'));
     final values=jsonDecode(draft.body) as Map;
     expect(values['status'],'draft');expect(values['created_by'],existingId);
@@ -152,7 +158,8 @@ void main() {
     expect(jsonDecode(item.body)['media_key'],startsWith('$existingId/${values['id']}/'));
     expect(f.calls.where((r)=>r.method=='PATCH'&&r.url.path.endsWith('/posts')),hasLength(1));
     await tester.pumpWidget(const SizedBox.shrink());await tester.runAsync(f.close);
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('app/photo'),null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('app/media'),null);
+    await tester.runAsync(()=>temp.delete(recursive:true));
   });
 }
 http.Response response(http.Request r,Object? value)=>http.Response(jsonEncode(value),200,request:r,headers:{'content-type':'application/json'});

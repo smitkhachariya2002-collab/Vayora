@@ -108,6 +108,8 @@ class _PostPageState extends State<PostPage> {
     await runAction(context, () async {
       if (!await loginGate(context, state) || !context.mounted) return;
       if (!state.premium && !ownsMedia) {
+        final proceed = await confirmAction(context, title: state.paidEnabled ? 'Download is a Premium feature' : 'Download needs full access', message: state.paidEnabled ? 'Choose a plan to download this video.' : 'Get full access to download this video.', action: state.paidEnabled ? 'Plans' : 'Get full access');
+        if (!proceed || !context.mounted) return;
         await Navigator.push(
           context,
           MaterialPageRoute<void>(builder: (_) => Plans(state: state)),
@@ -167,6 +169,10 @@ class _PostPageState extends State<PostPage> {
       return AppPage(
         title: AppBrand.name,
         actions: [
+          if (post['created_by'] == state.userId || state.status['is_admin'] == true) IconButton(tooltip:'Delete post',icon:const Icon(Icons.delete_outline),onPressed:() async {
+            if (!await confirmAction(context,title:'Delete this post?',message:'This permanently deletes the post and its media.',action:'Delete',destructive:true) || !context.mounted) return;
+            await runAction(context,() async { await state.db.functions.invoke('post-delete',body:{'post_id':post['id']}); if(context.mounted)Navigator.pop(context); });
+          }),
           IconButton(
             tooltip: state.blocked.contains(post['channel_id'])
                 ? 'Unblock channel'
@@ -178,10 +184,10 @@ class _PostPageState extends State<PostPage> {
                     context,
                     title: blocked
                         ? 'Unblock this channel?'
-                        : 'Block this channel?',
+                        : 'Block ${(post['channels'] as Map?)?['name'] ?? 'this channel'}?',
                     message: blocked
                         ? 'Its posts can appear again.'
-                        : 'Its posts will be hidden while browsing.',
+                        : "You won't see posts from this channel in Explore, Feed or the channel list. You can unblock it any time from the channel page.",
                     action: blocked ? 'Unblock' : 'Block',
                     icon: Icons.block,
                   ) ||
@@ -298,7 +304,7 @@ class _PostPageState extends State<PostPage> {
                         await const MethodChannel(
                           'app/share',
                         ).invokeMethod<void>('share', {
-                          'text': 'Watch ${post['title']} on Vayora',
+                          'text': 'Watch ${post['title']} on Vayora\nhttps://vayora-eta.vercel.app/p/${post['id']}',
                         });
                       }),
                     ),

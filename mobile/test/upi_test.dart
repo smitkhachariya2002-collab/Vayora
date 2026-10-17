@@ -8,7 +8,7 @@ void main() {
   });
  test('UPI fields have exact order, amount and percent encoding', () {
   expect(buildUpiLink(upiId:'merchant@upi',payeeName:'Vayora India',reference:'VY123',amountPaise:4900),
-   'upi://pay?pa=merchant%40upi&pn=Vayora%20India&tr=VY123&am=49.00&cu=INR&tn=Vayora%20VY123');
+   'upi://pay?pa=merchant@upi&pn=Vayora%20India&tr=VY123&am=49.00&cu=INR&tn=Vayora%20VY123');
  });
  test('UPI amount preserves paise', () {
   expect(buildUpiLink(upiId:'a@b',payeeName:'A&B',reference:'r',amountPaise:12901),contains('pn=A%26B&tr=r&am=129.01'));

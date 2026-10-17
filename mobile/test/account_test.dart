@@ -28,9 +28,7 @@ class Fixture {
   };
   Future<void> start() async {
     SharedPreferences.setMockInitialValues({});
-    db = SupabaseClient('https://example.supabase.co', 'test-key',
-      authOptions: const AuthClientOptions(autoRefreshToken: false, authFlowType: AuthFlowType.implicit),
-      httpClient: MockClient((request) async {
+    final transport = MockClient((request) async {
         calls.add(request);
         final response = intercept?.call(request);
         if (response != null) return response;
@@ -50,8 +48,10 @@ class Fixture {
         } else if (request.url.path.startsWith('/auth/')) { body = <String, dynamic>{};
         } else { body = null; }
         return http.Response(jsonEncode(body), 200, request: request, headers: {'content-type':'application/json'});
-      }));
-    state = AppState(db, await SharedPreferences.getInstance());
+      });
+    db = SupabaseClient('https://example.supabase.co', 'test-key',
+      authOptions: const AuthClientOptions(autoRefreshToken: false, authFlowType: AuthFlowType.implicit), httpClient:transport);
+    state = AppState(db, await SharedPreferences.getInstance(), authSettingsClient:transport, uploadClient:transport);
     await state.initialize(watchRemoteChanges: false);
   }
   Future<void> close() async { state.dispose(); await db.dispose(); }

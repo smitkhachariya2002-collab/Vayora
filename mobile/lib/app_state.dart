@@ -16,7 +16,7 @@ const authCallback = '$androidAppId://login-callback';
 const apkReferrer = String.fromEnvironment('APK_REFERRER');
 
 class AppState extends ChangeNotifier {
-  AppState(this.db, this.prefs, {http.Client? authSettingsClient}) : _settingsClient = authSettingsClient ?? http.Client(), _ownsSettingsClient = authSettingsClient == null {
+  AppState(this.db, this.prefs, {http.Client? authSettingsClient, http.Client? uploadClient}) : uploadClient = uploadClient ?? http.Client(), _ownsUploadClient = uploadClient == null, _settingsClient = authSettingsClient ?? http.Client(), _ownsSettingsClient = authSettingsClient == null {
     _authEvents = db.auth.onAuthStateChange.listen((event) {
       if (event.event == AuthChangeEvent.passwordRecovery) {
         recoveringPassword = true;
@@ -28,6 +28,8 @@ class AppState extends ChangeNotifier {
   final SupabaseClient db;
   final SharedPreferences prefs;
   final http.Client _settingsClient;
+  final http.Client uploadClient;
+  final bool _ownsUploadClient;
   final bool _ownsSettingsClient;
   int membershipRevision = 0;
   void membershipChanged() { membershipRevision++; notifyListeners(); }
@@ -162,6 +164,7 @@ class AppState extends ChangeNotifier {
   void dispose() {
     _statusPoll?.cancel();
     if (_ownsSettingsClient) _settingsClient.close();
+    if (_ownsUploadClient) uploadClient.close();
     unawaited(_authEvents.cancel());
     if (_modeChannel != null) unawaited(db.removeChannel(_modeChannel!));
     super.dispose();
