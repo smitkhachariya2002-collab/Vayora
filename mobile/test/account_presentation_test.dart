@@ -122,6 +122,8 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());await tester.runAsync(f.close);
   });
   testWidgets('New post validates before uploading and publishes through existing private storage path', (tester) async {
+    tester.view.physicalSize=const Size(430,1400);tester.view.devicePixelRatio=1;
+    addTearDown(tester.view.resetPhysicalSize);addTearDown(tester.view.resetDevicePixelRatio);
     final f=Fixture();
     f.intercept=(r){
       if(r.url.path.endsWith('/channels'))return response(r,{'id':'channel','created_by':existingId,'review_status':'approved','status':'active','audience':'all'});

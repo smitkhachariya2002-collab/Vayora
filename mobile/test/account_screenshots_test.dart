@@ -47,7 +47,7 @@ void main() {
           };
           await tester.runAsync(f.start);await f.state.prefs.setBool('consent_v1',true);
           final premium=name=='profile-premium'||name=='payment-success';
-          f.currentStatus={'display_name':'Kavya Sharma','source':'organic','free_mode':name=='premium-free',
+          f.currentStatus={'display_name':name=='profile-guest'?'':'Kavya Sharma','source':'organic','free_mode':name=='premium-free',
             'is_premium':premium,'plan_name':premium?'Gold':null,'plan_ends_at':premium?'2026-11-17T10:00:00Z':null,
             'has_ads_access':false,'access_status':name=='premium-free'?'pending':'none','quota_bytes':15*1024*1024*1024};
           if(name!='profile-guest')await tester.runAsync(()=>f.state.login('test@example.test','password123'));
