@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -84,10 +83,10 @@ class _ChannelListState extends State<ChannelList> {
         if (snapshot.hasError) return TextButton(onPressed: refresh, child: const Text('Could not load channels. Retry'));
         if (!snapshot.hasData) return const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator()));
         final channels = snapshot.data!.where((row) => !widget.state.blocked.contains(row['id'])).toList();
-        if (channels.isEmpty) return Padding(padding: const EdgeInsets.symmetric(vertical: 40),
+        if (channels.isEmpty) { return Padding(padding: const EdgeInsets.symmetric(vertical: 40),
           child: Column(children: [const Icon(Icons.groups_outlined, size: 48), const SizedBox(height: 12),
             Text(mine ? 'You haven’t created a channel yet.' : 'There are no channels to discover yet.'),
-            const SizedBox(height: 8), const Text('Create a channel to get started.', textAlign: TextAlign.center)]));
+            const SizedBox(height: 8), const Text('Create a channel to get started.', textAlign: TextAlign.center)])); }
         return Column(children: channels.map((row) => Card(child: Padding(padding: const EdgeInsets.symmetric(vertical: 8),
           child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 16), leading: ChannelAvatar(channel: row),
             title: Text(row['name'] as String),

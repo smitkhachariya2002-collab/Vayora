@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +15,10 @@ void main() {
     http.Response(jsonEncode(body), status, request: request, headers: {'content-type': 'application/json'});
 
   Future<void> open(WidgetTester tester, Widget page) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: Builder(builder: (context) =>
       TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => page)), child: const Text('Open'))))));
     await tester.tap(find.text('Open'));
@@ -30,7 +33,7 @@ void main() {
   setUp(() async {
     f = Fixture(); channels = []; rejectCreate = false;
     f.intercept = (request) {
-      if (request.url.path.contains('/storage/v1/object/')) return reply(request, {'Key': request.url.path});
+      if (request.url.path.contains('/storage/v1/object/')) return reply(request, request.method == 'DELETE' ? <Object>[] : {'Key': request.url.path});
       if (!request.url.path.endsWith('/channels')) return null;
       if (request.method == 'POST') {
         if (rejectCreate) return reply(request, {'message': 'Try again', 'code': 'P0001'}, status: 400);
