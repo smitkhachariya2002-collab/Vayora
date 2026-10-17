@@ -154,7 +154,7 @@ class _ChannelListState extends State<ChannelList> {
         const SizedBox(height: Gap.s),
         Row(children: [
           Expanded(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
-            for (final item in ChannelTab.values) Padding(padding: const EdgeInsets.only(right: Gap.l),
+            for (final item in const [ChannelTab.discover, ChannelTab.joined]) Padding(padding: const EdgeInsets.only(right: Gap.l),
               child: InkWell(onTap: () => chooseTab(item), child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: Gap.m),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -166,6 +166,8 @@ class _ChannelListState extends State<ChannelList> {
                 ]),
               ))),
           ]))),
+          IconButton(tooltip: 'My channels', isSelected: mine, onPressed: () => chooseTab(ChannelTab.mine),
+            icon: const Icon(Icons.folder_outlined), selectedIcon: const Icon(Icons.folder, color: AppColors.primary)),
           IconButton(tooltip: 'Create channel', onPressed: () => edit(), icon: const Icon(Icons.add_circle_outline, color: AppColors.primary)),
         ]),
       ]))),

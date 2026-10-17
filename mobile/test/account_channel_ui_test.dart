@@ -246,7 +246,7 @@ void main() {
         'icon_url': null,
       });
       await open(tester, ChannelList(state: f.state, onOpen: (_) {}));
-      await tester.tap(find.text('My channels'));
+      await tester.tap(find.byTooltip('My channels'));
       await tester.pumpAndSettle();
       expect(find.text('My channel'), findsOneWidget);
       expect(find.text('Under review'), findsOneWidget);
@@ -393,7 +393,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Travel India'),findsOneWidget);
     final query=f.calls.lastWhere((request)=>request.url.path.endsWith('/channels'));
-    expect(query.url.queryParameters['id'],'in.(joined-channel)');
+    expect(query.url.queryParameters['id'],'in.("joined-channel")');
     expect(tester.takeException(),isNull);
   },timeout:const Timeout(Duration(seconds:45)));
 
