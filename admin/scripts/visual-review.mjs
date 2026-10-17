@@ -59,8 +59,18 @@ try{
  let revisionEvents=0,planEvents=0;
  const live=guest.channel("plans-browser-review").on("postgres_changes",{event:"*",schema:"public",table:"plans"},()=>planEvents++)
  .on("postgres_changes",{event:"*",schema:"public",table:"plan_catalog"},()=>revisionEvents++);
- live.on("system",{},message=>console.log("Realtime system",JSON.stringify(message)));
- await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error("Realtime did not connect")),15000);live.subscribe((state,error)=>{console.log("Realtime state",state,error?.message??"");if(state==="SUBSCRIBED"){clearTimeout(timeout);resolve()}})});
+ await new Promise((resolve,reject)=>{
+  const timeout=setTimeout(()=>reject(new Error("PostgreSQL realtime listener did not become ready")),20000);
+  live.on("system",{},message=>{
+   console.log("Realtime system",JSON.stringify(message));
+   if(message.extension==="postgres_changes"&&message.status==="ok"){clearTimeout(timeout);resolve();}
+   else if(message.status==="error"){clearTimeout(timeout);reject(new Error(message.message));}
+  });
+  live.subscribe((state,error)=>{
+   console.log("Realtime state",state,error?.message??"");
+   if(state==="CHANNEL_ERROR"||state==="TIMED_OUT"){clearTimeout(timeout);reject(new Error("Realtime channel failed"));}
+  });
+ });
  await trialForm.getByLabel("Price (₹)",{exact:true}).fill("79");
  await trialForm.getByLabel("Badge (optional)",{exact:true}).fill("Best value");
  ownerPage.once("dialog",dialog=>dialog.accept());

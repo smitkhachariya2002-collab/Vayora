@@ -83,5 +83,8 @@ select ok(exists(select 1 from pg_publication_tables where pubname='supabase_rea
 select ok(exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='plan_catalog'),'Hide invalidation published');
 select is((select data_type from information_schema.columns where table_schema='public' and table_name='plans' and column_name='price_inr'),'integer','Price is integer');
 select is((select udt_name from information_schema.columns where table_schema='public' and table_name='plans' and column_name='perks'),'_text','Perks is text array');
+select is(has_table_privilege('authenticated','public.plans','TRUNCATE'),false,'Member cannot bypass no-delete rule with TRUNCATE');
+select is(has_table_privilege('anon','public.plan_catalog','TRUNCATE'),false,'Unauthenticated client cannot truncate invalidations');
+select is(has_table_privilege('authenticated','public.plan_catalog','TRUNCATE'),false,'Authenticated client cannot truncate invalidations');
 select * from finish();
 rollback;

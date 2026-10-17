@@ -40,7 +40,7 @@ drop policy if exists plans_read on public.plans;
 create policy plans_guest_read on public.plans for select to anon using(active);
 create policy plans_read on public.plans for select to authenticated using(active or (select private.is_owner()));
 -- Existing INSERT/UPDATE policies already require is_owner(), with USING + WITH CHECK.
-revoke delete on public.plans from anon,authenticated,service_role;
+revoke delete,truncate on public.plans from public,anon,authenticated,service_role;
 grant select on public.plans to anon,authenticated;
 
 -- A hidden row no longer passes RLS, so its UPDATE might not reach a guest.
@@ -48,8 +48,8 @@ grant select on public.plans to anon,authenticated;
 create table public.plan_catalog(id boolean primary key default true check(id),revision bigint not null default 0);
 insert into public.plan_catalog(id)values(true);
 alter table public.plan_catalog enable row level security;
+revoke all on public.plan_catalog from public,anon,authenticated;
 grant select on public.plan_catalog to anon,authenticated;
-revoke insert,update,delete on public.plan_catalog from anon,authenticated;
 create policy plan_catalog_read on public.plan_catalog for select to anon,authenticated using(true);
 create function private.notify_plan_catalog() returns trigger language plpgsql security definer set search_path='' as $$
 begin update public.plan_catalog set revision=revision+1 where id; return null; end $$;

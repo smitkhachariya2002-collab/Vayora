@@ -33,6 +33,13 @@ class PlanCatalog extends ChangeNotifier {
             table: 'plan_catalog',
             callback: (_) => unawaited(refresh()),
           )
+          .onSystemEvents((payload) {
+            // Channel join can precede the PostgreSQL listener by a few seconds.
+            // Refetch at database readiness to cover edits during that gap.
+            if (payload is Map && payload['extension']=='postgres_changes' && payload['status']=='ok') {
+              unawaited(refresh());
+            }
+          })
           .subscribe((status, error) {
             if (status == RealtimeSubscribeStatus.subscribed) {
               unawaited(refresh());
