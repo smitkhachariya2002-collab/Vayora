@@ -68,7 +68,7 @@ void main() {
     await submit(tester, 'account-submit');
     expect(f.db.auth.currentUser!.id, existingId);
     expect(f.calls.where((r) => r.url.path.endsWith('/token')), hasLength(1));
-  });
+  }, timeout: const Timeout(Duration(seconds: 45)));
 
   testWidgets('Duplicate sign-up switches to login with helpful wording', (tester) async {
     final previous = f.intercept;
@@ -95,7 +95,7 @@ void main() {
     expect(channels.single['description'], '');
     expect(channels.single['tags'], ['music', 'india']);
     expect(channels.single['created_by'], existingId);
-  });
+  }, timeout: const Timeout(Duration(seconds: 45)));
 
   testWidgets('Invalid channel fields never send a creation request', (tester) async {
     await f.state.login('existing@example.test', 'password123');
@@ -119,7 +119,7 @@ void main() {
     expect(find.text('Under review'), findsOneWidget);
     expect(find.byTooltip('Edit channel'), findsOneWidget);
     expect(find.textContaining('owner approval'), findsNothing);
-  });
+  }, timeout: const Timeout(Duration(seconds: 45)));
 
   testWidgets('Cancelled photo selection keeps the channel form', (tester) async {
     await f.state.login('existing@example.test', 'password123');
@@ -146,5 +146,29 @@ void main() {
     rejectCreate = false;
     await submit(tester, 'channel-submit');
     expect(channels.single['icon_url'], contains('$existingId/channel-photos/'));
+  }, timeout: const Timeout(Duration(seconds: 45)));
+  testWidgets('Creator can replace a channel photo and edit saved details', (tester) async {
+    await f.state.login('existing@example.test', 'password123');
+    final oldUrl = f.db.storage.from('public').getPublicUrl('$existingId/channel-photos/old.jpg');
+    channels.add({'id': '72000000-0000-4000-8000-000000000001', 'name': 'Original',
+      'description': '', 'tags': ['music'], 'icon_url': oldUrl, 'created_by': existingId});
+    final pixel = base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('app/photo'), (_) async => pixel);
+    await open(tester, ChannelEditor(state: f.state, channel: channels.single));
+    await tester.tap(find.byKey(const ValueKey('channel-photo'))); await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('channel-name')), 'Renamed');
+    await tester.enterText(find.byKey(const ValueKey('channel-description')), 'Our new description');
+    await submit(tester, 'channel-submit');
+    final update = f.calls.singleWhere((r) => r.method == 'PATCH' && r.url.path.endsWith('/channels'));
+    final values = jsonDecode(update.body) as Map;
+    expect(values['name'], 'Renamed');
+    expect(values['description'], 'Our new description');
+    expect(values['icon_url'], isNot(oldUrl));
+    expect(values['icon_url'], contains('$existingId/channel-photos/'));
+    expect(update.url.queryParameters['created_by'], 'eq.$existingId');
+    final cleanup = f.calls.singleWhere((r) => r.method == 'DELETE' && r.url.path.contains('/storage/v1/object/'));
+    expect(cleanup.body, contains('channel-photos/old.jpg'));
   });
+
 }

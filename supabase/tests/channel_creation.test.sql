@@ -19,7 +19,7 @@ select lives_ok($$update public.channels set name='Renamed',description='Updated
  icon_url='https://example.test/new.jpg' where id='72000000-0000-4000-8000-000000000001'$$,'Creator can edit channel details and photo');
 select throws_ok($$update public.channels set review_status='approved' where id='72000000-0000-4000-8000-000000000001'$$,
  'P0001','Protected channel fields','Creator cannot change review status');
-select throws_ok($$update public.channels set tags=array_fill('tag',array[11]) where id='72000000-0000-4000-8000-000000000001'$$,
+select throws_ok($$update public.channels set tags=array_fill('tag'::text,array[11]) where id='72000000-0000-4000-8000-000000000001'$$,
  '23514',null,'Database rejects more than ten tags');
 select throws_ok($$update public.channels set tags=array[''] where id='72000000-0000-4000-8000-000000000001'$$,
  '23514',null,'Database rejects blank tags');
@@ -35,6 +35,8 @@ select set_config('request.jwt.claim.sub','71000000-0000-4000-8000-000000000002'
 select set_config('request.jwt.claims','{"sub":"71000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 select is((select count(*) from public.channels where id='72000000-0000-4000-8000-000000000001'),0::bigint,'Other users cannot see pending channel');
 update public.channels set name='Stolen',icon_url='https://example.test/stolen.jpg' where id='72000000-0000-4000-8000-000000000001';
+-- Emulate the Storage API's guarded delete context while retaining authenticated RLS.
+select set_config('storage.allow_delete_query','true',true);
 delete from storage.objects where bucket_id='public' and name='71000000-0000-4000-8000-000000000001/channel-photos/photo.jpg';
 reset role;
 select is((select name from public.channels where id='72000000-0000-4000-8000-000000000001'),'Renamed','Other user cannot rename channel');
