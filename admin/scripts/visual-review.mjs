@@ -53,7 +53,7 @@ try{
  // Real browser plan edits + real Postgres Changes delivery, with no production data.
  await ownerPage.goto("http://localhost:3000/plans");
  const trialForm=ownerPage.locator("form").filter({has:ownerPage.getByRole("heading",{name:"Trial",exact:true})});
- await trialForm.getByLabel("Code",{exact:true}).evaluate(el=>{if(!el.readOnly)throw new Error("Code must be readonly")});
+ await trialForm.locator('input[name="code"]').evaluate(el=>{if(!el.readOnly)throw new Error("Code must be readonly")});
  await ownerPage.screenshot({path:"visual-artifacts/plans-edit-desktop.png",fullPage:true});
  const guest=createClient(api,anon);let revisionEvents=0,planEvents=0;
  const live=guest.channel("plans-browser-review").on("postgres_changes",{event:"*",schema:"public",table:"plans"},()=>planEvents++)
@@ -80,10 +80,10 @@ try{
  await ownerPage.goto("http://localhost:3000/plans?new=1");
  const addForm=ownerPage.locator("form").filter({has:ownerPage.getByRole("heading",{name:"New plan",exact:true})});
  await addForm.getByLabel("Name",{exact:true}).fill("Weekend");
- await addForm.getByLabel("Code",{exact:true}).fill("weekend");
+ await addForm.locator('input[name="code"]').fill("weekend");
  await addForm.getByLabel("Price (₹)",{exact:true}).fill("99");
- await addForm.getByLabel("Duration (days)",{exact:true}).fill("2");
- await addForm.getByLabel("Perks",{exact:true}).fill("Full premium videos\n2 TB cloud storage\nDownload to your phone");
+ await addForm.locator('input[name="duration_days"]').fill("2");
+ await addForm.locator('textarea[name="perks"]').fill("Full premium videos\n2 TB cloud storage\nDownload to your phone");
  await addForm.getByLabel("Badge (optional)",{exact:true}).fill("New");
  await addForm.getByLabel("Order",{exact:true}).fill("5");
  await ownerPage.screenshot({path:"visual-artifacts/plans-add-desktop.png",fullPage:true});

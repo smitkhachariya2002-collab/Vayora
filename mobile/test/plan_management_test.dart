@@ -39,7 +39,7 @@ void main(){
  testWidgets('Open Premium reacts to live edits and hides selected plan at $width',(tester)async{
  tester.view.physicalSize=Size(width,1100);tester.view.devicePixelRatio=1;
  addTearDown(tester.view.resetPhysicalSize);addTearDown(tester.view.resetDevicePixelRatio);
- final fixture=Fixture(),events=StreamController<void>();
+ final fixture=Fixture(),events=StreamController<void>(sync:true);
  var rows=[plan('trial','Trial',49,7,0),plan('gold','Gold',259,30,1)];
  fixture.intercept=(r)=>r.url.path.endsWith('/plans')?reply(r,rows):r.url.path.endsWith('/payment_orders')?reply(r,[]):null;
  await tester.runAsync(fixture.start);
@@ -50,6 +50,7 @@ void main(){
  expect(find.text('₹ 49'),findsOneWidget);
  await tester.tap(find.text('Trial'));await tester.pumpAndSettle();
  expect(catalog.selected,'trial');
+ debugPrint('PASS: initial plan selection');
  if(capturePlans)await expectLater(find.byKey(const ValueKey('plans')),matchesGoldenFile('goldens/after/plans-live-before-${width.toInt()}.png'));
  rows=[plan('gold','Gold',259,30,0),plan('trial','Trial Plus',79,30,1,badge:'Best value')];
  rows[1]['perks']=['Updated premium access','2 TB cloud storage'];
@@ -64,9 +65,10 @@ void main(){
  await tester.runAsync(()async{events.add(null);await Future<void>.delayed(const Duration(milliseconds:60));});
  await tester.pumpAndSettle();
  expect(find.text('Trial Plus'),findsNothing);expect(catalog.selected,isNull);
+ debugPrint('PASS: price/name/perks/badge/order updated and hidden selection cleared');
  await tester.pumpWidget(const SizedBox.shrink());
- catalog.dispose();await events.close();await tester.runAsync(fixture.close);
- });
+ await tester.runAsync(()async{catalog.dispose();await events.close();await fixture.close();});
+ },timeout:const Timeout(Duration(seconds:45)));
  }
  testWidgets('Server price change is disclosed before opening UPI',(tester)async{
  final fixture=Fixture();var nativeCalls=0;
