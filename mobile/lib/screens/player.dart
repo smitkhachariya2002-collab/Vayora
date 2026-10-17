@@ -36,7 +36,10 @@ class _WatchState extends State<Watch>{
     on Object{if(mounted)setState(()=>failure='Could not play this video.');}
   }
   Future<void> retry()async{
-    video.removeListener(checkEnd);await video.dispose();
+    video.removeListener(checkEnd);
+    // A native creation failure can leave the old controller's dispose future pending.
+    // Retrying must not wait on that failed decoder.
+    unawaited(video.dispose());
     if(!mounted)return;
     setState((){video=VideoPlayerController.networkUrl(Uri.parse(widget.url));ready=false;failure=null;ended=false;});
     await prepare();

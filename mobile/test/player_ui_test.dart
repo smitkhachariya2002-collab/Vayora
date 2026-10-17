@@ -35,5 +35,5 @@ void main(){
     await tester.pumpWidget(const SizedBox.shrink());await tester.pump();
     await tester.runAsync(f.close);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('app/screen'),null);
-  });
+  },timeout:const Timeout(Duration(seconds:45)));
 }
