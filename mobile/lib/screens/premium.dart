@@ -26,7 +26,14 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    catalog=widget.catalog??PlanCatalog(widget.state.db, changes:widget.state.remoteChangesEnabled?null:const Stream<void>.empty());
+    catalog =
+        widget.catalog ??
+        PlanCatalog(
+          widget.state.db,
+          changes: widget.state.remoteChangesEnabled
+              ? null
+              : const Stream<void>.empty(),
+        );
     catalog.start();
     reload();
     WidgetsBinding.instance.addObserver(this);
@@ -38,7 +45,7 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
   }
 
   void reload() {
-    catalog.enabled=widget.state.paidEnabled;
+    catalog.enabled = widget.state.paidEnabled;
     if (!widget.state.paidEnabled) {
       catalog.clear();
       openOrders = Future.value([]);
@@ -63,13 +70,13 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if(state==AppLifecycleState.resumed) unawaited(refresh());
+    if (state == AppLifecycleState.resumed) unawaited(refresh());
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    if(widget.catalog==null) catalog.dispose();
+    if (widget.catalog == null) catalog.dispose();
     widget.state.removeListener(changed);
     super.dispose();
   }
@@ -236,7 +243,7 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
       return ListenableBuilder(
         listenable: catalog,
         builder: (context, _) {
-          if (catalog.loaded && catalog.error==null && catalog.rows.isEmpty) {
+          if (catalog.loaded && catalog.error == null && catalog.rows.isEmpty) {
             return AppPage(
               title: 'Premium',
               actions: actions,
@@ -246,8 +253,7 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
           final rows = catalog.rows;
           final matches = rows.where((p) => p['id'] == catalog.selected);
           final plan = matches.isEmpty ? null : matches.first;
-          final perks =
-              planPerks(plan, rows);
+          final perks = planPerks(plan, rows);
           return AppPage(
             title: 'Premium',
             actions: actions,
@@ -321,13 +327,11 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
                         );
                       },
                     ),
-                    PremiumHero(
-                      perks: perks,
-                    ),
+                    PremiumHero(perks: perks),
                     const SizedBox(height: 24),
                     const SectionTitle('Choose your plan'),
                     const SizedBox(height: 16),
-                    if (catalog.error!=null)
+                    if (catalog.error != null)
                       ErrorRetry(onRetry: () => setState(reload))
                     else if (!catalog.loaded)
                       const SkeletonList()
@@ -386,10 +390,17 @@ String planDuration(num raw) {
   };
 }
 
-List<String> planPerks(Map<String,dynamic>? selected,List<Map<String,dynamic>> rows) {
- List<String> read(Map<String,dynamic>? row)=>(row?['perks'] as List? ?? []).whereType<String>().where((p)=>p.trim().isNotEmpty).toList();
- final own=read(selected);if(own.isNotEmpty)return own;
- return read(rows.isEmpty?null:rows.first);
+List<String> planPerks(
+  Map<String, dynamic>? selected,
+  List<Map<String, dynamic>> rows,
+) {
+  List<String> read(Map<String, dynamic>? row) => (row?['perks'] as List? ?? [])
+      .whereType<String>()
+      .where((p) => p.trim().isNotEmpty)
+      .toList();
+  final own = read(selected);
+  if (own.isNotEmpty) return own;
+  return read(rows.isEmpty ? null : rows.first);
 }
 
 class PremiumHero extends StatelessWidget {
@@ -498,12 +509,23 @@ class PlanCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  if((plan['badge'] as String? ?? '').trim().isNotEmpty) ...[
+                  if ((plan['badge'] as String? ?? '').trim().isNotEmpty) ...[
                     const SizedBox(height: Gap.xs),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal:8,vertical:3),
-                      decoration: BoxDecoration(color:AppColors.primary.withValues(alpha:0.16),borderRadius:BorderRadius.circular(6)),
-                      child: Text(plan['badge'] as String,style:Theme.of(context).textTheme.labelSmall?.copyWith(color:AppColors.primary)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        plan['badge'] as String,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
                   ],
                   const SizedBox(height: Gap.xs),
