@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,7 +16,7 @@ const authCallback = '$androidAppId://login-callback';
 const apkReferrer = String.fromEnvironment('APK_REFERRER');
 
 class AppState extends ChangeNotifier {
-  AppState(this.db, this.prefs) {
+  AppState(this.db, this.prefs, {http.Client? authSettingsClient}) : _settingsClient = authSettingsClient ?? http.Client(), _ownsSettingsClient = authSettingsClient == null {
     _authEvents = db.auth.onAuthStateChange.listen((event) {
       if (event.event == AuthChangeEvent.passwordRecovery) {
         recoveringPassword = true;
@@ -26,6 +27,10 @@ class AppState extends ChangeNotifier {
   late final StreamSubscription<AuthState> _authEvents;
   final SupabaseClient db;
   final SharedPreferences prefs;
+  final http.Client _settingsClient;
+  final bool _ownsSettingsClient;
+  int membershipRevision = 0;
+  void membershipChanged() { membershipRevision++; notifyListeners(); }
   Map<String, dynamic> status = {};
   bool busy = false;
   bool _reporting = false;
@@ -116,6 +121,12 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> google({bool linkGuest = false}) async {
+    final response = await _settingsClient.get(Uri.parse('$backendUrl/auth/v1/settings'), headers: {'apikey': backendKey});
+    if (response.statusCode != 200) throw StateError('Could not check sign-in options');
+    final settings = jsonDecode(response.body) as Map;
+    if ((settings['external'] as Map?)?['google'] != true) {
+      throw const AuthException('Google sign-in is coming soon. Please log in with email.', code: 'provider_disabled');
+    }
     if (linkGuest && db.auth.currentUser?.isAnonymous == true) {
       await db.auth.linkIdentity(OAuthProvider.google,
           redirectTo: authCallback);
@@ -150,6 +161,7 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     _statusPoll?.cancel();
+    if (_ownsSettingsClient) _settingsClient.close();
     unawaited(_authEvents.cancel());
     if (_modeChannel != null) unawaited(db.removeChannel(_modeChannel!));
     super.dispose();

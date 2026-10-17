@@ -42,7 +42,7 @@ class _ContentListState extends State<ContentList> {
       widget.creator == null &&
       !widget.horizontal;
   String get accessKey =>
-      '${widget.state.userId}:${widget.state.adsAccess}:${widget.state.status['source']}:${widget.state.status['is_admin']}';
+      '${widget.state.userId}:${widget.state.adsAccess}:${widget.state.status['source']}:${widget.state.status['is_admin']}:${widget.state.membershipRevision}';
   @override
   void initState() {
     super.initState();
@@ -58,7 +58,7 @@ class _ContentListState extends State<ContentList> {
     if (fingerprint != accessKey ||
         oldWidget.feed != widget.feed ||
         oldWidget.channel != widget.channel ||
-        oldWidget.creator != widget.creator) {
+        oldWidget.creator != widget.creator || oldWidget.search != widget.search) {
       fingerprint = accessKey;
       channels = loadChannels();
       load(refresh: true);
@@ -102,7 +102,14 @@ class _ContentListState extends State<ContentList> {
         joined = memberships.map((row) => row['channel_id'] as String).toList();
       }
       List<Map<String, dynamic>> next = [];
-      if (joined == null || joined.isNotEmpty) {
+      if (widget.search.trim().isNotEmpty || category != 'All') {
+        final result = await widget.state.db.rpc('search_posts', params: {
+          'query_text': widget.search.trim(), 'category_filter': category == 'All' ? null : category,
+          'channel_filter': widget.channel, 'creator_filter': widget.creator,
+          'joined_only': widget.feed, 'page_offset': offset, 'page_size': AppSizes.pageSize,
+        });
+        next = (result as List).map((row) => Map<String, dynamic>.from(row as Map)).toList();
+      } else if (joined == null || joined.isNotEmpty) {
         var query = widget.state.db
             .from('posts')
             .select(
@@ -139,7 +146,6 @@ class _ContentListState extends State<ContentList> {
   }
 
   List<Map<String, dynamic>> get visible {
-    final term = widget.search.trim().toLowerCase();
     return posts.where((post) {
       if (widget.state.blocked.contains(post['channel_id'])) return false;
       final channel = post['channels'] as Map? ?? {};
@@ -151,15 +157,7 @@ class _ContentListState extends State<ContentList> {
               !widget.state.canSee(channel['audience'] as String? ?? 'all'))) {
         return false;
       }
-      final tags = (channel['tags'] as List? ?? []).join(' ');
-      final categoryText = '${channel['category'] ?? ''} $tags'.toLowerCase();
-      if (category != 'All' && !categoryText.contains(category.toLowerCase())) {
-        return false;
-      }
-      return term.isEmpty ||
-          '${post['title']} ${post['description']} ${channel['name']} $tags'
-              .toLowerCase()
-              .contains(term);
+      return true;
     }).toList();
   }
 
@@ -179,12 +177,12 @@ class _ContentListState extends State<ContentList> {
       thumbnailUrl: thumbnail == null
           ? null
           : widget.state.db.storage.from('public').getPublicUrl(thumbnail),
-      onTap: () => Navigator.push(
+      onTap: () async { await Navigator.push(
         context,
         MaterialPageRoute<void>(
           builder: (_) => PostPage(state: widget.state, post: post),
         ),
-      ),
+      ); if (mounted) setState(() {}); },
     );
   }
 
@@ -286,14 +284,14 @@ class _ContentListState extends State<ContentList> {
                   labelStyle: TextStyle(
                     color: category == label ? AppColors.ink : AppColors.text,
                   ),
-                  onSelected: (_) => setState(() => category = label),
+                  onSelected: (_) { setState(() => category = label); load(refresh: true); },
                 ),
               ),
           ],
         ),
       ),
       const SizedBox(height: Gap.xl),
-      const SectionTitle('For you'),
+      const SectionTitle('Latest'),
       const SizedBox(height: Gap.l),
     ],
   );

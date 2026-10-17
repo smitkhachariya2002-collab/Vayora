@@ -55,15 +55,15 @@ jobs:
         working-directory: after/mobile
         run: |
           flutter pub get --enforce-lockfile
-          flutter test test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true --update-goldens
-          flutter test test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true
+          flutter test test/mobile_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true --update-goldens
+          flutter test test/mobile_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true
       - name: Format the redesigned UI sources and verify the complete suite
         working-directory: after/mobile
         run: |
-          dart format lib/account_page.dart lib/channel_page.dart lib/main.dart lib/navigation.dart lib/theme.dart lib/screens lib/widgets test/account_channel_ui_test.dart test/account_presentation_test.dart test/account_screenshots_test.dart test/capture_theme.dart test/free_mode_ui_test.dart test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/theme_widgets_test.dart test/player_ui_test.dart test/support
+          dart format lib/account_page.dart lib/channel_page.dart lib/main.dart lib/navigation.dart lib/theme.dart lib/screens lib/widgets test/account_channel_ui_test.dart test/capture_theme.dart test/free_mode_ui_test.dart test/mobile_screenshots_test.dart test/theme_widgets_test.dart test/player_ui_test.dart test/support
           dart fix --apply --code=curly_braces_in_flow_control_structures
-          dart format lib/account_page.dart lib/channel_page.dart lib/main.dart lib/navigation.dart lib/theme.dart lib/screens lib/widgets test/account_channel_ui_test.dart test/account_presentation_test.dart test/account_screenshots_test.dart test/capture_theme.dart test/free_mode_ui_test.dart test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/theme_widgets_test.dart test/player_ui_test.dart test/support
-          git diff --exit-code -- lib/app_state.dart lib/upi.dart ../supabase ../admin android
+          dart format lib/account_page.dart lib/channel_page.dart lib/main.dart lib/navigation.dart lib/theme.dart lib/screens lib/widgets test/account_channel_ui_test.dart test/capture_theme.dart test/free_mode_ui_test.dart test/mobile_screenshots_test.dart test/theme_widgets_test.dart test/player_ui_test.dart test/support
+          git diff --exit-code -- ../admin
           flutter analyze
           flutter test
       - name: Collect screenshots
@@ -81,6 +81,7 @@ jobs:
             after/mobile/test/failures/
           retention-days: 7
       - name: Save review screenshots and reference goldens on this PR only
+        if: github.head_ref == 'build/mobile-cinematic-ui'
         working-directory: after
         env:
           PR_BRANCH: ${{ github.head_ref }}

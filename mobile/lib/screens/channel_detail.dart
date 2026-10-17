@@ -66,6 +66,7 @@ class _ChannelDetailState extends State<ChannelDetail> {
           'channel_id': channel['id'],
         }, ignoreDuplicates: true);
       }
+      widget.state.membershipChanged();
       if (mounted) {
         setState(() => joined = !joined);
         showFeedback(

@@ -19,7 +19,9 @@ class Watch extends StatefulWidget {
     required this.channelAudience,
     required this.createdBy,
     this.title = 'Now playing',
+    this.refreshUrl,
   });
+  final Future<String> Function()? refreshUrl;
   final String url, title, audience, channelAudience, createdBy;
   final bool trailer, isPremium;
   final AppState state;
@@ -56,11 +58,12 @@ class _WatchState extends State<Watch> {
     }
   }
 
-  Future<void> prepare() async {
+  Future<void> prepare({Duration resumeAt = Duration.zero}) async {
     try {
       await video.initialize();
       if (!mounted) return;
       video.addListener(checkEnd);
+      if (resumeAt > Duration.zero) await video.seekTo(resumeAt);
       await video.play();
       if (mounted) setState(() => ready = true);
     } on Object {
@@ -69,18 +72,19 @@ class _WatchState extends State<Watch> {
   }
 
   Future<void> retry() async {
+    final position = video.value.position;
     video.removeListener(checkEnd);
-    // A native creation failure can leave the old controller's dispose future pending.
-    // Retrying must not wait on that failed decoder.
     unawaited(video.dispose());
     if (!mounted) return;
-    setState(() {
-      video = VideoPlayerController.networkUrl(Uri.parse(widget.url));
-      ready = false;
-      failure = null;
-      ended = false;
-    });
-    await prepare();
+    setState(() { ready = false; failure = null; ended = false; });
+    try {
+      final fresh = widget.refreshUrl == null ? widget.url : await widget.refreshUrl!();
+      if (!mounted) return;
+      video = VideoPlayerController.networkUrl(Uri.parse(fresh));
+      await prepare(resumeAt: position);
+    } on Object {
+      if (mounted) setState(() => failure = 'Could not play this video.');
+    }
   }
 
   void checkEnd() {
@@ -136,7 +140,10 @@ class _WatchState extends State<Watch> {
                       ),
                     );
                   }
-                  if (mounted) Navigator.pop(context);
+                  if (mounted) {
+                    await widget.state.refreshStatus();
+                    if (mounted) Navigator.pop(context, !widget.state.guest && widget.state.premium);
+                  }
                 },
                 child: const Text('Watch full video'),
               ),
