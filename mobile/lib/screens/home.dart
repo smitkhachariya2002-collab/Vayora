@@ -215,13 +215,15 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     builder: (context, _) {
       final state = widget.state;
       return AppPage(
-        title: selected == 4 ? null : const [
-          'Cloud',
-          'Feed',
-          AppBrand.name,
-          'Channels',
-          'Profile',
-        ][selected],
+        title: selected == 4
+            ? null
+            : const [
+                'Cloud',
+                'Feed',
+                AppBrand.name,
+                'Channels',
+                'Profile',
+              ][selected],
         actions: [
           if (selected == 2)
             IconButton(
