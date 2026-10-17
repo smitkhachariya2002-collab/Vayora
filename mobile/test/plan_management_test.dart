@@ -51,10 +51,11 @@ void main(){
  await tester.tap(find.text('Trial'));await tester.pumpAndSettle();
  expect(catalog.selected,'trial');
  if(capturePlans)await expectLater(find.byKey(const ValueKey('plans')),matchesGoldenFile('goldens/after/plans-live-before-${width.toInt()}.png'));
- rows=[plan('trial','Trial Plus',79,30,0,badge:'Best value'),plan('gold','Gold',259,30,1)];
- rows[0]['perks']=['Updated premium access','2 TB cloud storage'];
+ rows=[plan('gold','Gold',259,30,0),plan('trial','Trial Plus',79,30,1,badge:'Best value')];
+ rows[1]['perks']=['Updated premium access','2 TB cloud storage'];
  await tester.runAsync(()async{events.add(null);await Future<void>.delayed(const Duration(milliseconds:60));});
  await tester.pumpAndSettle();
+ expect(catalog.rows.first['id'],'gold');
  expect(find.text('₹ 49'),findsNothing);expect(find.text('₹ 79'),findsOneWidget);
  expect(find.text('Trial Plus'),findsOneWidget);expect(find.text('Best value'),findsOneWidget);
  expect(find.text('Updated premium access'),findsOneWidget);expect(catalog.selected,'trial');

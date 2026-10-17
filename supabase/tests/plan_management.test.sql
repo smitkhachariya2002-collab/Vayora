@@ -62,10 +62,12 @@ select is((select amount from plan_snapshots where kind='new'),5900::bigint,'Rep
 select is((select days from plan_snapshots where kind='new'),30,'Replacement uses new duration');
 select is((select status from public.payment_orders where id=(select id from plan_snapshots where kind='open')),'cancelled','Old open order cancelled');
 reset role;
--- Use the existing activation function, unchanged: it must use order snapshots.
+-- Change/hide AFTER checkout, BEFORE activation: only the order snapshots may be used.
+update public.plans set price_inr=69,duration_days=365,active=false where code='managed';
+-- Use the existing activation function, unchanged.
 select private.activate_payment((select id from plan_snapshots where kind='new'),5900,'PLANSMANAGED01','admin');
 insert into plan_snapshots select 'subscription',id,null,null,ends_at from public.subscriptions where order_id=(select id from plan_snapshots where kind='new');
-update public.plans set price_inr=69,duration_days=365,active=false where code='managed';
+update public.plans set price_inr=89,duration_days=10 where code='managed';
 select is((select ends_at from public.subscriptions where id=(select id from plan_snapshots where kind='subscription')),(select ends_at from plan_snapshots where kind='subscription'),'Edit/hide preserves subscription end');
 select is((select ends_at-starts_at from public.subscriptions where id=(select id from plan_snapshots where kind='subscription')),interval '30 days','Activation used order duration');
 select is((select amount_paise from public.payment_orders where id=(select id from plan_snapshots where kind='new')),5900::bigint,'Successful order amount remains unchanged');
