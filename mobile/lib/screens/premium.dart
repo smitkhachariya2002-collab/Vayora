@@ -45,8 +45,8 @@ class _PlansState extends State<Plans> {
     setState(() => busy = true);
     try {
       final order = await launchPlanPayment(context, widget.state, plan['id'] as String);
-      if (order != null && mounted) await Navigator.push(context, MaterialPageRoute<void>(
-        builder: (_) => Payments(state: widget.state, orderId: order['id'] as String)));
+      if (order != null && mounted) { await Navigator.push(context, MaterialPageRoute<void>(
+        builder: (_) => Payments(state: widget.state, orderId: order['id'] as String))); }
       if (mounted) await refresh();
     } finally { if (mounted) setState(() => busy = false); }
   }

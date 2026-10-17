@@ -41,9 +41,9 @@ class _ProfileState extends State<Profile> {
       final ids = memberships.map((m) => m['channel_id'] as String).toList();
       final others = ids.isEmpty ? <Map<String, dynamic>>[] :
         await state.db.from('channels').select().inFilter('id', ids).order('name');
-      if (mounted && id == state.db.auth.currentUser?.id) setState(() {
+      if (mounted && id == state.db.auth.currentUser?.id) { setState(() {
         owned = mine; joined = others.where((c) => c['created_by'] != id).toList(); loading = false; failure = null;
-      });
+      }); }
     } on Object {
       if (mounted && id == state.db.auth.currentUser?.id) setState(() { failure = 'Could not load your channels.'; loading = false; });
     }
@@ -224,10 +224,10 @@ class AccountControls extends StatelessWidget {
         FilledButton(style: FilledButton.styleFrom(backgroundColor: AppColors.danger, foregroundColor: Colors.white),
           onPressed: () => Navigator.pop(dialog, true), child: const Text('Delete')),
       ])) ?? false;
-    if (yes && context.mounted) await runAction(context, () async {
+    if (yes && context.mounted) { await runAction(context, () async {
       await state.db.functions.invoke('delete-account', body: {'confirm': true});
       await state.logout();
-    });
+    }); }
   }
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

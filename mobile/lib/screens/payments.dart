@@ -55,6 +55,10 @@ class _PaymentsState extends State<Payments> with WidgetsBindingObserver {
     super.initState();
     selected = widget.orderId; details = widget.showLatest || selected != null;
     WidgetsBinding.instance.addObserver(this); reload();
+    if (details) startPolling();
+  }
+  void startPolling() {
+    poll?.cancel(); ticks = 0;
     poll = Timer.periodic(const Duration(seconds: 5), (_) {
       if (++ticks >= 120) poll?.cancel();
       if (details && widget.state.paidEnabled && !widget.state.guest) {
@@ -88,8 +92,8 @@ class _PaymentsState extends State<Payments> with WidgetsBindingObserver {
   @override
   void dispose() { poll?.cancel(); WidgetsBinding.instance.removeObserver(this); super.dispose(); }
   void done() {
-    if (widget.showLatest || widget.orderId != null) Navigator.pop(context);
-    else setState(() => details = false);
+    if (widget.showLatest || widget.orderId != null) { Navigator.pop(context); }
+    else { poll?.cancel(); setState(() => details = false); }
   }
   Future<void> backToPlans() async {
     if (widget.showLatest || widget.orderId != null) { Navigator.pop(context); return; }
@@ -102,17 +106,18 @@ class _PaymentsState extends State<Payments> with WidgetsBindingObserver {
     try {
       final next = await launchPlanPayment(context, widget.state, order['plan_id'] as String);
       if (next != null && mounted) {
-        setState(() { selected = next['id'] as String; details = true; ticks = 0; });
+        setState(() { selected = next['id'] as String; details = true; });
+        startPolling();
         await refresh();
       }
     } finally { if (mounted) setState(() => paying = false); }
   }
   @override
   Widget build(BuildContext context) => ListenableBuilder(listenable: widget.state, builder: (context, _) {
-    if (!widget.state.paidEnabled) return const AppPage(title: 'Payment', body: EmptyState(
-      icon: Icons.receipt_long_outlined, title: 'Free account', message: 'Your account is currently in free mode.'));
-    if (widget.state.guest) return const AppPage(title: 'Payment history', body: EmptyState(
-      icon: Icons.receipt_long_outlined, title: 'Please log in', message: 'Log in to view your payments.'));
+    if (!widget.state.paidEnabled) { return const AppPage(title: 'Payment', body: EmptyState(
+      icon: Icons.receipt_long_outlined, title: 'Free account', message: 'Your account is currently in free mode.')); }
+    if (widget.state.guest) { return const AppPage(title: 'Payment history', body: EmptyState(
+      icon: Icons.receipt_long_outlined, title: 'Please log in', message: 'Log in to view your payments.')); }
     return AppPage(title: details ? 'Payment' : 'Payment history',
       leading: details ? IconButton(tooltip: 'Back', onPressed: paying ? null : done, icon: const Icon(Icons.arrow_back)) : null,
       body: RefreshIndicator(onRefresh: refresh, child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -120,21 +125,21 @@ class _PaymentsState extends State<Payments> with WidgetsBindingObserver {
           if (snapshot.hasError) return ListView(physics: const AlwaysScrollableScrollPhysics(), children: [ErrorRetry(onRetry: refresh)]);
           if (!snapshot.hasData) return const SingleChildScrollView(physics: AlwaysScrollableScrollPhysics(), padding: Gap.page, child: SkeletonList());
           final orders = snapshot.data!;
-          if (orders.isEmpty) return ListView(physics: const AlwaysScrollableScrollPhysics(), children: const [
-            EmptyState(icon: Icons.receipt_long_outlined, title: 'No payments yet', message: 'Your payment history will appear here.')]);
+          if (orders.isEmpty) { return ListView(physics: const AlwaysScrollableScrollPhysics(), children: const [
+            EmptyState(icon: Icons.receipt_long_outlined, title: 'No payments yet', message: 'Your payment history will appear here.')]); }
           final matching = orders.where((o) => o['id'] == selected);
-          if (details && selected != null && matching.isEmpty) return ListView(children: const [
-            EmptyState(icon: Icons.receipt_long_outlined, title: 'Order unavailable', message: 'Return to payment history and refresh.')]);
+          if (details && selected != null && matching.isEmpty) { return ListView(children: const [
+            EmptyState(icon: Icons.receipt_long_outlined, title: 'Order unavailable', message: 'Return to payment history and refresh.')]); }
           final order = matching.isEmpty ? orders.first : matching.first;
-          if (details) return PaymentStatusView(order: order, busy: paying, onDone: done,
+          if (details) { return PaymentStatusView(order: order, busy: paying, onDone: done,
             onRetry: backToPlans, onPayAgain: () => payAgain(order), onCheck: () => runAction(context, refresh),
-            onSupport: () => contactPaymentSupport(context, order));
+            onSupport: () => contactPaymentSupport(context, order)); }
           return PageWidth(form: true, child: ListView(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(16), children: [
             Text('Your payments', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 16),
             for (final row in orders) Padding(padding: const EdgeInsets.only(bottom: 12), child: Card(child: InkWell(
               borderRadius: Radii.cardRadius,
-              onTap: () { setState(() { selected = row['id'] as String; details = true; }); unawaited(runAction(context, refresh)); },
+              onTap: () { setState(() { selected = row['id'] as String; details = true; }); startPolling(); unawaited(runAction(context, refresh)); },
               child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Wrap(alignment: WrapAlignment.spaceBetween, spacing: 16, runSpacing: 8, children: [
                   Text((row['plans'] as Map?)?['name'] as String? ?? 'Premium plan', style: Theme.of(context).textTheme.titleMedium),

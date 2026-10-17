@@ -37,12 +37,12 @@ void main() {
           final joined={'id':'joined','name':'Food across India','created_by':'creator','review_status':'approved','status':'active','members_count':510,'audience':'all'};
           f.intercept=(r) {
             Object? value;
-            if(r.url.path.endsWith('/plans'))value=plans;
+            if(r.url.path.endsWith('/plans')){value=plans;}
             else if(r.url.path.endsWith('/payment_orders')){
               value=name.startsWith('payment-')?[payment]:<Object>[];
-            } else if(r.url.path.endsWith('/channel_members'))value=[{'channel_id':'joined'}];
-            else if(r.url.path.endsWith('/channels'))value=r.url.queryParameters.containsKey('created_by')?[owned,pending]:[joined];
-            else return null;
+            } else if(r.url.path.endsWith('/channel_members')){value=[{'channel_id':'joined'}];}
+            else if(r.url.path.endsWith('/channels')){value=r.url.queryParameters.containsKey('created_by')?[owned,pending]:[joined];}
+            else {return null;}
             return http.Response(jsonEncode(value),200,request:r,headers:{'content-type':'application/json'});
           };
           await tester.runAsync(f.start);await f.state.prefs.setBool('consent_v1',true);

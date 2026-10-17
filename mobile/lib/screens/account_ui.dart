@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import '../account_page.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
 
 String profileName(Map<String, dynamic> status, String id) {
   final value = (status['display_name'] as String? ?? '').trim();
