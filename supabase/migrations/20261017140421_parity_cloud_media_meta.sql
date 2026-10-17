@@ -123,11 +123,11 @@ begin
  -- A user deletion must not free a reservation while its Edge upload may still be in flight.
  -- Hosted Edge requests terminate before this ten-minute recovery interval.
  if not upload_finished and exists(with recursive descendants as(
- select * from public.cloud_files where id=entry_id and user_id=cloud_finish_delete.user_id
+ select f.* from public.cloud_files f where f.id=entry_id and f.user_id=cloud_finish_delete.user_id
  union all select f.* from public.cloud_files f join descendants d on f.parent_id=d.id)
  select 1 from descendants where not is_folder and not ready and created_at>now()-interval '10 minutes') then raise exception 'Upload still finishing. Retry deletion shortly'; end if;
  if exists(with recursive descendants as(
- select id,storage_key from public.cloud_files where id=entry_id and user_id=cloud_finish_delete.user_id
+ select f.id,f.storage_key from public.cloud_files f where f.id=entry_id and f.user_id=cloud_finish_delete.user_id
  union all select f.id,f.storage_key from public.cloud_files f join descendants d on f.parent_id=d.id)
  select 1 from descendants d join storage.objects o on o.bucket_id='cloud' and o.name=d.storage_key) then raise exception 'Storage cleanup required'; end if;
  delete from public.cloud_files where id=entry_id;

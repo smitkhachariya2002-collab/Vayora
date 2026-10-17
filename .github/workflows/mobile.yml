@@ -35,10 +35,10 @@ jobs:
         working-directory: mobile
         run: |
           mkdir -p test-artifacts
-          flutter build apk --debug --dart-define-from-file=config/public.json
-          cp build/app/outputs/flutter-apk/app-debug.apk test-artifacts/Vayora-test.apk
-          flutter build apk --debug --dart-define-from-file=config/public.json --dart-define='APK_REFERRER=utm_source=meta&utm_medium=paid_social&utm_campaign=apk_download'
-          cp build/app/outputs/flutter-apk/app-debug.apk test-artifacts/Vayora-ads-test.apk
+          flutter build apk --debug --flavor direct --dart-define-from-file=config/public.json
+          cp build/app/outputs/flutter-apk/app-direct-debug.apk test-artifacts/Vayora-test.apk
+          flutter build apk --debug --flavor direct --dart-define-from-file=config/public.json --dart-define='APK_REFERRER=utm_source=meta&utm_medium=paid_social&utm_campaign=apk_download'
+          cp build/app/outputs/flutter-apk/app-direct-debug.apk test-artifacts/Vayora-ads-test.apk
           sha256sum test-artifacts/*.apk > test-artifacts/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
@@ -90,10 +90,10 @@ jobs:
         working-directory: mobile
         run: |
           mkdir -p artifacts
-          flutter build apk --release --dart-define-from-file=/tmp/vayora-defines.json
-          cp build/app/outputs/flutter-apk/app-release.apk artifacts/Vayora.apk
-          flutter build apk --release --dart-define-from-file=/tmp/vayora-defines.json --dart-define='APK_REFERRER=utm_source=meta&utm_medium=paid_social&utm_campaign=apk_download'
-          cp build/app/outputs/flutter-apk/app-release.apk artifacts/Vayora-ads.apk
+          flutter build apk --release --flavor direct --dart-define-from-file=/tmp/vayora-defines.json
+          cp build/app/outputs/flutter-apk/app-direct-release.apk artifacts/Vayora.apk
+          flutter build apk --release --flavor direct --dart-define-from-file=/tmp/vayora-defines.json --dart-define='APK_REFERRER=utm_source=meta&utm_medium=paid_social&utm_campaign=apk_download'
+          cp build/app/outputs/flutter-apk/app-direct-release.apk artifacts/Vayora-ads.apk
       - uses: actions/upload-artifact@v4
         with:
           name: Vayora-apks

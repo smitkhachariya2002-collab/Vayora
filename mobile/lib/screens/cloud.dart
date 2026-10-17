@@ -20,7 +20,7 @@ class StorageMeter extends StatelessWidget {
       const SizedBox(height:16),Text(storageLabel(used),style:Theme.of(context).textTheme.headlineMedium),
       Text('of ${storageLabel(total)} used',style:Theme.of(context).textTheme.bodySmall),
       const SizedBox(height:16),ClipRRect(borderRadius:Radii.chipRadius,child:LinearProgressIndicator(minHeight:8,value:total>0?(used/total).clamp(0,1):0)),
-      const SizedBox(height:8),Text(total>0?'${storageLabel((total-used).clamp(0,total))} available':state.paidEnabled?'Get 2 TB with Premium':'Log in for 15 GB free',style:Theme.of(context).textTheme.bodySmall),
+      const SizedBox(height:8),Text(total>0?'${storageLabel((total-used).clamp(0,total))} available':state.paidEnabled?'Get 2 TB with Premium':!state.guest&&playStore?'Pull down to finish setting up your cloud':'Log in for 15 GB free',style:Theme.of(context).textTheme.bodySmall),
     ])));
   }
 }

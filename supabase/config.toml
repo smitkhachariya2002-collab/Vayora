@@ -39,3 +39,9 @@ verify_jwt = false
 
 [functions.post-delete]
 verify_jwt = false
+
+[functions.play-verify]
+verify_jwt = false
+
+[functions.play-report]
+verify_jwt = false

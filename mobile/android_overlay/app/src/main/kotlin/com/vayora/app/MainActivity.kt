@@ -34,6 +34,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(engine: FlutterEngine) {
         super.configureFlutterEngine(engine)
+        if (BuildConfig.FLAVOR == "play") PlayBridge(this,MethodChannel(engine.dartExecutor.binaryMessenger,"app/play"))
         linkChannel = MethodChannel(engine.dartExecutor.binaryMessenger, "app/links").also { channel ->
             channel.setMethodCallHandler { call, result ->
                 if (call.method == "initial") { val raw = pendingLink ?: intent?.dataString; pendingLink = null; result.success(raw) }

@@ -33,6 +33,7 @@ select ok(not private.cloud_read_allowed((select key from cloud_test where kind=
 reset role;
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
 select throws_ok($$select public.cloud_finish_delete('c1000000-0000-4000-8000-000000000001',(select id from cloud_test where kind='folder'))$$,'P0001','Storage cleanup required','Cannot release quota while storage remains');
+set local storage.allow_delete_query='true';
 delete from storage.objects where bucket_id='cloud' and name=(select key from cloud_test where kind='file');
 select public.cloud_finish_delete('c1000000-0000-4000-8000-000000000001',(select id from cloud_test where kind='folder'));
 select is((select used_bytes from public.profiles where id='c1000000-0000-4000-8000-000000000001'),0::bigint,'Recursive deletion releases quota after objects removed');

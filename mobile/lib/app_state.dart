@@ -13,6 +13,7 @@ const backendUrl = String.fromEnvironment('SUPABASE_URL',
 const backendKey = String.fromEnvironment('SUPABASE_KEY');
 const androidAppId = String.fromEnvironment('ANDROID_APP_ID', defaultValue: 'com.vayora.app');
 const authCallback = '$androidAppId://login-callback';
+const playStore = bool.fromEnvironment('PLAY_STORE');
 const apkReferrer = String.fromEnvironment('APK_REFERRER');
 
 class AppState extends ChangeNotifier {
@@ -44,7 +45,8 @@ class AppState extends ChangeNotifier {
   bool get guest => status['is_guest'] != false;
   bool get premium => status['is_premium'] == true;
   bool get adsAccess => status['has_ads_access'] == true;
-  bool get paidEnabled => status['free_mode'] == false;
+  bool get paidEnabled => status['free_mode'] == false && (!playStore || (status['play_verified']==true && status['play_billing_enabled']==true));
+  bool _playCheckout=false;
   bool canSee(String audience) => status['is_admin'] == true || audience == 'all' ||
       (audience == 'organic' && status['source'] == 'organic') ||
       (audience == 'ads' && adsAccess);
@@ -85,6 +87,11 @@ class AppState extends ChangeNotifier {
         params: {'install_id': installId, 'install_secret': installSecret});
     await refreshStatus();
     if (prefs.getBool('consent_v1') == true) await syncConsent();
+    if(playStore && !guest){
+      try { if(status['play_verified']!=true)await enrollPlay(); if(!_playCheckout && status['play_billing_enabled']==true)await retryPlayPurchases(); }
+      on Object { /* Cloud setup and purchase recovery can be retried on resume. */ }
+      await refreshStatus();
+    }
     await retryPayments();
   }
 
@@ -182,9 +189,44 @@ class AppState extends ChangeNotifier {
     await refreshStatus();
   }
 
-  Future<String> pay(String planId) async {
+  Future<void> enrollPlay() async {
+    final challenge=await db.functions.invoke('play-verify',body:{'operation':'challenge'});
+    final data=Map<String,dynamic>.from(challenge.data['data'] as Map);
+    final token=await const MethodChannel('app/play').invokeMethod<String>('integrity',data);
+    await db.functions.invoke('play-verify',body:{'operation':'enroll','integrity_token':token});
+  }
+  Future<void> retryPlayPurchases() async {
+    final tokens=await const MethodChannel('app/play').invokeListMethod<String>('pending')??[];
+    for(final token in tokens){
+      try{
+        await db.functions.invoke('play-verify',body:{'operation':'purchase','purchase_token':token});
+        await const MethodChannel('app/play').invokeMethod<void>('ack',{'purchase_token':token});
+      }on Object{/* Keep durable receipts until server verification succeeds. */}
+    }
+  }
+  Future<String?> payPlay(String planId,{required Future<String?> Function() chooseBillingState}) async {
+    if(!playStore||!paidEnabled)throw StateError('Play billing is disabled');
+    final mapping=await db.from('play_products').select().eq('plan_id',planId).eq('active',true).limit(1).single();
+    _playCheckout=true;
+    try{
+      final choice=await const MethodChannel('app/play').invokeMapMethod<String,dynamic>('purchase',{'product_id':mapping['product_id'],'base_plan_id':mapping['base_plan_id'],'user_id':userId});
+      if(choice?['kind']=='upi'){
+        final billingState=await chooseBillingState();if(billingState==null)return null;
+        return await pay(planId,externalToken:choice!['external_token'] as String,billingState:billingState);
+      }
+      if(choice?['kind']=='google'){
+        final token=choice!['purchase_token'] as String;
+        await db.functions.invoke('play-verify',body:{'operation':'purchase','purchase_token':token});
+        await const MethodChannel('app/play').invokeMethod<void>('ack',{'purchase_token':token});
+        await refreshStatus();
+      }
+      return null;
+    }finally{_playCheckout=false;}
+  }
+  Future<String> pay(String planId,{String? externalToken,String? billingState}) async {
+    if(playStore&&externalToken==null)throw StateError('Use Google Play billing choice');
     final order = Map<String, dynamic>.from(
-        await db.rpc('create_payment_order', params: {'plan_id': planId}) as Map);
+        await db.rpc(externalToken==null?'create_payment_order':'create_play_upi_order', params: {'plan_id': planId,if(externalToken!=null)'external_transaction_token':externalToken,if(externalToken!=null)'administrative_area':billingState}) as Map);
     const channel = MethodChannel('app/upi');
     final raw = await channel.invokeMethod<String>('pay', {
       'uri': buildUpiLink(
