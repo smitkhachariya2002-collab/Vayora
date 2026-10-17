@@ -10,27 +10,43 @@ import 'upi.dart';
 const backendUrl = String.fromEnvironment('SUPABASE_URL',
     defaultValue: 'https://fzloulsjhkdxwagonsgt.supabase.co');
 const backendKey = String.fromEnvironment('SUPABASE_KEY');
+const androidAppId = String.fromEnvironment('ANDROID_APP_ID', defaultValue: 'com.vayora.app');
+const authCallback = '$androidAppId://login-callback';
 const apkReferrer = String.fromEnvironment('APK_REFERRER');
 
 class AppState extends ChangeNotifier {
-  AppState(this.db, this.prefs);
+  AppState(this.db, this.prefs) {
+    _authEvents = db.auth.onAuthStateChange.listen((event) {
+      if (event.event == AuthChangeEvent.passwordRecovery) {
+        recoveringPassword = true;
+        notifyListeners();
+      }
+    });
+  }
+  late final StreamSubscription<AuthState> _authEvents;
   final SupabaseClient db;
   final SharedPreferences prefs;
   Map<String, dynamic> status = {};
   bool busy = false;
   bool _reporting = false;
+  Timer? _statusPoll;
+  bool recoveringPassword = false;
+  int _statusRequest = 0;
   RealtimeChannel? _modeChannel;
   String? error;
   bool get guest => status['is_guest'] != false;
   bool get premium => status['is_premium'] == true;
   bool get adsAccess => status['has_ads_access'] == true;
-  bool get paidEnabled => status['paid_enabled'] == true;
+  bool get paidEnabled => status['free_mode'] == false;
+  bool canSee(String audience) => status['is_admin'] == true || audience == 'all' ||
+      (audience == 'organic' && status['source'] == 'organic') ||
+      (audience == 'ads' && adsAccess);
   String get userId => db.auth.currentUser!.id;
   String get installId => prefs.getString('install_id')!;
   String get installSecret => prefs.getString('install_secret')!;
   Set<String> get blocked => (prefs.getStringList('blocked_channels') ?? []).toSet();
 
-  Future<void> initialize() async {
+  Future<void> initialize({bool watchRemoteChanges = true}) async {
     if (!prefs.containsKey('install_id')) {
       await prefs.setString('install_id', const Uuid().v4());
       await prefs.setString('install_secret', '${const Uuid().v4()}${const Uuid().v4()}');
@@ -46,9 +62,15 @@ class AppState extends ChangeNotifier {
       await prefs.setBool('install_recorded', true);
     }
     await afterLogin();
+    if (!watchRemoteChanges) return;
+    // Realtime switches mode immediately; polling also picks up approvals,
+    // revocations and expiry while a screen remains open.
+    _statusPoll ??= Timer.periodic(const Duration(seconds: 30), (_) {
+      unawaited(refreshStatus().catchError((Object _) {}));
+    });
     _modeChannel ??= db.channel('vayora-operating-mode')
       .onPostgresChanges(event: PostgresChangeEvent.update, schema: 'public', table: 'app_mode',
-        callback: (_) { unawaited(refreshStatus()); }).subscribe();
+        callback: (_) { unawaited(refreshStatus().catchError((Object _) {})); }).subscribe();
   }
 
   Future<void> afterLogin() async {
@@ -60,8 +82,13 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> refreshStatus() async {
-    status = Map<String, dynamic>.from(await db.rpc('my_status') as Map);
-    notifyListeners();
+    final request = ++_statusRequest;
+    final id = db.auth.currentUser?.id;
+    final next = Map<String, dynamic>.from(await db.rpc('my_status') as Map);
+    if (request == _statusRequest && id == db.auth.currentUser?.id && next['user_id'] == id) {
+      status = next;
+      notifyListeners();
+    }
   }
 
   Future<void> acceptConsent() async {
@@ -80,7 +107,8 @@ class AppState extends ChangeNotifier {
 
   Future<void> login(String email, String password, {bool create = false}) async {
     if (create && db.auth.currentUser?.isAnonymous == true) {
-      await db.auth.updateUser(UserAttributes(email: email, password: password));
+      await db.auth.updateUser(UserAttributes(email: email, password: password),
+          emailRedirectTo: authCallback);
     } else {
       await db.auth.signInWithPassword(email: email, password: password);
     }
@@ -90,17 +118,41 @@ class AppState extends ChangeNotifier {
   Future<void> google({bool linkGuest = false}) async {
     if (linkGuest && db.auth.currentUser?.isAnonymous == true) {
       await db.auth.linkIdentity(OAuthProvider.google,
-          redirectTo: 'com.vayora.app://login-callback');
+          redirectTo: authCallback);
     } else {
       await db.auth.signInWithOAuth(OAuthProvider.google,
-          redirectTo: 'com.vayora.app://login-callback');
+          redirectTo: authCallback);
     }
   }
 
   Future<void> logout() async {
+    status = {};
+    recoveringPassword = false;
+    notifyListeners();
     await db.auth.signOut();
     await db.auth.signInAnonymously();
     await afterLogin();
+  }
+
+  Future<void> sendPasswordReset(String email) async {
+    if (email.isEmpty) throw StateError('Enter your email address first');
+    await db.auth.resetPasswordForEmail(email, redirectTo: authCallback);
+  }
+
+  Future<void> saveRecoveredPassword(String password) async {
+    if (!recoveringPassword) throw StateError('Open the password reset email first');
+    if (password.length < 8) throw StateError('Use at least 8 characters');
+    await db.auth.updateUser(UserAttributes(password: password));
+    recoveringPassword = false;
+    await afterLogin();
+  }
+
+  @override
+  void dispose() {
+    _statusPoll?.cancel();
+    unawaited(_authEvents.cancel());
+    if (_modeChannel != null) unawaited(db.removeChannel(_modeChannel!));
+    super.dispose();
   }
 
   Future<void> block(String channelId) async {

@@ -82,19 +82,31 @@ class Home extends StatefulWidget {
 }
 class _HomeState extends State<Home> with WidgetsBindingObserver {
   int selected = 2;
+  bool showingRecovery = false;
   late final StreamSubscription<AuthState> auth;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.state.addListener(checkRecovery);
     auth = widget.state.db.auth.onAuthStateChange.listen((event) {
       if (!mounted) return;
-      if (event.event == AuthChangeEvent.signedIn || event.event == AuthChangeEvent.userUpdated) {
+      if (event.event == AuthChangeEvent.signedIn || event.event == AuthChangeEvent.userUpdated || event.event == AuthChangeEvent.passwordRecovery) {
         unawaited(runAction(context, widget.state.afterLogin));
       }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.state.prefs.getBool('consent_v1') != true) consent();
+      checkRecovery();
+    });
+  }
+  void checkRecovery() {
+    if (!mounted || showingRecovery || !widget.state.recoveringPassword) return;
+    showingRecovery = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => ResetPassword(state: widget.state)));
+      showingRecovery = false;
     });
   }
   Future<void> consent() async {
@@ -117,7 +129,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     if (value == AppLifecycleState.resumed) unawaited(runAction(context, widget.state.afterLogin));
   }
   @override
-  void dispose() { auth.cancel(); WidgetsBinding.instance.removeObserver(this); super.dispose(); }
+  void dispose() { widget.state.removeListener(checkRecovery); auth.cancel(); WidgetsBinding.instance.removeObserver(this); super.dispose(); }
   @override
   Widget build(BuildContext context) => ListenableBuilder(listenable: widget.state, builder: (context, _) {
     final s = widget.state;
@@ -192,17 +204,55 @@ class _LoginState extends State<Login> {
         setState(() => busy = true);
         await runAction(context, () async {
           await widget.state.login(email.text.trim(), password.text, create: create);
+          if (create && context.mounted && widget.state.guest) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Check your email to confirm your account.')));
+          }
         });
         if (mounted) setState(() => busy = false);
       }, child: Text(create ? 'Create account' : 'Log in')),
       TextButton(onPressed: () => runAction(context, () => widget.state.google(linkGuest: create)),
-        child: Text(create ? 'Link Google to guest account' : 'Log in with Google')),
+        child: const Text('Continue with Google')),
       TextButton(onPressed: () => runAction(context, () async {
-        await widget.state.db.auth.resetPasswordForEmail(email.text.trim(),
-          redirectTo: 'com.vayora.app://login-callback');
-      }), child: const Text('Send password reset email')),
+        await widget.state.sendPasswordReset(email.text.trim());
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Check your email for the password reset link.')));
+        }
+      }), child: const Text('Forgot password?')),
       const Text('Creating an account preserves your guest ID. Check your email to confirm the address.'),
     ]));
+}
+
+
+class ResetPassword extends StatefulWidget {
+  const ResetPassword({super.key, required this.state});
+  final AppState state;
+  @override
+  State<ResetPassword> createState() => _ResetPasswordState();
+}
+class _ResetPasswordState extends State<ResetPassword> {
+  final password = TextEditingController(), confirm = TextEditingController();
+  bool busy = false;
+  @override
+  void dispose() { password.dispose(); confirm.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Set a new password')),
+    body: ListView(padding: const EdgeInsets.all(24), children: [
+      TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'New password (8+ characters)')),
+      TextField(controller: confirm, obscureText: true, decoration: const InputDecoration(labelText: 'Confirm password')),
+      FilledButton(onPressed: busy ? null : () async {
+        setState(() => busy = true);
+        await runAction(context, () async {
+          if (password.text != confirm.text) throw StateError('Passwords do not match');
+          await widget.state.saveRecoveredPassword(password.text);
+          if (context.mounted) Navigator.pop(context);
+        });
+        if (mounted) setState(() => busy = false);
+      }, child: const Text('Save password')),
+    ]),
+  );
 }
 
 class ContentList extends StatefulWidget {
@@ -226,7 +276,7 @@ class _ContentListState extends State<ContentList> {
       joined = memberships.map((r) => r['channel_id'] as String).toList();
       if (joined.isEmpty) return [];
     }
-    var query = widget.state.db.from('posts').select('*,post_items(*)');
+    var query = widget.state.db.from('posts').select('*,post_items(*),channels(audience)');
     if (widget.channel != null) query = query.eq('channel_id', widget.channel!);
     if (widget.creator != null) query = query.eq('created_by', widget.creator!);
     if (joined != null) query = query.inFilter('channel_id', joined);
@@ -321,10 +371,18 @@ class PostPage extends StatelessWidget {
       });
     }
   }
+  bool get ownsMedia => state.status['is_admin'] == true || post['created_by'] == state.userId;
   Future<void> play(BuildContext context, Map<String, dynamic> item, {bool trailer = false}) async {
+    await runAction(context, state.refreshStatus);
+    if (!context.mounted) return;
+    if (!trailer && state.guest && state.paidEnabled && item['is_premium'] == true &&
+        state.adsAccess && item['trailer_key'] != null) {
+      await play(context, item, trailer: true);
+      return;
+    }
     if (!trailer && !await loginGate(context, state)) return;
     if (!context.mounted) return;
-    if (!trailer && item['is_premium'] == true && !state.premium) {
+    if (!trailer && !ownsMedia && item['is_premium'] == true && !state.premium) {
       if (state.adsAccess && item['trailer_key'] != null) {
         await play(context, item, trailer: true);
       } else {
@@ -335,18 +393,23 @@ class PostPage extends StatelessWidget {
     await runAction(context, () async {
       final key = (trailer ? item['trailer_key'] : item['media_key']) as String?;
       if (key == null) throw StateError('Trailer unavailable');
-      final url = await state.db.storage.from('media').createSignedUrl(key, 3600);
+      final url = await state.db.storage.from('media').createSignedUrl(key, 60);
       if (!context.mounted) return;
       if (!trailer && (item['mime'] as String).startsWith('image/')) {
         await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Scaffold(appBar: AppBar(title: Text(post['title'] as String)),
           body: Center(child: InteractiveViewer(child: Image.network(url))))));
       } else {
-        await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Watch(url: url, trailer: trailer, isPremium: item['is_premium'] == true, state: state)));
+        await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Watch(url: url, trailer: trailer, isPremium: item['is_premium'] == true, state: state, audience: post['audience'] as String, channelAudience: (post['channels'] as Map?)?['audience'] as String? ?? 'all', createdBy: post['created_by'] as String)));
       }
     });
   }
   @override
   Widget build(BuildContext context) => ListenableBuilder(listenable: state, builder: (context, _) {
+    final channelAudience = (post['channels'] as Map?)?['audience'] as String? ?? 'all';
+    if (!ownsMedia && (!state.canSee(post['audience'] as String) || !state.canSee(channelAudience))) {
+      return Scaffold(appBar: AppBar(title: const Text('Vayora')),
+        body: const Center(child: Text('This post is no longer available for your account.')));
+    }
     final items = List<Map<String, dynamic>>.from(post['post_items'] as List)
       ..sort((a,b) => (a['position'] as int).compareTo(b['position'] as int));
     return Scaffold(appBar: AppBar(title: const Text('Vayora')), body: ListView(padding: const EdgeInsets.all(20), children: [
@@ -358,7 +421,7 @@ class PostPage extends StatelessWidget {
         Text('${i['duration_s'] ?? 0} seconds · ${post['view_count']} views'),
         Text(post['description'] as String),
         Row(children: [
-          if (state.adsAccess && i['trailer_key'] != null) OutlinedButton(onPressed: () => play(context,i,trailer:true), child: const Text('Trailer')),
+          if ((state.adsAccess || ownsMedia) && i['trailer_key'] != null) OutlinedButton(onPressed: () => play(context,i,trailer:true), child: const Text('Trailer')),
           FilledButton(onPressed: () => play(context,i), child: const Text('Play')),
         ]),
         Wrap(spacing: 8, children: [
@@ -371,8 +434,8 @@ class PostPage extends StatelessWidget {
           TextButton(onPressed: () => report(context), child: const Text('Report')),
           TextButton(onPressed: () => runAction(context, () async {
             if (!await loginGate(context,state) || !context.mounted) return;
-            if (!state.premium) { await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>Plans(state:state))); return; }
-            final url = await state.db.storage.from('media').createSignedUrl(i['media_key'] as String,3600);
+            if (!state.premium && !ownsMedia) { await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>Plans(state:state))); return; }
+            final url = await state.db.storage.from('media').createSignedUrl(i['media_key'] as String,60);
             await const MethodChannel('app/download').invokeMethod<void>('download',{'url':url,'name':'vayora-${i['id']}.mp4'});
           }), child: const Text('Download')),
         ]),
@@ -388,10 +451,11 @@ class PostPage extends StatelessWidget {
 }
 
 class Watch extends StatefulWidget {
-  const Watch({super.key,required this.url,required this.trailer,required this.isPremium,required this.state});
+  const Watch({super.key,required this.url,required this.trailer,required this.isPremium,required this.state,required this.audience,required this.channelAudience,required this.createdBy});
   final String url;
   final bool trailer;
   final bool isPremium;
+  final String audience, channelAudience, createdBy;
   final AppState state;
   @override
   State<Watch> createState()=>_WatchState();
@@ -405,7 +469,9 @@ class _WatchState extends State<Watch> {
   @override
   void initState(){super.initState();video=VideoPlayerController.networkUrl(Uri.parse(widget.url));widget.state.addListener(accessChanged);unawaited(prepare());}
   void accessChanged(){
-    final allowed=widget.trailer?widget.state.adsAccess:!widget.state.guest&&(!widget.isPremium||widget.state.premium);
+    final allowed=widget.state.status['is_admin']==true||widget.state.userId==widget.createdBy||
+      (widget.state.canSee(widget.audience)&&widget.state.canSee(widget.channelAudience)&&
+      (widget.trailer?widget.state.adsAccess:!widget.state.guest&&(!widget.isPremium||widget.state.premium)));
     if(!allowed&&mounted){unawaited(video.pause());if(ModalRoute.of(context)?.isCurrent==true)Navigator.pop(context);}
   }
   Future<void> prepare() async {
@@ -422,10 +488,10 @@ class _WatchState extends State<Watch> {
     if(video.value.position>=video.value.duration && video.value.duration>Duration.zero){
       ended=true;
       unawaited(showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
-        title:const Text('Enjoyed the trailer?'),content:const Text('Please subscribe to watch the full video'),
+        title:const Text('Enjoyed the trailer?'),content:Text(widget.state.premium?'You can now play the full video':widget.state.paidEnabled?'Please subscribe to watch the full video':'Log in to watch the full video free'),
         actions:[TextButton(onPressed:()async{
           Navigator.pop(ctx);
-          if(await loginGate(context,widget.state)&&mounted){
+          if(await loginGate(context,widget.state)&&mounted&&widget.state.paidEnabled&&!widget.state.premium){
             await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>Plans(state:widget.state)));
           }
         },child:const Text('Continue'))])));
