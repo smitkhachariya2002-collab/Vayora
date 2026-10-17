@@ -20,10 +20,11 @@ class Watch extends StatefulWidget {
     required this.createdBy,
     this.title = 'Now playing',
     this.refreshUrl,
+    this.personalCloud=false,
   });
   final Future<String> Function()? refreshUrl;
   final String url, title, audience, channelAudience, createdBy;
-  final bool trailer, isPremium;
+  final bool trailer, isPremium, personalCloud;
   final AppState state;
   @override
   State<Watch> createState() => _WatchState();
@@ -43,8 +44,9 @@ class _WatchState extends State<Watch> {
   }
 
   void accessChanged() {
-    final allowed =
-        widget.state.status['is_admin'] == true ||
+    final allowed = widget.personalCloud
+      ? !widget.state.guest && (widget.state.status['quota_bytes'] as num? ?? 0)>0
+      : widget.state.status['is_admin'] == true ||
         widget.state.userId == widget.createdBy ||
         (widget.state.canSee(widget.audience) &&
             widget.state.canSee(widget.channelAudience) &&

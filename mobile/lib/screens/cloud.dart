@@ -117,7 +117,7 @@ class CloudViewState extends State<CloudView> implements CloudController{
       final mime=row['mime']as String;
       if(mime.startsWith('video/')){
         await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>Watch(url:signed,refreshUrl:url,title:row['name']as String,
-          trailer:false,isPremium:false,state:state,audience:'all',channelAudience:'all',createdBy:state.userId)));
+          personalCloud:true,trailer:false,isPremium:false,state:state,audience:'all',channelAudience:'all',createdBy:state.userId)));
       }else if(mime.startsWith('image/')){
         await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>AppPage(title:row['name']as String,
           body:Center(child:InteractiveViewer(child:Image.network(signed))))));

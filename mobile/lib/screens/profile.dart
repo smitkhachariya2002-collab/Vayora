@@ -87,7 +87,9 @@ class _ProfileState extends State<Profile> {
         TextButton(onPressed: () => Navigator.pop(dialog), child: const Text('Cancel')),
         FilledButton(onPressed: () { if (input.text.trim().isNotEmpty) Navigator.pop(dialog, input.text.trim()); }, child: const Text('Save')),
       ]));
-    // The dialog route may still be completing its exit animation.
+    // Wait for the route to finish using its controller before disposal.
+    await Future<void>.delayed(const Duration(milliseconds:300));
+    input.dispose();
     if (value == null || !mounted) return;
     await runAction(context, () async {
       await state.db.from('profiles').update({'display_name': value}).eq('id', state.userId).select('id').single();
@@ -255,10 +257,10 @@ class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key, this.state});
   final AppState? state;
   @override
-  Widget build(BuildContext context) => AppPage(title: 'Settings', body: PageWidth(form: true, child: ListView(padding: const EdgeInsets.all(16), children: [
+  Widget build(BuildContext context) => AppPage(title: 'App Setting', body: PageWidth(form: true, child: ListView(padding: const EdgeInsets.all(16), children: [
     const GlowHeader(child: Center(child: BrandMark())),
     const Card(child: Column(children: [
-      ListTile(leading: Icon(Icons.dark_mode_outlined), title: Text('Appearance'), subtitle: Text('Dark · orange · Poppins')),
+      ListTile(leading: Icon(Icons.dark_mode_outlined), title: Text('Appearance'), subtitle: Text('Dark theme')),
       Divider(),
       ListTile(leading: Icon(Icons.text_fields), title: Text('Text size'), subtitle: Text('Follows your phone’s accessibility settings')),
       Divider(),
