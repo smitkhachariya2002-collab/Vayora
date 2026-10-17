@@ -11,6 +11,7 @@ const existingId = '22222222-2222-4222-8222-222222222222';
 
 class Fixture {
   final calls = <http.Request>[];
+  http.Response? Function(http.Request)? intercept;
   String id = guestId;
   bool anonymous = true;
   late final SupabaseClient db;
@@ -31,6 +32,8 @@ class Fixture {
       authOptions: const AuthClientOptions(autoRefreshToken: false, authFlowType: AuthFlowType.implicit),
       httpClient: MockClient((request) async {
         calls.add(request);
+        final response = intercept?.call(request);
+        if (response != null) return response;
         Object? body;
         if (request.url.path.endsWith('/signup')) {
           anonymous = true; id = guestId; body = session();

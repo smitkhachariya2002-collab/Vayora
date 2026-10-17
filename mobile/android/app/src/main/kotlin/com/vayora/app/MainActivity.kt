@@ -1,5 +1,11 @@
 package com.vayora.app
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
+import java.io.File
+import java.io.ByteArrayOutputStream
 import android.app.DownloadManager
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -13,6 +19,7 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private var callback: MethodChannel.Result? = null
+    private var photoCallback: MethodChannel.Result? = null
     private val store by lazy { getSharedPreferences("vayora_upi", Context.MODE_PRIVATE) }
 
     override fun configureFlutterEngine(engine: FlutterEngine) {
@@ -90,6 +97,23 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+        MethodChannel(engine.dartExecutor.binaryMessenger, "app/photo").setMethodCallHandler { call, result ->
+            if (call.method != "pick") result.notImplemented()
+            else if (photoCallback != null) result.error("busy", "Photo picker is already open", null)
+            else {
+                photoCallback = result
+                try {
+                    val picker = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                        type = "image/*"
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                    }
+                    startActivityForResult(picker, 702)
+                } catch (_: Exception) {
+                    photoCallback = null
+                    result.error("photo_unavailable", "Could not open photos", null)
+                }
+            }
+        }
         MethodChannel(engine.dartExecutor.binaryMessenger, "app/share").setMethodCallHandler { call, result ->
             if (call.method != "share") result.notImplemented()
             else {
@@ -103,6 +127,67 @@ class MainActivity : FlutterActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 702) {
+            val reply = photoCallback
+            photoCallback = null
+            val uri = data?.data
+            if (resultCode != RESULT_OK || uri == null) { reply?.success(null); return }
+            Thread {
+                var source: File? = null
+                try {
+                    val file = File.createTempFile("channel-photo-", ".img", cacheDir)
+                    source = file
+                    contentResolver.openInputStream(uri)?.use { input ->
+                        file.outputStream().use { output ->
+                            val buffer = ByteArray(8192)
+                            var total = 0
+                            var count = input.read(buffer)
+                            while (count != -1) {
+                                total += count
+                                if (total > 20 * 1024 * 1024) throw IllegalArgumentException("Photo too large")
+                                output.write(buffer, 0, count)
+                                count = input.read(buffer)
+                            }
+                        }
+                    } ?: throw IllegalArgumentException("Photo unavailable")
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeFile(file.absolutePath, bounds)
+                    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) throw IllegalArgumentException("Not an image")
+                    var sample = 1
+                    while (bounds.outWidth / sample > 2048 || bounds.outHeight / sample > 2048) sample *= 2
+                    val decoded = BitmapFactory.decodeFile(file.absolutePath,
+                        BitmapFactory.Options().apply { inSampleSize = sample })
+                        ?: throw IllegalArgumentException("Not an image")
+                    val scale = minOf(1f, 1024f / maxOf(decoded.width, decoded.height))
+                    val resized = Bitmap.createScaledBitmap(decoded, maxOf(1, (decoded.width * scale).toInt()),
+                        maxOf(1, (decoded.height * scale).toInt()), true)
+                    val orientation = try {
+                        ExifInterface(file.absolutePath).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+                    } catch (_: Exception) { ExifInterface.ORIENTATION_NORMAL }
+                    val matrix = Matrix()
+                    when (orientation) {
+                        ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.setScale(-1f, 1f)
+                        ExifInterface.ORIENTATION_ROTATE_180 -> matrix.setRotate(180f)
+                        ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.setScale(1f, -1f)
+                        ExifInterface.ORIENTATION_TRANSPOSE -> { matrix.setRotate(90f); matrix.postScale(-1f, 1f) }
+                        ExifInterface.ORIENTATION_ROTATE_90 -> matrix.setRotate(90f)
+                        ExifInterface.ORIENTATION_TRANSVERSE -> { matrix.setRotate(-90f); matrix.postScale(-1f, 1f) }
+                        ExifInterface.ORIENTATION_ROTATE_270 -> matrix.setRotate(-90f)
+                    }
+                    val upright = Bitmap.createBitmap(resized, 0, 0, resized.width, resized.height, matrix, true)
+                    val output = ByteArrayOutputStream()
+                    upright.compress(Bitmap.CompressFormat.JPEG, 85, output)
+                    if (upright !== resized && upright !== decoded) upright.recycle()
+                    if (resized !== decoded) resized.recycle()
+                    decoded.recycle()
+                    val jpeg = output.toByteArray()
+                    runOnUiThread { reply?.success(jpeg) }
+                } catch (_: Exception) {
+                    runOnUiThread { reply?.error("photo_failed", "Could not read this photo. Choose another image.", null) }
+                } finally { source?.delete() }
+            }.start()
+            return
+        }
         if (requestCode != 701) return
         val order = store.getString("active_order", null)
         val raw = data?.getStringExtra("response") ?: data?.dataString ?: "Status=UNKNOWN"
