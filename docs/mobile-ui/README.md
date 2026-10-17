@@ -10,8 +10,11 @@ This change restyles the Flutter app while preserving its account, access, appro
 - Clear Log in / Create account choices with password visibility; no guest-upgrade switch.
 - Channel creation keeps a required name, optional description, tags, photo selection/replacement and submit feedback. Channel screens do not say “owner approval required”.
 - Post actions and a full-screen video player with seeking, play/pause, time and rotation controls.
-- Premium benefits appear once above compact selectable plan rows, with existing prices/durations and a sticky payment button. Payment history retains accurate verification status wording.
-- Channels use search, Discover / Joined tabs, a My channels folder action, and compact rows with actual member counts. Trending and Latest use existing data; there is no ratings system or invented Top Rated ordering.
+- Profile has a collapsing warm header, editable name, member/guest account card, My Channels, policy/support links and account controls.
+- Settings contains appearance/accessibility details, policies, support, logout and delete-account actions.
+- Premium shows plan-table benefits once, compact selectable rows, correct guest/member/launch labels and one priority banner. Free mode uses its own account card.
+- Payment status targets an explicit order, polls the existing service, and displays distinct pending/success/failed/cancelled/reversed messages. History shows own newest-first orders and local times.
+- Approved creators can choose a channel and publish a photo post through the existing storage policies.
 - Storage allowance presentation, profile, support and policy screens.
 
 ## Scope boundaries
@@ -46,3 +49,22 @@ All nine requested screens are captured at 360 × 900 and 430 × 900, at text sc
 - Component tests verify palette/font, gradient and outlined actions, post cards, hidden free-mode crown, and large text.
 - The visual job generates then rechecks golden images, and saves review PNGs on the same PR branch.
 - The Android job runs `flutter analyze`, `flutter test`, and builds normal and ads testing APKs.
+
+## Account and payment states
+
+The current signup trigger leaves names empty. The UI shows a deterministic User-ID fallback without changing the database trigger. The new post composer supports photos using the existing picker; it does not add video upload.
+
+| State | Screenshot |
+| --- | --- |
+| Guest Profile | ![Guest Profile](screenshots/after/profile-guest-360-1.0.png) |
+| Member Profile | ![Member Profile](screenshots/after/profile-member-360-1.0.png) |
+| Premium Profile | ![Premium Profile](screenshots/after/profile-premium-360-1.0.png) |
+| Settings | ![Settings](screenshots/after/settings-360-1.0.png) |
+| Paid Premium | ![Paid Premium](screenshots/after/premium-paid-360-1.0.png) |
+| Free-mode Premium | ![Free-mode Premium](screenshots/after/premium-free-360-1.0.png) |
+| Payment pending | ![Payment pending](screenshots/after/payment-pending-360-1.0.png) |
+| Payment success | ![Payment success](screenshots/after/payment-success-360-1.0.png) |
+| Payment failed | ![Payment failed](screenshots/after/payment-failed-360-1.0.png) |
+| Payment cancelled | ![Payment cancelled](screenshots/after/payment-cancelled-360-1.0.png) |
+| Payment reversed | ![Payment reversed](screenshots/after/payment-reversed-360-1.0.png) |
+| Payment history | ![Payment history](screenshots/after/payment-history-360-1.0.png) |

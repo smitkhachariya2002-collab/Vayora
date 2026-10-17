@@ -1,33 +1,41 @@
-# Mobile redesign validation
+# Mobile account and payment UI validation
 
-Validated with the repository's pinned Flutter 3.35.7 / Dart 3.9 toolchain in GitHub Actions.
+GitHub-only continuation of PR #6, using Flutter 3.35.7 / Dart 3.9.
 
-- `flutter analyze`: no issues.
-- `flutter test`: 29 functional/widget tests pass. The 36 screenshot cases are intentionally skipped in this normal command and run in the dedicated visual workflow.
-- Visual workflow: 36 baseline captures; 39 redesigned reference images (36 screen/size combinations and three component images). All redesigned images are generated and checked again against their references.
-- Phone sizes: 360 × 900 and 430 × 900, each with text scales 1.0 and 1.6. Theme buttons and post cards also cover text scale 2.0.
-- Screen coverage: Explore, Post, Player, Premium, Payment status/history, Cloud, Channels, Profile and Login.
-- Regression coverage: existing-account login, guest signup retaining its user ID, duplicate-email feedback, password reset callback, attribution, free-mode presentation, channel validation, channel photo replacement/rollback, player retry and the existing UPI tests.
-- Reference-layout coverage: benefits appear once, compact plan rows preserve exact prices/durations and selection, and Joined channels use actual membership filters. Discover / Joined tabs remain readable at both text sizes; My channels and Create channel use dedicated actions.
-- Before/after screenshots are linked in [the review document](README.md).
+## Requested flows
 
-The final GitHub workflow run and normal/ads APK download links are included in the PR description.
+- Profile uses a pinned, 168px expanded SliverAppBar with the warm diagonal gradient, initial avatar, editable name, active-plan badge and Settings action.
+- Ads and organic users share this Profile UI. Server entitlements remain authoritative.
+- Guest login prompt, member email/plan row, approved creator Upload action and hidden free-mode payment history.
+- Owned channels precede joined channels. Approval status is private to the creator's Profile; Add Channel requires login.
+- Policies, support email subject, logout and delete-account confirmation reuse existing endpoints.
+- Premium benefits appear once from the selected plan's perks (fallback provided); compact animated selection rows preserve live prices and durations.
+- Button labels cover unselected, guest, member and launching states. Plan selection stays mounted through login.
+- One top banner: active plan takes priority over the newest open order.
+- Free mode or no active plans uses the free-account card. Free mode hides all plans/prices/UPI actions.
+- Payment details target an explicit order ID. Polling runs every five seconds for ten minutes per opened status; resume/manual checks remain available. Server success refreshes my_status.
+- Success, pending, failed, cancelled and reversed messages are distinct; history shows newest-first own orders, local date/time, amount, reference and status.
+- No UPI app gets a dedicated dialog; payment cancellation remains governed by the existing reported server state.
 
-## Protected behavior
+## Automated checks
 
-The PR diff was checked against base commit `b4031746e4f36df5a7f7fdeee9fc5ef75018641c`. There are no changes to:
+flutter analyze: zero issues. flutter test: all 39 functional/widget tests pass. The PR description records final workflow results and the APK download. Normal tests cover account creation/login, source attribution, consent, mode visibility, channels, compact plans, payment-state copy, banner priority, button labels, guest navigation, owned approved uploads, private media paths and payment polling.
+The normal command skips 84 screenshot cases; the visual workflow runs all 84 and three additional component captures, then rechecks the generated goldens.
 
-- `mobile/lib/app_state.dart` or `mobile/lib/upi.dart`
-- Android native handlers or signing configuration
-- `supabase/**` (database schema, migrations, RLS, access functions and payment functions)
-- `admin/**`
+Visual evidence: 36 previous-screen captures plus 87 redesigned images (the original 36 screen variants, 48 account/payment variants, and three components).
+Phone widths: 360 and 430, text scales 1.0 and 1.6. Component checks additionally cover 2.0.
+Account variants: guest/member/premium Profile, Settings, paid/free Premium, pending/success/failed/cancelled/reversed Payment, Payment history.
 
-Media entitlement conditions and signed URL requests continue to use the existing gates. Payments still use the existing order creation, UPI invocation and result-reporting methods. Screenshot tests use fictional data and a simulated video decoder, not the live backend.
+## Protected behavior and explicit limits
 
-## Remaining setup and existing limitations
+No changes to supabase/**, admin/**, mobile/android/**, mobile/lib/app_state.dart or mobile/lib/upi.dart.
+The existing order creation, UPI URI, native result persistence, report retries, payment verification, access rules, approvals and free-mode switch remain unchanged.
 
-The generated normal and ads APKs are connected testing builds. Permanent release signing remains a separate configuration step.
+The current database signup trigger leaves display_name empty. To honor the explicit UI-only / no-database-change instruction, Profile displays User- plus the first eight user-ID characters when empty; Edit saves to the existing profiles.display_name column. This PR does not alter the database trigger.
 
-Both login options remain visible; this UI change does not configure Google's OAuth provider. Email authentication uses the existing setup.
+New post supports photo posts through the existing device photo picker and private media bucket. Only owned approved active channels get upload controls. It creates an unpublished draft, uploads to the existing creator/post path, then publishes; failed attempts are cleaned up where possible and remain unpublished. This does not add a video picker or change storage policies.
 
-Cloud allowance is shown, while upload, folder, rename and delete operations remain unavailable because their backing feature was not implemented in the original app. This UI-only PR does not add storage APIs or change access rules.
+Cloud upload/folders/rename/delete remain unavailable; this task does not add cloud APIs.
+Both login options remain visible; Google provider setup stays separate. Generated APKs are connected testing builds. Permanent release signing remains a separate step.
+
+Screenshots use deterministic fictional fixtures and no production account/payment operations.
