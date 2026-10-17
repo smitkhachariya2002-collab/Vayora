@@ -179,7 +179,7 @@ class AppState extends ChangeNotifier {
     await refreshStatus();
   }
 
-  Future<void> pay(String planId) async {
+  Future<String> pay(String planId) async {
     final order = Map<String, dynamic>.from(
         await db.rpc('create_payment_order', params: {'plan_id': planId}) as Map);
     const channel = MethodChannel('app/upi');
@@ -197,6 +197,7 @@ class AppState extends ChangeNotifier {
       await prefs.setString('pending_payments', jsonEncode(pending));
       await retryPayments();
     }
+    return order['id'] as String;
   }
 
   Future<void> retryPayments() async {

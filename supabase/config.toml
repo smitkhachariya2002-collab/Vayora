@@ -30,3 +30,6 @@ verify_jwt = false
 
 [functions.admin-invite]
 verify_jwt = false
+
+[functions.upi-webhook]
+verify_jwt = false

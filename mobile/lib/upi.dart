@@ -14,7 +14,7 @@ String buildUpiLink({
     'cu': 'INR',
     'tn': 'Vayora $reference',
   };
-  return 'upi://pay?${values.entries.map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}').join('&')}';
+  return 'upi://pay?${values.entries.map((e) => '${Uri.encodeComponent(e.key)}=${e.key == 'pa' ? Uri.encodeComponent(e.value).replaceAll('%40', '@') : Uri.encodeComponent(e.value)}').join('&')}';
 }
 
 Map<String, String> parseUpiResponse(String raw) {

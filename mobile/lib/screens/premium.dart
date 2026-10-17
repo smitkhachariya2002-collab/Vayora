@@ -28,7 +28,7 @@ class _PlansState extends State<Plans> {
     }
     plans = widget.state.db.from('plans').select().eq('active', true).order('position');
     openOrders = widget.state.guest ? Future.value([]) : widget.state.db.from('payment_orders').select('*,plans(name)')
-      .eq('user_id', widget.state.userId).inFilter('status', ['created', 'pending']).order('created_at', ascending: false);
+      .eq('user_id', widget.state.userId).inFilter('status', ['initiated', 'pending']).order('created_at', ascending: false);
   }
   Future<void> refresh() async {
     await widget.state.refreshStatus();
@@ -110,9 +110,9 @@ class _PlansState extends State<Plans> {
               final active = banner == PremiumBannerKind.active;
               final order = orders.isEmpty ? null : orders.first;
               return Padding(padding: const EdgeInsets.only(bottom: 16), child: NoticeCard(
-                title: active ? 'Premium active' : 'Payment being checked',
+                title: active ? 'Premium active' : order?['status'] == 'initiated' ? 'Payment not completed' : 'Payment being checked',
                 message: active ? 'You have ${state.status['plan_name']} until ${shortDate(state.status['plan_ends_at'] as String?)}.' :
-                  'Payment for ${(order?['plans'] as Map?)?['name'] ?? 'Premium'} (order ${order?['reference']}) is being checked. Tap to see the status.',
+                  'Payment for ${(order?['plans'] as Map?)?['name'] ?? 'Premium'} (order ${order?['reference']}) is ${order?['status'] == 'initiated' ? 'not completed' : 'being checked'}. Tap to see the status.',
                 tone: active ? NoticeTone.success : NoticeTone.warning,
                 onTap: active ? null : () => Navigator.push(context, MaterialPageRoute<void>(
                   builder: (_) => Payments(state: state, orderId: order!['id'] as String)))));

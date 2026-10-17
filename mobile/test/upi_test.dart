@@ -1,6 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vayora/upi.dart';
 void main() {
+  test('Trial link exactly matches owner-confirmed UPI settings', () {
+    expect(buildUpiLink(upiId: '2728412a@bandhan', payeeName: 'AS Enterprice',
+      reference: 'VY261017AABBCCDDEEFF', amountPaise: 4900),
+      'upi://pay?pa=2728412a@bandhan&pn=AS%20Enterprice&tr=VY261017AABBCCDDEEFF&am=49.00&cu=INR&tn=Vayora%20VY261017AABBCCDDEEFF');
+  });
  test('UPI fields have exact order, amount and percent encoding', () {
   expect(buildUpiLink(upiId:'merchant@upi',payeeName:'Vayora India',reference:'VY123',amountPaise:4900),
    'upi://pay?pa=merchant%40upi&pn=Vayora%20India&tr=VY123&am=49.00&cu=INR&tn=Vayora%20VY123');
