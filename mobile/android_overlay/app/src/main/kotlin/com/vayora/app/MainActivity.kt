@@ -115,14 +115,15 @@ class MainActivity : FlutterFragmentActivity() {
                         if (uri.scheme != "upi" || uri.host != "pay" || order.isBlank()) {
                             result.error("invalid", "Invalid payment request", null)
                         } else {
-                            store.edit().putString("active_order", order).commit()
+                            store.edit().putString("active_order", order).putString("owner:$order", call.argument<String>("user_id")).commit()
                             callback = result
                             pickUpi(uri)
                         }
                     }
                 }
                 "pending" -> {
-                    val pending = store.all.filterKeys { it.startsWith("response:") }
+                    val account = call.argument<String>("user_id")
+                    val pending = store.all.filterKeys { it.startsWith("response:") && (store.getString("owner:" + it.removePrefix("response:"), null) == account) }
                         .mapKeys { it.key.removePrefix("response:") }.mapValues { it.value.toString() }
                     result.success(pending)
                 }

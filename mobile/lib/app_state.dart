@@ -378,6 +378,7 @@ class AppState extends ChangeNotifier {
           as Map,
     );
     await prefs.setString('open_payment_order:$userId', order['id'] as String);
+    await prefs.setString('payment_owner:${order['id']}', userId);
     await beforeLaunch?.call((order['amount_paise'] as num).toInt());
     const channel = MethodChannel('app/upi');
     final raw = await channel.invokeMethod<String>('pay', {
@@ -388,6 +389,7 @@ class AppState extends ChangeNotifier {
         amountPaise: (order['amount_paise'] as num).toInt(),
       ),
       'order_id': order['id'],
+      'user_id': userId,
     });
     if (raw != null) {
       final pending = readPendingPayments(prefs.getString('pending_payments'));
@@ -407,7 +409,7 @@ class AppState extends ChangeNotifier {
       final queue = readPendingPayments(prefs.getString('pending_payments'));
       try {
         final recovered = await native.invokeMapMethod<String, String>(
-          'pending',
+          'pending', {'user_id': userId},
         );
         if (recovered != null) queue.addAll(recovered);
       } on MissingPluginException {
@@ -416,6 +418,8 @@ class AppState extends ChangeNotifier {
       await prefs.setString('pending_payments', jsonEncode(queue));
       if (queue.isNotEmpty && remoteChangesEnabled) await db.auth.refreshSession();
       for (final entry in Map<String, String>.from(queue).entries) {
+        final owner = prefs.getString('payment_owner:${entry.key}');
+        if (owner != null && owner != userId) continue;
         try {
           await db.rpc(
             'report_payment_result',
