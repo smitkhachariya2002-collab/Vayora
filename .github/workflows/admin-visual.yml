@@ -42,6 +42,9 @@ jobs:
         with:
           name: admin-before-after
           path: admin/visual-artifacts
+      - name: Realtime diagnostics on failure
+        if: failure()
+        run: docker logs supabase_realtime_vayora 2>&1 | grep -Ei 'error|publication|replication|subscription|wal|permission' | tail -80 || true
       - name: Save Plans review screenshots
         if: github.head_ref == 'build/live-plan-management'
         env:
