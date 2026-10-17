@@ -154,5 +154,15 @@ select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-00000000
 select is(public.can_read_media('10000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000003/main'),true,'Admin always reads premium');
 reset role;
 select ok(not (select public from storage.buckets where id='media'),'Media bucket stays private');
+reset role;
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+insert into public.posts(id,channel_id,title,audience,status,created_by) values
+('30000000-0000-0000-0000-000000000004','20000000-0000-0000-0000-000000000001','Creator draft','ads','draft','10000000-0000-0000-0000-000000000002');
+insert into public.post_items(post_id,media_key,trailer_key,is_premium) values
+('30000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000002/30000000-0000-0000-0000-000000000004/main','10000000-0000-0000-0000-000000000002/30000000-0000-0000-0000-000000000004/trailer',true);
+set local role authenticated;
+select is(public.can_read_media('10000000-0000-0000-0000-000000000002/30000000-0000-0000-0000-000000000004/main'),true,'Post creator reads own premium without a plan');
+select is(public.can_read_media('10000000-0000-0000-0000-000000000002/30000000-0000-0000-0000-000000000004/trailer'),true,'Post creator reads own trailer without ads approval');
+reset role;
 select * from finish();
 rollback;

@@ -371,6 +371,7 @@ class PostPage extends StatelessWidget {
       });
     }
   }
+  bool get ownsMedia => state.status['is_admin'] == true || post['created_by'] == state.userId;
   Future<void> play(BuildContext context, Map<String, dynamic> item, {bool trailer = false}) async {
     await runAction(context, state.refreshStatus);
     if (!context.mounted) return;
@@ -381,7 +382,7 @@ class PostPage extends StatelessWidget {
     }
     if (!trailer && !await loginGate(context, state)) return;
     if (!context.mounted) return;
-    if (!trailer && item['is_premium'] == true && !state.premium) {
+    if (!trailer && !ownsMedia && item['is_premium'] == true && !state.premium) {
       if (state.adsAccess && item['trailer_key'] != null) {
         await play(context, item, trailer: true);
       } else {
@@ -398,14 +399,14 @@ class PostPage extends StatelessWidget {
         await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Scaffold(appBar: AppBar(title: Text(post['title'] as String)),
           body: Center(child: InteractiveViewer(child: Image.network(url))))));
       } else {
-        await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Watch(url: url, trailer: trailer, isPremium: item['is_premium'] == true, state: state, audience: post['audience'] as String, channelAudience: (post['channels'] as Map?)?['audience'] as String? ?? 'all')));
+        await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Watch(url: url, trailer: trailer, isPremium: item['is_premium'] == true, state: state, audience: post['audience'] as String, channelAudience: (post['channels'] as Map?)?['audience'] as String? ?? 'all', createdBy: post['created_by'] as String)));
       }
     });
   }
   @override
   Widget build(BuildContext context) => ListenableBuilder(listenable: state, builder: (context, _) {
     final channelAudience = (post['channels'] as Map?)?['audience'] as String? ?? 'all';
-    if (!state.canSee(post['audience'] as String) || !state.canSee(channelAudience)) {
+    if (!ownsMedia && (!state.canSee(post['audience'] as String) || !state.canSee(channelAudience))) {
       return Scaffold(appBar: AppBar(title: const Text('Vayora')),
         body: const Center(child: Text('This post is no longer available for your account.')));
     }
@@ -420,7 +421,7 @@ class PostPage extends StatelessWidget {
         Text('${i['duration_s'] ?? 0} seconds · ${post['view_count']} views'),
         Text(post['description'] as String),
         Row(children: [
-          if (state.adsAccess && i['trailer_key'] != null) OutlinedButton(onPressed: () => play(context,i,trailer:true), child: const Text('Trailer')),
+          if ((state.adsAccess || ownsMedia) && i['trailer_key'] != null) OutlinedButton(onPressed: () => play(context,i,trailer:true), child: const Text('Trailer')),
           FilledButton(onPressed: () => play(context,i), child: const Text('Play')),
         ]),
         Wrap(spacing: 8, children: [
@@ -433,7 +434,7 @@ class PostPage extends StatelessWidget {
           TextButton(onPressed: () => report(context), child: const Text('Report')),
           TextButton(onPressed: () => runAction(context, () async {
             if (!await loginGate(context,state) || !context.mounted) return;
-            if (!state.premium) { await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>Plans(state:state))); return; }
+            if (!state.premium && !ownsMedia) { await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>Plans(state:state))); return; }
             final url = await state.db.storage.from('media').createSignedUrl(i['media_key'] as String,60);
             await const MethodChannel('app/download').invokeMethod<void>('download',{'url':url,'name':'vayora-${i['id']}.mp4'});
           }), child: const Text('Download')),
@@ -450,11 +451,11 @@ class PostPage extends StatelessWidget {
 }
 
 class Watch extends StatefulWidget {
-  const Watch({super.key,required this.url,required this.trailer,required this.isPremium,required this.state,required this.audience,required this.channelAudience});
+  const Watch({super.key,required this.url,required this.trailer,required this.isPremium,required this.state,required this.audience,required this.channelAudience,required this.createdBy});
   final String url;
   final bool trailer;
   final bool isPremium;
-  final String audience, channelAudience;
+  final String audience, channelAudience, createdBy;
   final AppState state;
   @override
   State<Watch> createState()=>_WatchState();
@@ -468,8 +469,9 @@ class _WatchState extends State<Watch> {
   @override
   void initState(){super.initState();video=VideoPlayerController.networkUrl(Uri.parse(widget.url));widget.state.addListener(accessChanged);unawaited(prepare());}
   void accessChanged(){
-    final allowed=widget.state.canSee(widget.audience)&&widget.state.canSee(widget.channelAudience)&&
-      (widget.trailer?widget.state.adsAccess:!widget.state.guest&&(!widget.isPremium||widget.state.premium));
+    final allowed=widget.state.status['is_admin']==true||widget.state.userId==widget.createdBy||
+      (widget.state.canSee(widget.audience)&&widget.state.canSee(widget.channelAudience)&&
+      (widget.trailer?widget.state.adsAccess:!widget.state.guest&&(!widget.isPremium||widget.state.premium)));
     if(!allowed&&mounted){unawaited(video.pause());if(ModalRoute.of(context)?.isCurrent==true)Navigator.pop(context);}
   }
   Future<void> prepare() async {
