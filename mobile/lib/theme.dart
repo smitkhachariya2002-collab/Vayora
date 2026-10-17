@@ -107,6 +107,11 @@ ThemeData buildTheme() {
     chipTheme: ChipThemeData(backgroundColor: AppColors.surfaceHigh, selectedColor: AppColors.primary,
       labelStyle: const TextStyle(fontFamily: AppBrand.font, fontSize: AppSizes.bodySmall, color: AppColors.text),
       side: const BorderSide(color: AppColors.border), shape: const RoundedRectangleBorder(borderRadius: Radii.chipRadius)),
+    segmentedButtonTheme: SegmentedButtonThemeData(style: ButtonStyle(
+      backgroundColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? AppColors.primary : AppColors.surfaceHigh),
+      foregroundColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? AppColors.ink : AppColors.text),
+      side: const WidgetStatePropertyAll(BorderSide(color: AppColors.border)),
+      textStyle: const WidgetStatePropertyAll(TextStyle(fontFamily: AppBrand.font, fontSize: AppSizes.bodySmall, fontWeight: FontWeight.w600)))),
     dialogTheme: const DialogThemeData(backgroundColor: AppColors.surface, surfaceTintColor: AppColors.transparent,
       shape: RoundedRectangleBorder(borderRadius: Radii.chipRadius), alignment: Alignment.center,
       titleTextStyle: TextStyle(fontFamily: AppBrand.font, fontSize: AppSizes.title, fontWeight: FontWeight.w700, color: AppColors.text),
@@ -127,7 +132,7 @@ ThemeData buildTheme() {
     progressIndicatorTheme: const ProgressIndicatorThemeData(color: AppColors.primary, linearTrackColor: AppColors.border),
     sliderTheme: const SliderThemeData(activeTrackColor: AppColors.primary, inactiveTrackColor: AppColors.border,
       thumbColor: AppColors.primary, overlayColor: AppColors.softOrange),
-    floatingActionButtonTheme: const FloatingActionButtonThemeData(backgroundColor: AppColors.primary, foregroundColor: AppColors.ink),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(elevation: 0, backgroundColor: AppColors.primary, foregroundColor: AppColors.ink),
     pageTransitionsTheme: const PageTransitionsTheme(builders: {TargetPlatform.android: CinematicPageTransition()}),
   );
 }
