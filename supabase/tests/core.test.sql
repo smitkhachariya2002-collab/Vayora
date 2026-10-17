@@ -57,7 +57,7 @@ select is((select amount_paise from public.payment_orders where id=(select id fr
 select is((public.create_payment_order((select id from public.plans where code='trial'))->>'id')::uuid,(select id from test_orders where kind='first'),'Open order reused');
 select is(public.report_payment_result((select id from test_orders where kind='first'),'Status=SUCCESS&txnRef=wrong&txnId=ABCDEF123456'),'pending','Wrong reference never activates');
 select is(public.is_premium_user(),false,'Forged client success never grants premium');
-select throws_ok($$update public.payment_orders set status='success'$$,'42501',null,'Orders cannot be edited');
+select throws_ok($$update public.payment_orders set status='paid'$$,'42501',null,'Orders cannot be edited');
 select throws_ok($$insert into public.subscriptions(user_id,plan_id,starts_at,ends_at,source) select '10000000-0000-0000-0000-000000000002',id,now(),now()+interval '1 day','admin' from public.plans limit 1$$,'42501',null,'Cannot insert subscription');
 select throws_ok($$select private.activate_payment((select id from test_orders where kind='first'),4900,'ABCDEF123456','upi_app')$$,'42501',null,'Internal activation not callable');
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',true);
@@ -81,9 +81,9 @@ select throws_ok($$select public.request_full_access()$$,'P0001',null,'Guest can
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 
-select lives_ok($$select public.admin_mark_payment_paid((select id from test_orders where kind='first'),'UTR123456789')$$,'Owner verifies payment');
-select lives_ok($$select public.admin_mark_payment_paid((select id from test_orders where kind='first'),'UTR123456789')$$,'Activation is idempotent');
-select throws_ok($$select public.admin_mark_payment_paid((select id from test_orders where kind='second'),'UTR123456789')$$,'P0001',null,'UTR usable once');
+select lives_ok($$select public.admin_mark_payment_paid((select id from test_orders where kind='first'),'123456789012')$$,'Owner verifies payment');
+select lives_ok($$select public.admin_mark_payment_paid((select id from test_orders where kind='first'),'123456789012')$$,'Activation is idempotent');
+select throws_ok($$select public.admin_mark_payment_paid((select id from test_orders where kind='second'),'123456789012')$$,'P0001',null,'UTR usable once');
 select is((select count(*) from public.subscriptions where order_id=(select id from test_orders where kind='first')),1::bigint,'One subscription per order');
 select is((select ads_access_status::text from public.profiles where id='10000000-0000-0000-0000-000000000002'),'pending','Organic buyer becomes pending');
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
