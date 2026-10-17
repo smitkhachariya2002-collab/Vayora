@@ -7,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'app_state.dart';
+import 'account_page.dart';
+import 'channel_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -69,9 +71,7 @@ Future<void> runAction(BuildContext context, Future<void> Function() action) asy
   }
 }
 Future<bool> loginGate(BuildContext context, AppState state) async {
-  if (!state.guest) return true;
-  await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => Login(state: state)));
-  return !state.guest;
+  return ensureSignedIn(context, state);
 }
 
 class Home extends StatefulWidget {
@@ -146,7 +146,17 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         ])),
         ContentList(state: s, feed: true, key: const ValueKey('feed')),
         ContentList(state: s, key: const ValueKey('explore')),
-        ChannelList(state: s),
+        ChannelList(state: s, onOpen: (channel) => Navigator.push(context, MaterialPageRoute<void>(
+          builder: (_) => Scaffold(appBar: AppBar(title: Text(channel['name'] as String), actions: [
+            IconButton(tooltip: 'Join channel', icon: const Icon(Icons.add), onPressed: () => runAction(context, () async {
+              if (!await loginGate(context, s)) return;
+              await s.db.from('channel_members').upsert({'user_id': s.userId, 'channel_id': channel['id']}, ignoreDuplicates: true);
+            })),
+            IconButton(tooltip: 'Leave channel', icon: const Icon(Icons.remove), onPressed: () => runAction(context, () async {
+              await s.db.from('channel_members').delete().eq('user_id', s.userId).eq('channel_id', channel['id']);
+            })),
+          ]), body: ContentList(state: s, channel: channel['id'] as String)),
+        ))),
         Profile(state: s),
       ][selected],
       bottomNavigationBar: NavigationBar(selectedIndex: selected, onDestinationSelected: (i) => setState(() => selected = i),
@@ -179,51 +189,6 @@ class Policy extends StatelessWidget {
     ]),
   ));
 }
-
-class Login extends StatefulWidget {
-  const Login({super.key, required this.state});
-  final AppState state;
-  @override
-  State<Login> createState() => _LoginState();
-}
-class _LoginState extends State<Login> {
-  final email = TextEditingController(), password = TextEditingController();
-  @override
-  void initState() { super.initState(); widget.state.addListener(accountChanged); }
-  void accountChanged() { if (mounted && !widget.state.guest && ModalRoute.of(context)?.isCurrent == true) Navigator.pop(context); }
-  bool create = false, busy = false;
-  @override
-  void dispose() { widget.state.removeListener(accountChanged); email.dispose(); password.dispose(); super.dispose(); }
-  @override
-  Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Your Vayora account')),
-    body: ListView(padding: const EdgeInsets.all(24), children: [
-      TextField(controller: email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email')),
-      TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'Password')),
-      SwitchListTile(title: const Text('Create account from this guest'), value: create, onChanged: (v) => setState(() => create = v)),
-      FilledButton(onPressed: busy ? null : () async {
-        setState(() => busy = true);
-        await runAction(context, () async {
-          await widget.state.login(email.text.trim(), password.text, create: create);
-          if (create && context.mounted && widget.state.guest) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Check your email to confirm your account.')));
-          }
-        });
-        if (mounted) setState(() => busy = false);
-      }, child: Text(create ? 'Create account' : 'Log in')),
-      TextButton(onPressed: () => runAction(context, () => widget.state.google(linkGuest: create)),
-        child: const Text('Continue with Google')),
-      TextButton(onPressed: () => runAction(context, () async {
-        await widget.state.sendPasswordReset(email.text.trim());
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Check your email for the password reset link.')));
-        }
-      }), child: const Text('Forgot password?')),
-      const Text('Creating an account preserves your guest ID. Check your email to confirm the address.'),
-    ]));
-}
-
 
 class ResetPassword extends StatefulWidget {
   const ResetPassword({super.key, required this.state});
@@ -294,55 +259,6 @@ class _ContentListState extends State<ContentList> {
         subtitle: Text(p['description'] as String),
         onTap: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => PostPage(state: widget.state, post: p))),
       ))).toList()));
-  });
-}
-
-class ChannelList extends StatefulWidget {
-  const ChannelList({super.key, required this.state});
-  final AppState state;
-  @override
-  State<ChannelList> createState() => _ChannelListState();
-}
-class _ChannelListState extends State<ChannelList> {
-  late Future<List<Map<String, dynamic>>> rows;
-  @override
-  void initState() { super.initState(); reload(); }
-  @override
-  void didUpdateWidget(covariant ChannelList oldWidget) { super.didUpdateWidget(oldWidget); reload(); }
-  void reload() { rows = widget.state.db.from('channels').select().order('created_at', ascending: false).limit(100); }
-  @override
-  Widget build(BuildContext context) => FutureBuilder(future: rows, builder: (context, snap) {
-    if (snap.hasError) return const Center(child: Text('Could not load channels.'));
-    if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-    final channels = snap.data!.where((c) => !widget.state.blocked.contains(c['id'])).toList();
-    return ListView(children: [
-      for (final c in channels) ListTile(title: Text(c['name'] as String), subtitle: Text(c['review_status'] as String),
-        onTap: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Scaffold(
-          appBar: AppBar(title: Text(c['name'] as String), actions: [
-            IconButton(tooltip: 'Join channel', icon: const Icon(Icons.add), onPressed: () => runAction(context, () async {
-              if (!await loginGate(context, widget.state)) return;
-              await widget.state.db.from('channel_members').upsert({'user_id': widget.state.userId, 'channel_id': c['id']}, ignoreDuplicates: true);
-            })),
-            IconButton(tooltip: 'Leave channel', icon: const Icon(Icons.remove), onPressed: () => runAction(context, () async {
-              await widget.state.db.from('channel_members').delete().eq('user_id', widget.state.userId).eq('channel_id', c['id']);
-            })),
-          ]), body: ContentList(state: widget.state, channel: c['id'] as String),
-        )))),
-      TextButton(onPressed: () async {
-        if (!await loginGate(context, widget.state) || !context.mounted) return;
-        final controller = TextEditingController();
-        final name = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(title: const Text('Create channel'),
-          content: TextField(controller: controller, decoration: const InputDecoration(labelText: 'Channel name')),
-          actions: [TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('Submit for review'))]));
-        controller.dispose();
-        if (name != null && name.trim().isNotEmpty && context.mounted) {
-          await runAction(context, () async {
-            await widget.state.db.from('channels').insert({'name': name.trim(), 'created_by': widget.state.userId});
-            setState(reload);
-          });
-        }
-      }, child: const Text('Add channel · owner approval required')),
-    ]);
   });
 }
 
