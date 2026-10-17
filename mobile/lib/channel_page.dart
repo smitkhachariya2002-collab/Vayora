@@ -79,7 +79,7 @@ class _ChannelListState extends State<ChannelList> {
     final id=channel['id'] as String;
     final leaving=joined.contains(id);
     if(leaving&&!await confirmAction(context,title:'Leave this channel?',message:'Its posts will no longer appear in your feed.',
-      action:'Leave channel',icon:Icons.logout_rounded))return;
+      action:'Leave channel',icon:Icons.logout_rounded)){return;}
     if(!mounted)return;
     try{
       if(leaving){await widget.state.db.from('channel_members').delete().eq('user_id',widget.state.userId).eq('channel_id',id);}

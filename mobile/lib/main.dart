@@ -51,9 +51,9 @@ class _StartupState extends State<Startup>{
   @override
   Widget build(BuildContext context)=>FutureBuilder(future:startup,builder:(context,snapshot){
     if(snapshot.hasError)return AppPage(body:ErrorRetry(onRetry:()=>setState(()=>startup=widget.state.initialize())));
-    if(snapshot.connectionState!=ConnectionState.done)return const AppPage(body:Center(child:Column(
+    if(snapshot.connectionState!=ConnectionState.done){return const AppPage(body:Center(child:Column(
       mainAxisSize:MainAxisSize.min,children:[GlowHeader(child:BrandMark(large:true)),SizedBox(height:Gap.xl),
-        Text(AppBrand.name),SizedBox(height:Gap.xl),Padding(padding:Gap.page,child:LinearProgressIndicator())])));
+        Text(AppBrand.name),SizedBox(height:Gap.xl),Padding(padding:Gap.page,child:LinearProgressIndicator())])));}
     return Home(state:widget.state);
   });
 }

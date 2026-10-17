@@ -77,7 +77,7 @@ class PostPage extends StatelessWidget {
           final blocked=state.blocked.contains(post['channel_id']);
           if(!await confirmAction(context,title:blocked?'Unblock this channel?':'Block this channel?',
             message:blocked?'Its posts can appear again.':'Its posts will be hidden while browsing.',
-            action:blocked?'Unblock':'Block',icon:Icons.block)||!context.mounted)return;
+            action:blocked?'Unblock':'Block',icon:Icons.block)||!context.mounted){return;}
           await runAction(context,()async{await state.block(post['channel_id'] as String);if(context.mounted)Navigator.pop(context);});
         }),
     ],body:PageWidth(child:ListView(padding:Gap.page,children:[

@@ -52,7 +52,7 @@ abstract final class AppSizes {
   static const double sheetGripWidth = 36, sheetGripHeight = 4;
   static const double body = 15, bodySmall = 14, label = 14, caption = 12;
   static const double headline = 22, title = 19, subtitle = 16, heroType = 32;
-  static const double textHeight = 1.45, pressedScale = .97, restingScale = 1, disabledOpacity = .45;
+  static const double textHeight = 1.45, pulseScale = 1.06, pressedScale = .97, restingScale = 1, disabledOpacity = .45;
   static const int imageCacheWidth = 960, avatarCacheWidth = 192, imageCacheCount = 240;
   static const int imageCacheBytes = 96 * 1024 * 1024, pageSize = 20;
 }

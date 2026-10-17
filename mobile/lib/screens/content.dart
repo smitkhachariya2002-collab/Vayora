@@ -82,7 +82,7 @@ class _ContentListState extends State<ContentList> {
       final channel = post['channels'] as Map? ?? {};
       final owns = widget.state.status['is_admin'] == true || post['created_by'] == widget.state.userId;
       if (!owns && (!widget.state.canSee(post['audience'] as String? ?? 'all') ||
-          !widget.state.canSee(channel['audience'] as String? ?? 'all'))) return false;
+          !widget.state.canSee(channel['audience'] as String? ?? 'all'))) {return false;}
       final tags = (channel['tags'] as List? ?? []).join(' ');
       final categoryText = '${channel['category'] ?? ''} $tags'.toLowerCase();
       if (category != 'All' && !categoryText.contains(category.toLowerCase())) return false;

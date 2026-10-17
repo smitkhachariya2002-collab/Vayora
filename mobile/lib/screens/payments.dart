@@ -40,20 +40,20 @@ class _PaymentsState extends State<Payments> with WidgetsBindingObserver {
   void done(){if(widget.showLatest){Navigator.pop(context);}else{setState(()=>details=false);}}
   @override
   Widget build(BuildContext context)=>ListenableBuilder(listenable:widget.state,builder:(context,_){
-    if(!widget.state.paidEnabled)return const AppPage(title:'Payments',body:EmptyState(icon:Icons.receipt_long_outlined,
-      title:'You’re in free mode',message:'Plans and payments aren’t shown while free mode is on.'));
+    if(!widget.state.paidEnabled){return const AppPage(title:'Payments',body:EmptyState(icon:Icons.receipt_long_outlined,
+      title:'You’re in free mode',message:'Plans and payments aren’t shown while free mode is on.'));}
     return AppPage(title:details?'Payment status':'Payment history',
       leading:details?IconButton(tooltip:'Back',onPressed:done,icon:const Icon(Icons.arrow_back)):null,
       body:RefreshIndicator(onRefresh:refresh,child:FutureBuilder(future:rows,builder:(context,snapshot){
         if(snapshot.hasError)return ListView(physics:const AlwaysScrollableScrollPhysics(),children:[ErrorRetry(onRetry:refresh)]);
         if(!snapshot.hasData)return const SingleChildScrollView(physics:AlwaysScrollableScrollPhysics(),padding:Gap.page,child:SkeletonList());
         final orders=snapshot.data!;
-        if(orders.isEmpty)return ListView(physics:const AlwaysScrollableScrollPhysics(),children:const[
-          EmptyState(icon:Icons.receipt_long_outlined,title:'No payments yet',message:'Your payment history will appear here.')]);
+        if(orders.isEmpty){return ListView(physics:const AlwaysScrollableScrollPhysics(),children:const[
+          EmptyState(icon:Icons.receipt_long_outlined,title:'No payments yet',message:'Your payment history will appear here.')]);}
         final matching=orders.where((order)=>order['id']==selected).toList();
         final order=matching.isEmpty?orders.first:matching.first;
-        if(details)return PaymentStatusView(order:order,onDone:done,
-          onRetry:()=>Navigator.pop(context),onSupport:()=>contactPaymentSupport(context,order));
+        if(details){return PaymentStatusView(order:order,onDone:done,
+          onRetry:()=>Navigator.pop(context),onSupport:()=>contactPaymentSupport(context,order));}
         return PageWidth(child:ListView(physics:const AlwaysScrollableScrollPhysics(),padding:Gap.page,children:[
           Text('Your payments',style:Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height:Gap.s),Text('A simple record of your Premium journey.',style:Theme.of(context).textTheme.bodySmall),
@@ -66,7 +66,7 @@ class _PaymentsState extends State<Payments> with WidgetsBindingObserver {
               const SizedBox(height:Gap.m),StatusPill(paymentLabel(order['status'] as String),tone:paymentTone(order['status'] as String)),
               const SizedBox(height:Gap.m),Text('Reference: ${order['reference']}',style:Theme.of(context).textTheme.bodySmall),
               if(shortDate(order['created_at'] as String?).isNotEmpty)Text(shortDate(order['created_at'] as String?),style:Theme.of(context).textTheme.bodySmall),
-            ])))),
+            ]))))),
         ]));
       })));
   });
@@ -126,9 +126,9 @@ class _PaymentStatusIconState extends State<PaymentStatusIcon> with SingleTicker
   Widget build(BuildContext context){
     final color=widget.tone==NoticeTone.success?AppColors.success:widget.tone==NoticeTone.danger?AppColors.danger:AppColors.warning;
     final icon=widget.tone==NoticeTone.success?Icons.check_circle_rounded:widget.tone==NoticeTone.danger?Icons.cancel_rounded:Icons.hourglass_top_rounded;
-    final child=Container(padding:const EdgeInsets.all(Gap.xl),decoration:BoxDecoration(color:color.withValues(alpha:.12),shape:BoxShape.circle),
+    final child=Container(padding:const EdgeInsets.all(Gap.xl),decoration:BoxDecoration(color:widget.tone==NoticeTone.success?AppColors.successBg:widget.tone==NoticeTone.danger?AppColors.dangerBg:AppColors.warningBg,shape:BoxShape.circle),
       child:Icon(icon,color:color,size:AppSizes.emptyIcon));
     return Center(child:widget.tone==NoticeTone.warning&&!MediaQuery.disableAnimationsOf(context)?
-      ScaleTransition(scale:Tween<double>(begin:AppSizes.restingScale,end:1.06).animate(pulse),child:child):child);
+      ScaleTransition(scale:Tween<double>(begin:AppSizes.restingScale,end:AppSizes.pulseScale).animate(pulse),child:child):child);
   }
 }

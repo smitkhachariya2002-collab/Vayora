@@ -30,7 +30,7 @@ class _ChannelDetailState extends State<ChannelDetail>{
   Future<void> join()async{
     if(busy||!await loginGate(context,widget.state)||!mounted)return;
     if(joined&&!await confirmAction(context,title:'Leave this channel?',message:'Its posts will no longer appear in your feed.',
-      action:'Leave channel',icon:Icons.logout_rounded))return;
+      action:'Leave channel',icon:Icons.logout_rounded)){return;}
     if(!mounted)return;
     setState(()=>busy=true);
     try{
@@ -41,19 +41,22 @@ class _ChannelDetailState extends State<ChannelDetail>{
     finally{if(mounted)setState(()=>busy=false);}
   }
   Future<void> menu(String action)async{
+    if(!mounted)return;
     if(action=='report'){await reportContent(context,widget.state,channelId:channel['id'] as String);}
     if(action=='edit'){
+      if(!mounted)return;
       final saved=await Navigator.push<bool>(context,MaterialPageRoute<bool>(builder:(_)=>ChannelEditor(state:widget.state,channel:channel)));
-      if(saved==true&&mounted)await runAction(context,()async{
+      if(saved==true&&mounted){await runAction(context,()async{
         final row=await widget.state.db.from('channels').select().eq('id',channel['id']).single();
         if(mounted){setState(()=>channel=row);showFeedback(context,'Channel updated.');}
-      });
+      });}
     }
     if(action=='block'){
+      if(!mounted)return;
       final blocked=widget.state.blocked.contains(channel['id']);
       if(!await confirmAction(context,title:blocked?'Unblock this channel?':'Block this channel?',
         message:blocked?'Its posts can appear again.':'You won’t see its posts while browsing.',action:blocked?'Unblock':'Block',
-        icon:Icons.block)||!mounted)return;
+        icon:Icons.block)||!mounted){return;}
       await widget.state.block(channel['id'] as String);
       if(mounted){showFeedback(context,blocked?'Channel unblocked.':'Channel blocked.');if(!blocked)Navigator.pop(context);}
     }

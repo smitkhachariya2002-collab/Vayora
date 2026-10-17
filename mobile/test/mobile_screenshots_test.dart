@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 import 'package:vayora/main.dart';
+// Kept explicit so the same harness also runs against the pre-redesign main library.
+// ignore: unnecessary_import
 import 'package:vayora/account_page.dart';
 import 'account_test.dart' show Fixture,existingId;
 import 'capture_theme.dart';
@@ -42,7 +43,7 @@ void main(){
             }
           }else{
             final fonts=FontLoader('Poppins');
-            for(final weight in ['Regular','Medium','SemiBold','Bold'])fonts.addFont(rootBundle.load('assets/fonts/Poppins-$weight.ttf'));
+            for(final weight in ['Regular','Medium','SemiBold','Bold']){fonts.addFont(rootBundle.load('assets/fonts/Poppins-$weight.ttf'));}
             await fonts.load();
           }
           final f=Fixture();
@@ -59,7 +60,7 @@ void main(){
             else{return null;}
             return http.Response(jsonEncode(value),200,request:request,headers:{'content-type':'application/json'});
           };
-          await f.start();
+          await tester.runAsync(f.start);
           await f.state.prefs.setBool('consent_v1',true);
           f.currentStatus={'has_ads_access':true,'source':'ads','quota_bytes':15*1024*1024*1024,'used_bytes':2*1024*1024*1024};
           if(name!='login')await tester.runAsync(()=>f.state.login('test@example.test','password123'));

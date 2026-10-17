@@ -71,10 +71,10 @@ class Profile extends StatelessWidget {
               final yes=await confirmAction(context,title:'Delete your account?',
                 message:'This permanently deletes your account and uploaded content. Payment records are retained.',
                 action:'Delete account',icon:Icons.delete_outline,destructive:true);
-              if(yes&&context.mounted)await runAction(context,()async{
+              if(yes&&context.mounted){await runAction(context,()async{
                 await state.db.functions.invoke('delete-account',body:{'confirm':true});await state.logout();
                 if(context.mounted)showFeedback(context,'Your account was deleted.');
-              });
+              });}
             }),
         ],
         const SizedBox(height:Gap.xl),

@@ -192,7 +192,7 @@ class _PressScaleState extends State<PressScale> {
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: widget.onTap, onTapDown: widget.onTap == null ? null : (_) => setState(() => pressed = true),
-    onTapUp: (_) => setState(() => pressed = false), onTapCancel: () => setState(() => pressed = false),
+    onTapUp: widget.onTap == null ? null : (_) => setState(() => pressed = false), onTapCancel: widget.onTap == null ? null : () => setState(() => pressed = false),
     child: AnimatedScale(scale: pressed && !MediaQuery.disableAnimationsOf(context) ? AppSizes.pressedScale : AppSizes.restingScale,
       duration: AppMotion.press, child: widget.child));
 }
@@ -343,9 +343,14 @@ class ExpandableCopy extends StatefulWidget {
 class _ExpandableCopyState extends State<ExpandableCopy>{
   bool expanded=false;
   @override
-  Widget build(BuildContext context)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Text(widget.text,maxLines:expanded?null:3,overflow:expanded?TextOverflow.visible:TextOverflow.ellipsis,
-      style:Theme.of(context).textTheme.bodyLarge),
-    if(widget.text.length>160)TextButton(onPressed:()=>setState(()=>expanded=!expanded),child:Text(expanded?'less':'more')),
-  ]);
+  Widget build(BuildContext context)=>LayoutBuilder(builder:(context,limits){
+    final style=Theme.of(context).textTheme.bodyLarge;
+    final measurement=TextPainter(text:TextSpan(text:widget.text,style:style),maxLines:3,
+      textDirection:Directionality.of(context),textScaler:MediaQuery.textScalerOf(context))..layout(maxWidth:limits.maxWidth);
+    final truncated=measurement.didExceedMaxLines;measurement.dispose();
+    return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text(widget.text,maxLines:expanded?null:3,overflow:expanded?TextOverflow.visible:TextOverflow.ellipsis,style:style),
+      if(truncated)TextButton(onPressed:()=>setState(()=>expanded=!expanded),child:Text(expanded?'less':'more')),
+    ]);
+  });
 }

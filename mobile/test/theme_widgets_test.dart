@@ -36,8 +36,8 @@ void main(){
       expect(find.text('Premium'),findsOneWidget);
       expect(find.byTooltip('Get Premium'),findsNothing);
       expect(tester.takeException(),isNull);
-      if(const bool.fromEnvironment('SCREENSHOTS'))await expectLater(find.byType(Scaffold),
-        matchesGoldenFile('goldens/after/components-$scale.png'));
+      if(const bool.fromEnvironment('SCREENSHOTS')){await expectLater(find.byType(Scaffold),
+        matchesGoldenFile('goldens/after/components-$scale.png'));}
     });
   }
 }
