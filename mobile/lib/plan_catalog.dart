@@ -36,7 +36,9 @@ class PlanCatalog extends ChangeNotifier {
           .onSystemEvents((payload) {
             // Channel join can precede the PostgreSQL listener by a few seconds.
             // Refetch at database readiness to cover edits during that gap.
-            if (payload is Map && payload['extension']=='postgres_changes' && payload['status']=='ok') {
+            if (payload is Map &&
+                payload['extension'] == 'postgres_changes' &&
+                payload['status'] == 'ok') {
               unawaited(refresh());
             }
           })
