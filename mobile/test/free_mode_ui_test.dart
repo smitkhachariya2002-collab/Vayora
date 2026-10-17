@@ -26,6 +26,6 @@ void main(){
     expect(find.textContaining('₹'),findsNothing);
     expect(find.textContaining('UPI'),findsNothing);
     expect(tester.takeException(),isNull);
-    await tester.pumpWidget(const SizedBox.shrink());await f.close();
+    await tester.pumpWidget(const SizedBox.shrink());await tester.runAsync(f.close);
   });
 }

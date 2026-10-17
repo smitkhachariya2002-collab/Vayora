@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vayora/theme.dart';
 import 'package:vayora/widgets/common.dart';
 import 'package:vayora/widgets/post_card.dart';
 
 void main(){
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(()async{
+    await (FontLoader('MaterialIcons')..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+    final fonts=FontLoader('Poppins');
+    for(final weight in ['Regular','Medium','SemiBold','Bold']){fonts.addFont(rootBundle.load('assets/fonts/Poppins-$weight.ttf'));}
+    await fonts.load();
+  });
   test('Theme uses the requested palette, font and readable body sizes',(){
     final theme=buildTheme();
     expect(theme.scaffoldBackgroundColor,AppColors.background);

@@ -31,6 +31,7 @@ final order=<String,dynamic>{'id':'order-one','user_id':existingId,'reference':'
 void main(){
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(()async{
+    await (FontLoader('MaterialIcons')..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
           if(before){
             final root=Platform.environment['FLUTTER_ROOT'];
             if(root!=null){
