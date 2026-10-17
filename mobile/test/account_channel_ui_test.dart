@@ -34,6 +34,7 @@ void main() {
     f = Fixture(); channels = []; rejectCreate = false;
     f.intercept = (request) {
       if (request.url.path.contains('/storage/v1/object/')) return reply(request, request.method == 'DELETE' ? <Object>[] : {'Key': request.url.path});
+      if (request.url.path.endsWith('/channel_members')) return reply(request, <Object>[]);
       if (!request.url.path.endsWith('/channels')) return null;
       if (request.method == 'POST') {
         if (rejectCreate) return reply(request, {'message': 'Try again', 'code': 'P0001'}, status: 400);
@@ -75,7 +76,7 @@ void main() {
     f.intercept = (request) => request.method == 'PUT' && request.url.path.endsWith('/user')
       ? reply(request, {'msg': 'Email already registered', 'error_code': 'email_exists'}, status: 422) : previous!(request);
     await open(tester, Login(state: f.state));
-    await tester.tap(find.text('Sign up')); await tester.pumpAndSettle();
+    await tester.tap(find.text('Create account')); await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('login-email')), 'existing@example.test');
     await tester.enterText(find.byKey(const ValueKey('login-password')), 'password123');
     await submit(tester, 'account-submit');
@@ -117,7 +118,7 @@ void main() {
     await tester.tap(find.text('My channels')); await tester.pumpAndSettle();
     expect(find.text('My channel'), findsOneWidget);
     expect(find.text('Under review'), findsOneWidget);
-    expect(find.byTooltip('Edit channel'), findsOneWidget);
+    expect(find.text('Edit channel'), findsOneWidget);
     expect(find.textContaining('owner approval'), findsNothing);
   }, timeout: const Timeout(Duration(seconds: 45)));
 
