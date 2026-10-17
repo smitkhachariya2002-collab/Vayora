@@ -1,0 +1,54 @@
+name: Prepare Android signing key
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Only for the FIRST release key. Type CREATE_NEW_KEY. Download and back up the encrypted keystore immediately.'
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: android-signing-bootstrap
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SIGNING_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      EXISTING_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+    steps:
+      - name: Check first-time setup
+        run: |
+          test "$CONFIRMATION" = CREATE_NEW_KEY || { echo "Type CREATE_NEW_KEY only when creating your first permanent key."; exit 1; }
+          test -z "$EXISTING_KEY" || { echo "A signing key already exists. Refusing to replace it."; exit 1; }
+          test "${#SIGNING_PASSWORD}" -ge 12 || { echo "Save ANDROID_KEYSTORE_PASSWORD as a repository secret with at least 12 characters first."; exit 1; }
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Generate password-protected permanent key
+        run: |
+          umask 077
+          mkdir -p signing-backup
+          keytool -genkeypair -noprompt -storetype PKCS12 -keystore signing-backup/vayora-release.jks -alias vayora -keyalg RSA -keysize 3072 -validity 10950 -dname "CN=Vayora, O=Vayora, C=IN" -storepass:env SIGNING_PASSWORD -keypass:env SIGNING_PASSWORD
+          base64 -w 0 signing-backup/vayora-release.jks > signing-backup/ANDROID_KEYSTORE_BASE64.txt
+          keytool -list -keystore signing-backup/vayora-release.jks -storepass:env SIGNING_PASSWORD -alias vayora
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Vayora-signing-backup
+          path: signing-backup/
+          retention-days: 1
+          if-no-files-found: error
+      - name: Explain secure handoff
+        run: |
+          echo "Download Vayora-signing-backup now. Keep vayora-release.jks and its password in secure backups." >> "$GITHUB_STEP_SUMMARY"
+          echo "Copy the ENTIRE text from ANDROID_KEYSTORE_BASE64.txt directly into the repository secret ANDROID_KEYSTORE_BASE64. Never put it in chat or source." >> "$GITHUB_STEP_SUMMARY"
+          echo "The key alias is vayora. The key password equals ANDROID_KEYSTORE_PASSWORD. No other signing secrets are required." >> "$GITHUB_STEP_SUMMARY"
+          echo "Only after saving and backing up the key, set the repository variable ANDROID_RELEASE_ENABLED=true, then run Android verification and APKs on main." >> "$GITHUB_STEP_SUMMARY"
+          echo "The artifact expires after one day. Delete it from this run once your backups and GitHub secret are saved. Never rerun this workflow to update an existing app." >> "$GITHUB_STEP_SUMMARY"
+      - if: always()
+        run: rm -rf signing-backup
