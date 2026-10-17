@@ -104,12 +104,12 @@ void main() {
     });
   }
   test('Plan labels retain exact prices and readable durations', () {
-    expect(planPrice(999.0), '₹999');
-    expect(planPrice(49.5), '₹49.50');
-    expect(planDuration(7), '7 Days');
-    expect(planDuration(30), '1 Month');
-    expect(planDuration(180), '6 Months');
-    expect(planDuration(365), '1 Year');
+    expect(planPrice(999.0), '₹ 999');
+    expect(planPrice(49.5), '₹ 49.50');
+    expect(planDuration(7), '7 days');
+    expect(planDuration(30), '1 month');
+    expect(planDuration(180), '6 months');
+    expect(planDuration(365), '1 year');
   });
   for (final scale in [1.0, 1.6]) {
     testWidgets(
@@ -185,11 +185,11 @@ void main() {
             ),
           ),
         );
-        expect(find.text('2 TB cloud allowance'), findsOneWidget);
-        expect(find.text('Full premium videos'), findsOneWidget);
+        expect(find.text('Access 2 TB Cloud Storage'), findsOneWidget);
+        expect(find.text('Ad-Free Experience'), findsOneWidget);
         expect(find.text('Do not repeat this'), findsNothing);
-        expect(find.text('₹999'), findsOneWidget);
-        expect(find.text('₹999.0'), findsNothing);
+        expect(find.text('₹ 999'), findsOneWidget);
+        expect(find.text('₹ 999.0'), findsNothing);
         await tester.ensureVisible(find.text('Gold'));
         await tester.tap(find.text('Gold'));
         await tester.pumpAndSettle();

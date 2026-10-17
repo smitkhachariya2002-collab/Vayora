@@ -215,7 +215,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     builder: (context, _) {
       final state = widget.state;
       return AppPage(
-        title: const [
+        title: selected == 4 ? null : const [
           'Cloud',
           'Feed',
           AppBrand.name,
@@ -233,7 +233,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               }),
             ),
           CrownButton(
-            visible: state.paidEnabled,
+            visible: selected != 4 && state.paidEnabled,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute<void>(builder: (_) => Plans(state: state)),

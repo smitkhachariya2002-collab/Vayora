@@ -41,7 +41,7 @@ void main() {
       );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      expect(find.text('Free account'), findsOneWidget);
+      expect(find.text('Vayora is free'), findsOneWidget);
       expect(find.text('Request received'), findsOneWidget);
       expect(find.text('Continue to payment'), findsNothing);
       expect(find.textContaining('₹'), findsNothing);
