@@ -54,7 +54,8 @@ jobs:
           mkdir -p docs/plan-management/admin
           cp admin/visual-artifacts/after-plans-*.png admin/visual-artifacts/plans-*.png docs/plan-management/admin/
           git fetch origin "$PR_BRANCH"
-          test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_SHA"
+          git diff --exit-code "$EXPECTED_SHA" FETCH_HEAD -- admin supabase .github/workflows/admin-visual.yml
+          git checkout -B "$PR_BRANCH" FETCH_HEAD
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/plan-management/admin
