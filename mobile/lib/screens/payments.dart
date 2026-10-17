@@ -119,7 +119,9 @@ class PaymentStatusIcon extends StatefulWidget {
   State<PaymentStatusIcon> createState()=>_PaymentStatusIconState();
 }
 class _PaymentStatusIconState extends State<PaymentStatusIcon> with SingleTickerProviderStateMixin {
-  late final AnimationController pulse=AnimationController(vsync:this,duration:AppMotion.shimmer)..repeat(reverse:true);
+  late final AnimationController pulse;
+  @override
+  void initState(){super.initState();pulse=AnimationController(vsync:this,duration:AppMotion.shimmer)..repeat(reverse:true);}
   @override
   void dispose(){pulse.dispose();super.dispose();}
   @override

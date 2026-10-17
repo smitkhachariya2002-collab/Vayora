@@ -57,6 +57,12 @@ jobs:
           flutter pub get --enforce-lockfile
           flutter test test/mobile_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true --update-goldens
           flutter test test/mobile_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true
+      - name: Format the redesigned UI sources and verify the complete suite
+        working-directory: after/mobile
+        run: |
+          dart format lib/account_page.dart lib/channel_page.dart lib/main.dart lib/navigation.dart lib/theme.dart lib/screens lib/widgets test/account_channel_ui_test.dart test/capture_theme.dart test/free_mode_ui_test.dart test/mobile_screenshots_test.dart test/theme_widgets_test.dart test/support
+          flutter analyze
+          flutter test
       - name: Collect screenshots
         if: always()
         run: |
@@ -81,8 +87,8 @@ jobs:
           test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_SHA"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/mobile-ui/screenshots mobile/test/goldens
+          git add docs/mobile-ui/screenshots mobile/test/goldens mobile/lib mobile/test/*.dart mobile/test/support
           if ! git diff --cached --quiet; then
-            git commit -m "docs: capture mobile before and after review screens"
+            git commit -m "style: format redesigned UI and capture review screens"
             git push origin "HEAD:$PR_BRANCH"
           fi
