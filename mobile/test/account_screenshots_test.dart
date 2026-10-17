@@ -30,6 +30,7 @@ void main() {
         'premium-paid',
         'premium-free',
         'payment-pending',
+        'payment-not-completed',
         'payment-success',
         'payment-failed',
         'payment-cancelled',
@@ -59,13 +60,15 @@ void main() {
                   'duration_days': p.$4,
                   'active': true,
                   'perks': [
-                    'Ad-Free Experience',
-                    'Access 2 TB Cloud Storage',
-                    'Fast Upload & Download Speed',
+                    'Full premium videos',
+                    '2 TB cloud storage',
+                    'Download to your phone',
                   ],
                 },
             ];
-            final status = name == 'payment-success'
+            final status = name == 'payment-not-completed'
+                ? 'initiated'
+                : name == 'payment-success'
                 ? 'success'
                 : name == 'payment-failed'
                 ? 'failed'
@@ -149,7 +152,11 @@ void main() {
               'plan_ends_at': premium ? '2026-11-17T10:00:00Z' : null,
               'has_ads_access': false,
               'access_status': name == 'premium-free' ? 'pending' : 'none',
-              'quota_bytes': 15 * 1024 * 1024 * 1024,
+              'quota_bytes': premium
+                  ? 2199023255552
+                  : name == 'premium-free'
+                  ? 16106127360
+                  : 0,
             };
             if (name != 'profile-guest') {
               await tester.runAsync(

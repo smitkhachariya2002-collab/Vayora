@@ -20,7 +20,9 @@ String buildUpiLink({
 Map<String, String> parseUpiResponse(String raw) {
   try {
     final query = raw.contains('?') ? raw.substring(raw.indexOf('?') + 1) : raw;
-    return Uri.splitQueryString(query).map((k, v) => MapEntry(k.toLowerCase(), v));
+    return Uri.splitQueryString(
+      query,
+    ).map((k, v) => MapEntry(k.toLowerCase(), v));
   } on Object {
     return {'status': 'unknown', 'raw': raw};
   }

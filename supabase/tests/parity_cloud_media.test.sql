@@ -83,5 +83,19 @@ select is((select count(*) from private.meta_events where event_name='Install'),
 select is((select count(*) from private.meta_events where event_name='CompleteRegistration'),1::bigint,'Registration deduplicated');
 select is((select status from private.meta_events where event_name='Install'),'queued','Events stay queued while integration disabled');
 select lives_ok($$select private.meta_dispatch()$$,'Disabled dispatcher does not send');
+
+-- A successful HTTP response with zero accepted events is still a failed delivery.
+update private.meta_events set status='sending',request_id=-101,last_attempt_at=now() where event_name='Install';
+insert into net._http_response(id,status_code,content,timed_out)values(-101,200,'{"events_received":0}',false);
+select private.meta_dispatch();
+select is((select status from private.meta_events where event_name='Install'),'failed','Zero accepted events is a delivery failure');
+update private.meta_events set status='sending',request_id=-102,last_attempt_at=now() where event_name='CompleteRegistration';
+insert into net._http_response(id,status_code,content,timed_out)values(-102,200,'{"events_received":1}',false);
+select private.meta_dispatch();
+select is((select status from private.meta_events where event_name='CompleteRegistration'),'sent','Accepted event is marked sent');
+update private.meta_events set status='queued',created_at=now()-interval '8 days',request_id=null where event_name='Install';
+select private.meta_dispatch();
+select is((select status from private.meta_events where event_name='Install'),'failed','Expired queue event is failed explicitly');
+select is((select response from private.meta_events where event_name='Install'),'Event older than seven days; not sent','Expiry failure explains why no event was sent');
 select * from finish();
 rollback;

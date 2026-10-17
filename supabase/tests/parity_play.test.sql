@@ -46,5 +46,16 @@ select is(public.my_status()->>'free_mode','false','Approved billing switch chan
 select throws_ok($$select public.activate_play_purchase(auth.uid(),'fake','fake','fake',now()+interval '1 day')$$,'42501',null,'Client cannot activate a fake purchase');
 select throws_ok($$select public.claim_play_reports()$$,'42501',null,'Client cannot read choice tokens');
 reset role;
+
+-- Server verification is idempotent and the receipt cannot migrate to another account.
+insert into auth.users(id,email,is_anonymous)values('e1000000-0000-4000-8000-000000000002','play-other@example.test',false);
+insert into public.play_products(product_id,base_plan_id,plan_id)select 'vayora.test','prepaid',id from public.plans where code='trial';
+select set_config('request.jwt.claims','{"role":"service_role"}',true);
+select lives_ok($$select public.activate_play_purchase('e1000000-0000-4000-8000-000000000001','verified-receipt','vayora.test','prepaid',now()+interval '7 days')$$,'Verified Google purchase activates mapped plan');
+select lives_ok($$select public.activate_play_purchase('e1000000-0000-4000-8000-000000000001','verified-receipt','vayora.test','prepaid',now()+interval '8 days')$$,'Renewed receipt updates authoritative expiry');
+select is((select count(*) from public.subscriptions where source='google_play'),1::bigint,'Repeated receipt never creates a duplicate entitlement');
+select throws_ok($$select public.activate_play_purchase('e1000000-0000-4000-8000-000000000002','verified-receipt','vayora.test','prepaid',now()+interval '8 days')$$,'P0001','Purchase belongs to another account','Receipt account binding persists');
+select throws_ok($$select public.activate_play_purchase('e1000000-0000-4000-8000-000000000001','expired','vayora.test','prepaid',now()-interval '1 day')$$,'P0001','Purchase expired','Expired purchase cannot activate');
+
 select * from finish();
 rollback;

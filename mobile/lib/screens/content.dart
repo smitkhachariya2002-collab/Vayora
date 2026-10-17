@@ -58,7 +58,8 @@ class _ContentListState extends State<ContentList> {
     if (fingerprint != accessKey ||
         oldWidget.feed != widget.feed ||
         oldWidget.channel != widget.channel ||
-        oldWidget.creator != widget.creator || oldWidget.search != widget.search) {
+        oldWidget.creator != widget.creator ||
+        oldWidget.search != widget.search) {
       fingerprint = accessKey;
       channels = loadChannels();
       load(refresh: true);
@@ -103,12 +104,21 @@ class _ContentListState extends State<ContentList> {
       }
       List<Map<String, dynamic>> next = [];
       if (widget.search.trim().isNotEmpty || category != 'All') {
-        final result = await widget.state.db.rpc('search_posts', params: {
-          'query_text': widget.search.trim(), 'category_filter': category == 'All' ? null : category,
-          'channel_filter': widget.channel, 'creator_filter': widget.creator,
-          'joined_only': widget.feed, 'page_offset': offset, 'page_size': AppSizes.pageSize,
-        });
-        next = (result as List).map((row) => Map<String, dynamic>.from(row as Map)).toList();
+        final result = await widget.state.db.rpc(
+          'search_posts',
+          params: {
+            'query_text': widget.search.trim(),
+            'category_filter': category == 'All' ? null : category,
+            'channel_filter': widget.channel,
+            'creator_filter': widget.creator,
+            'joined_only': widget.feed,
+            'page_offset': offset,
+            'page_size': AppSizes.pageSize,
+          },
+        );
+        next = (result as List)
+            .map((row) => Map<String, dynamic>.from(row as Map))
+            .toList();
       } else if (joined == null || joined.isNotEmpty) {
         var query = widget.state.db
             .from('posts')
@@ -177,12 +187,15 @@ class _ContentListState extends State<ContentList> {
       thumbnailUrl: thumbnail == null
           ? null
           : widget.state.db.storage.from('public').getPublicUrl(thumbnail),
-      onTap: () async { await Navigator.push(
-        context,
-        MaterialPageRoute<void>(
-          builder: (_) => PostPage(state: widget.state, post: post),
-        ),
-      ); if (mounted) setState(() {}); },
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => PostPage(state: widget.state, post: post),
+          ),
+        );
+        if (mounted) setState(() {});
+      },
     );
   }
 
@@ -284,7 +297,10 @@ class _ContentListState extends State<ContentList> {
                   labelStyle: TextStyle(
                     color: category == label ? AppColors.ink : AppColors.text,
                   ),
-                  onSelected: (_) { setState(() => category = label); load(refresh: true); },
+                  onSelected: (_) {
+                    setState(() => category = label);
+                    load(refresh: true);
+                  },
                 ),
               ),
           ],

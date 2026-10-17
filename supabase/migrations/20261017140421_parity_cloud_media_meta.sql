@@ -290,18 +290,23 @@ revoke all on function private.enqueue_purchase_event() from public,anon,authent
 create trigger enqueue_purchase_event after update of status on public.payment_orders for each row execute function private.enqueue_purchase_event();
 
 create function private.meta_dispatch() returns void language plpgsql security definer set search_path='' as $$
-declare settings private.admin_meta_settings; event private.meta_events; delivery record; payload jsonb; userdata jsonb; email text; req bigint;
+declare settings private.admin_meta_settings; event private.meta_events; delivery record; payload jsonb; userdata jsonb; email text; req bigint; acknowledgement jsonb; accepted boolean;
 begin
  if not pg_try_advisory_xact_lock(2026101707) then return; end if;
  -- pg_net only sends after commit; consume responses in the next minute.
  for delivery in select e.id,r.status_code,r.timed_out,r.error_msg,r.content
  from private.meta_events e join net._http_response r on r.id=e.request_id where e.status='sending' loop
-   update private.meta_events set status=case when delivery.status_code between 200 and 299 and not coalesce(delivery.timed_out,false)
-     and coalesce(delivery.content,'') like '%events_received%' then 'sent' else 'failed' end,
-     sent_at=case when delivery.status_code between 200 and 299 and coalesce(delivery.content,'') like '%events_received%' then now() end,
+   begin acknowledgement=coalesce(delivery.content,'{}')::jsonb;
+   exception when invalid_text_representation then acknowledgement='{}'; end;
+   accepted=coalesce(delivery.status_code between 200 and 299 and not coalesce(delivery.timed_out,false)
+     and acknowledgement @> '{"events_received":1}'::jsonb,false);
+   update private.meta_events set status=case when accepted then 'sent' else 'failed' end,
+     sent_at=case when accepted then now() end,
      response=left(coalesce(delivery.error_msg,delivery.content,'No response'),2000) where id=delivery.id;
  end loop;
  update private.meta_events set status='failed',response='Delivery timed out' where status='sending' and last_attempt_at<now()-interval '5 minutes';
+ update private.meta_events set status='failed',attempts=greatest(attempts,5),
+ response='Event older than seven days; not sent' where status in('queued','failed') and created_at<=now()-interval '7 days';
  select * into settings from private.admin_meta_settings where id;
  if not settings.enabled or settings.pixel_id!~'^[0-9]+$' or coalesce(settings.api_token,'')='' then return; end if;
  for event in select e.* from private.meta_events e where e.status in('queued','failed') and e.attempts<5

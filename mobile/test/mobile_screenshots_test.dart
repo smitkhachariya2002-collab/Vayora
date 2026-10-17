@@ -119,6 +119,39 @@ void main() {
                 value = [channel];
               } else if (request.url.path.endsWith('/channel_members')) {
                 value = <Object>[];
+              } else if (request.url.path.endsWith('/cloud_files')) {
+                value = [
+                  {
+                    'id': 'folder',
+                    'name': 'Photos from India',
+                    'is_folder': true,
+                    'parent_id': null,
+                    'ready': true,
+                    'deleting': false,
+                  },
+                  {
+                    'id': 'video',
+                    'name': 'Mountain journey.mp4',
+                    'is_folder': false,
+                    'parent_id': null,
+                    'mime': 'video/mp4',
+                    'size': 12400000,
+                    'ready': true,
+                    'deleting': false,
+                    'storage_key': 'fixture/video',
+                  },
+                  {
+                    'id': 'photo',
+                    'name': 'A quiet morning.jpg',
+                    'is_folder': false,
+                    'parent_id': null,
+                    'mime': 'image/jpeg',
+                    'size': 2450000,
+                    'ready': true,
+                    'deleting': false,
+                    'storage_key': 'fixture/photo',
+                  },
+                ];
               } else if (request.url.path.endsWith('/plans')) {
                 value = [
                   {
@@ -179,7 +212,8 @@ void main() {
             f.currentStatus = {
               'has_ads_access': true,
               'source': 'ads',
-              'quota_bytes': 15 * 1024 * 1024 * 1024,
+              'is_premium': name == 'cloud',
+              'quota_bytes': name == 'cloud' ? 2199023255552 : 0,
               'used_bytes': 2 * 1024 * 1024 * 1024,
             };
             if (name != 'login') {

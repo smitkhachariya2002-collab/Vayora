@@ -18,17 +18,28 @@ class PostPage extends StatefulWidget {
   @override
   State<PostPage> createState() => _PostPageState();
 }
+
 class _PostPageState extends State<PostPage> {
   AppState get state => widget.state;
   Map<String, dynamic> get post => widget.post;
   @override
-  void initState() { super.initState(); unawaited(countView()); }
+  void initState() {
+    super.initState();
+    unawaited(countView());
+  }
+
   Future<void> countView() async {
     try {
-      final count = await state.db.rpc('increment_view', params: {'post_id': post['id']});
+      final count = await state.db.rpc(
+        'increment_view',
+        params: {'post_id': post['id']},
+      );
       if (mounted && count is num) setState(() => post['view_count'] = count);
-    } on Object { /* Reading a post must still work when counting is unavailable. */ }
+    } on Object {
+      /* Reading a post must still work when counting is unavailable. */
+    }
   }
+
   bool get ownsMedia =>
       state.status['is_admin'] == true || post['created_by'] == state.userId;
   Future<void> play(
@@ -69,7 +80,9 @@ class _PostPageState extends State<PostPage> {
       final key =
           (trailer ? item['trailer_key'] : item['media_key']) as String?;
       if (key == null) throw StateError('Trailer unavailable');
-      final url = await state.db.storage.from('media').createSignedUrl(key, 3600);
+      final url = await state.db.storage
+          .from('media')
+          .createSignedUrl(key, 3600);
       if (!context.mounted) return;
       if (!trailer && (item['mime'] as String).startsWith('image/')) {
         await Navigator.push(
@@ -88,7 +101,8 @@ class _PostPageState extends State<PostPage> {
             builder: (_) => Watch(
               title: post['title'] as String,
               url: url,
-              refreshUrl: () => state.db.storage.from('media').createSignedUrl(key, 3600),
+              refreshUrl: () =>
+                  state.db.storage.from('media').createSignedUrl(key, 3600),
               trailer: trailer,
               isPremium: item['is_premium'] == true,
               state: state,
@@ -99,7 +113,9 @@ class _PostPageState extends State<PostPage> {
             ),
           ),
         );
-        if (wantsFull == true && trailer && context.mounted) await play(context, item);
+        if (wantsFull == true && trailer && context.mounted) {
+          await play(context, item);
+        }
       }
     });
   }
@@ -108,7 +124,16 @@ class _PostPageState extends State<PostPage> {
     await runAction(context, () async {
       if (!await loginGate(context, state) || !context.mounted) return;
       if (!state.premium && !ownsMedia) {
-        final proceed = await confirmAction(context, title: state.paidEnabled ? 'Download is a Premium feature' : 'Download needs full access', message: state.paidEnabled ? 'Choose a plan to download this video.' : 'Get full access to download this video.', action: state.paidEnabled ? 'Plans' : 'Get full access');
+        final proceed = await confirmAction(
+          context,
+          title: state.paidEnabled
+              ? 'Download is a Premium feature'
+              : 'Download needs full access',
+          message: state.paidEnabled
+              ? 'Choose a plan to download this video.'
+              : 'Get full access to download this video.',
+          action: state.paidEnabled ? 'Plans' : 'Get full access',
+        );
         if (!proceed || !context.mounted) return;
         await Navigator.push(
           context,
@@ -169,10 +194,32 @@ class _PostPageState extends State<PostPage> {
       return AppPage(
         title: AppBrand.name,
         actions: [
-          if (post['created_by'] == state.userId || state.status['is_admin'] == true) IconButton(tooltip:'Delete post',icon:const Icon(Icons.delete_outline),onPressed:() async {
-            if (!await confirmAction(context,title:'Delete this post?',message:'This permanently deletes the post and its media.',action:'Delete',destructive:true) || !context.mounted) return;
-            await runAction(context,() async { await state.db.functions.invoke('post-delete',body:{'post_id':post['id']}); if(context.mounted)Navigator.pop(context); });
-          }),
+          if (post['created_by'] == state.userId ||
+              state.status['is_admin'] == true)
+            IconButton(
+              tooltip: 'Delete post',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () async {
+                if (!await confirmAction(
+                      context,
+                      title: 'Delete this post?',
+                      message:
+                          'This permanently deletes the post and its media.',
+                      action: 'Delete',
+                      destructive: true,
+                    ) ||
+                    !context.mounted) {
+                  return;
+                }
+                await runAction(context, () async {
+                  await state.db.functions.invoke(
+                    'post-delete',
+                    body: {'post_id': post['id']},
+                  );
+                  if (context.mounted) Navigator.pop(context);
+                });
+              },
+            ),
           IconButton(
             tooltip: state.blocked.contains(post['channel_id'])
                 ? 'Unblock channel'
@@ -304,7 +351,8 @@ class _PostPageState extends State<PostPage> {
                         await const MethodChannel(
                           'app/share',
                         ).invokeMethod<void>('share', {
-                          'text': 'Watch ${post['title']} on Vayora\nhttps://vayora-eta.vercel.app/p/${post['id']}',
+                          'text':
+                              'Watch ${post['title']} on Vayora\nhttps://vayora-eta.vercel.app/p/${post['id']}',
                         });
                       }),
                     ),
@@ -356,7 +404,13 @@ class _PostPageState extends State<PostPage> {
 }
 
 String mediaExtension(String mime) => switch (mime.toLowerCase()) {
-  'image/jpeg' => '.jpg', 'image/png' => '.png', 'image/webp' => '.webp', 'image/gif' => '.gif',
-  'video/quicktime' => '.mov', 'video/webm' => '.webm', 'video/x-matroska' => '.mkv', 'video/mp4' => '.mp4',
+  'image/jpeg' => '.jpg',
+  'image/png' => '.png',
+  'image/webp' => '.webp',
+  'image/gif' => '.gif',
+  'video/quicktime' => '.mov',
+  'video/webm' => '.webm',
+  'video/x-matroska' => '.mkv',
+  'video/mp4' => '.mp4',
   _ => '.bin',
 };

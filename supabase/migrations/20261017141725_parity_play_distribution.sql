@@ -38,7 +38,9 @@ $$;
 revoke all on function private.client_free_mode() from public,anon;
 grant execute on function private.client_free_mode() to authenticated;
 create policy play_products_read on public.play_products for select to authenticated using(private.is_owner() or (active and private.play_billing_ready() and private.play_session()));
-create policy play_products_write on public.play_products for all to authenticated using(private.is_owner()) with check(private.is_owner());
+create policy play_products_insert on public.play_products for insert to authenticated with check(private.is_owner());
+create policy play_products_update on public.play_products for update to authenticated using(private.is_owner()) with check(private.is_owner());
+create policy play_products_delete on public.play_products for delete to authenticated using(private.is_owner());
 create or replace function public.free_mode() returns boolean language sql stable set search_path='' as $$select private.client_free_mode()$$;
 create or replace function private.is_premium_user() returns boolean language sql stable security definer set search_path='' as $$
  select private.is_member() and case when private.client_free_mode() then private.has_ads_access() else private.has_plan() end
@@ -176,7 +178,7 @@ begin
  insert into private.play_purchases(token_hash,user_id,product_id,base_plan_id,subscription_id,verified_until)
  values(token_hash,user_id,product_id,base_plan_id,sub,verified_ends_at)
  on conflict on constraint play_purchases_pkey do update set verified_until=excluded.verified_until,updated_at=now();
- if coalesce((select source from private.user_sources where user_id=activate_play_purchase.user_id),'organic')='organic' then
+ if coalesce((select s.source from private.user_sources s where s.user_id=activate_play_purchase.user_id),'organic')='organic' then
  update public.profiles set ads_access_status='pending' where id=user_id and ads_access_status='none'; end if;
 end $$;
 revoke all on function public.activate_play_purchase(uuid,text,text,text,timestamptz) from public,anon,authenticated;
@@ -225,3 +227,10 @@ begin
 end $$;
 revoke all on function private.play_report_dispatch() from public,anon,authenticated;
 select cron.schedule('vayora-play-report','*/15 * * * *','select private.play_report_dispatch()');
+
+-- Refresh the invoker wrapper after the internal function rename, including warm RPC plans.
+create or replace function public.create_payment_order(plan_id uuid) returns jsonb language sql set search_path='' as $$
+ select private.create_payment_order(plan_id)
+$$;
+revoke all on function public.create_payment_order(uuid) from public,anon;
+grant execute on function public.create_payment_order(uuid) to authenticated;

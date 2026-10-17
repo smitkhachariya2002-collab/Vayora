@@ -20,7 +20,7 @@ class Watch extends StatefulWidget {
     required this.createdBy,
     this.title = 'Now playing',
     this.refreshUrl,
-    this.personalCloud=false,
+    this.personalCloud = false,
   });
   final Future<String> Function()? refreshUrl;
   final String url, title, audience, channelAudience, createdBy;
@@ -35,6 +35,7 @@ class _WatchState extends State<Watch> {
   bool ended = false, ready = false;
   String? failure;
   int rotation = 0;
+  Duration lastPosition = Duration.zero;
   @override
   void initState() {
     super.initState();
@@ -45,15 +46,16 @@ class _WatchState extends State<Watch> {
 
   void accessChanged() {
     final allowed = widget.personalCloud
-      ? !widget.state.guest && (widget.state.status['quota_bytes'] as num? ?? 0)>0
-      : widget.state.status['is_admin'] == true ||
-        widget.state.userId == widget.createdBy ||
-        (widget.state.canSee(widget.audience) &&
-            widget.state.canSee(widget.channelAudience) &&
-            (widget.trailer
-                ? widget.state.adsAccess
-                : !widget.state.guest &&
-                      (!widget.isPremium || widget.state.premium)));
+        ? !widget.state.guest &&
+              (widget.state.status['quota_bytes'] as num? ?? 0) > 0
+        : widget.state.status['is_admin'] == true ||
+              widget.state.userId == widget.createdBy ||
+              (widget.state.canSee(widget.audience) &&
+                  widget.state.canSee(widget.channelAudience) &&
+                  (widget.trailer
+                      ? widget.state.adsAccess
+                      : !widget.state.guest &&
+                            (!widget.isPremium || widget.state.premium)));
     if (!allowed && mounted) {
       unawaited(video.pause());
       if (ModalRoute.of(context)?.isCurrent == true) Navigator.pop(context);
@@ -74,13 +76,19 @@ class _WatchState extends State<Watch> {
   }
 
   Future<void> retry() async {
-    final position = video.value.position;
+    final position = video.value.hasError ? lastPosition : video.value.position;
     video.removeListener(checkEnd);
     unawaited(video.dispose());
     if (!mounted) return;
-    setState(() { ready = false; failure = null; ended = false; });
+    setState(() {
+      ready = false;
+      failure = null;
+      ended = false;
+    });
     try {
-      final fresh = widget.refreshUrl == null ? widget.url : await widget.refreshUrl!();
+      final fresh = widget.refreshUrl == null
+          ? widget.url
+          : await widget.refreshUrl!();
       if (!mounted) return;
       video = VideoPlayerController.networkUrl(Uri.parse(fresh));
       await prepare(resumeAt: position);
@@ -91,6 +99,7 @@ class _WatchState extends State<Watch> {
 
   void checkEnd() {
     if (!mounted) return;
+    if (!video.value.hasError) lastPosition = video.value.position;
     if (video.value.hasError && failure == null) {
       setState(() {
         failure = 'Could not play this video.';
@@ -144,7 +153,12 @@ class _WatchState extends State<Watch> {
                   }
                   if (mounted) {
                     await widget.state.refreshStatus();
-                    if (mounted) Navigator.pop(context, !widget.state.guest && widget.state.premium);
+                    if (mounted) {
+                      Navigator.pop(
+                        context,
+                        !widget.state.guest && widget.state.premium,
+                      );
+                    }
                   }
                 },
                 child: const Text('Watch full video'),

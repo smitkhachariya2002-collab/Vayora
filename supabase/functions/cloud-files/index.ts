@@ -14,8 +14,8 @@ Deno.serve(async(req:Request)=>{
    const body=await req.formData(),file=body.get("file"),parent=body.get("parent_id");
    if(!(file instanceof File)||file.size>52428800)return reply(400,"50 MB maximum per file");
    const {data:entry,error:reserved}=await caller.rpc("cloud_reserve",{
-     name:String(body.get("name")||file.name),parent_id:parent?String(parent):null,is_folder:false,mime:String(body.get("mime")||file.type||"application/octet-stream"),size:file.size});
-   if(reserved)return reply(400,reserved.message);
+     name:String(body.get("name")||file.name),parent_id:parent?String(parent):null,is_folder:false,mime:String(body.get("mime")||file.type||"application/octet-stream"),size:file.size}).single<{id:string;storage_key:string;mime:string}>();
+   if(reserved||!entry)return reply(400,reserved?.message??"Reservation failed");
 
    try{
      const {error:stored}=await admin.storage.from("cloud").upload(entry.storage_key,await file.arrayBuffer(),{contentType:entry.mime,upsert:false});

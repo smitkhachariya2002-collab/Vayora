@@ -79,7 +79,9 @@ Future<void> reportContent(
         'details': text,
       },
     );
-    if (context.mounted) showFeedback(context, 'Thanks — our team will review this report.');
+    if (context.mounted) {
+      showFeedback(context, 'Thanks — our team will review this report.');
+    }
   } on Object {
     if (context.mounted) {
       showFeedback(context, 'Could not send your report. Please try again.');
@@ -87,4 +89,11 @@ Future<void> reportContent(
   }
 }
 
-const reportReasons = ['Sexual or nude content','Violence or dangerous content','Hate speech or harassment','Copyright — this is my content','Spam, scam or misleading','Other'];
+const reportReasons = [
+  'Sexual or nude content',
+  'Violence or dangerous content',
+  'Hate speech or harassment',
+  'Copyright — this is my content',
+  'Spam, scam or misleading',
+  'Other',
+];

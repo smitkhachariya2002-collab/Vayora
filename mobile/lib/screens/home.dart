@@ -27,7 +27,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   int selected = 2;
   final visited = <int>{2};
   final storage = PageStorageBucket();
-  final cloudKey=GlobalKey<CloudViewState>();
+  final cloudKey = GlobalKey<CloudViewState>();
   bool showingRecovery = false, searching = false;
   String search = '';
   late final StreamSubscription<AuthState> auth;
@@ -36,7 +36,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.state.addListener(checkRecovery);
-    const MethodChannel('app/links').setMethodCallHandler((call) async {if(call.method=='open')await openLink(call.arguments as String?);});
+    const MethodChannel('app/links').setMethodCallHandler((call) async {
+      if (call.method == 'open') await openLink(call.arguments as String?);
+    });
     auth = widget.state.db.auth.onAuthStateChange.listen((event) {
       if (!mounted) return;
       if (event.event == AuthChangeEvent.signedIn ||
@@ -53,19 +55,43 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   }
 
   Future<void> initialLink() async {
-    try { await openLink(await const MethodChannel('app/links').invokeMethod<String>('initial')); }
-    on MissingPluginException { /* App links are Android-only. */ }
+    try {
+      await openLink(
+        await const MethodChannel('app/links').invokeMethod<String>('initial'),
+      );
+    } on MissingPluginException {
+      /* App links are Android-only. */
+    }
   }
+
   Future<void> openLink(String? raw) async {
-    final uri=Uri.tryParse(raw??'');
-    if(uri==null||uri.scheme!='https'||uri.host!='vayora-eta.vercel.app'||uri.pathSegments.length!=2||uri.pathSegments.first!='p')return;
-    final id=uri.pathSegments[1];
-    if(!RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(id)||!mounted)return;
-    await runAction(context,()async{
-      final row=await widget.state.db.from('posts').select('*,post_items(*),channels(name,audience)').eq('id',id).single();
-      if(mounted)await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>PostPage(state:widget.state,post:row)));
+    final uri = Uri.tryParse(raw ?? '');
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        uri.host != 'vayora-eta.vercel.app' ||
+        uri.pathSegments.length != 2 ||
+        uri.pathSegments.first != 'p') {
+      return;
+    }
+    final id = uri.pathSegments[1];
+    if (!RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(id) || !mounted) return;
+    await runAction(context, () async {
+      final row = await widget.state.db
+          .from('posts')
+          .select('*,post_items(*),channels(name,audience)')
+          .eq('id', id)
+          .single();
+      if (mounted) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => PostPage(state: widget.state, post: row),
+          ),
+        );
+      }
     });
   }
+
   void checkRecovery() {
     if (!mounted || showingRecovery || !widget.state.recoveringPassword) return;
     showingRecovery = true;
