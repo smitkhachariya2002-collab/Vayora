@@ -52,6 +52,7 @@ class AppState extends ChangeNotifier {
   }
 
   Map<String, dynamic> status = {};
+  bool remoteChangesEnabled = true;
   bool busy = false;
   bool _reporting = false;
   Timer? _statusPoll;
@@ -80,6 +81,7 @@ class AppState extends ChangeNotifier {
       (prefs.getStringList('blocked_channels') ?? []).toSet();
 
   Future<void> initialize({bool watchRemoteChanges = true}) async {
+    remoteChangesEnabled=watchRemoteChanges;
     if (!prefs.containsKey('install_id')) {
       await prefs.setString('install_id', const Uuid().v4());
       await prefs.setString(

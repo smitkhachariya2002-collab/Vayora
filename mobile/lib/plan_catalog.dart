@@ -10,7 +10,7 @@ class PlanCatalog extends ChangeNotifier {
   List<Map<String,dynamic>> rows=[];
   String? selected;
   Object? error;
-  bool loaded=false, _disposed=false;
+  bool loaded=false, enabled=true, _disposed=false;
   int _request=0;
   RealtimeChannel? _channel;
   StreamSubscription<void>? _events;
@@ -31,6 +31,7 @@ class PlanCatalog extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
+    if(!enabled||_disposed)return;
     final request=++_request;
     try {
       final data=await db.from('plans').select().eq('active',true).order('position').order('created_at');

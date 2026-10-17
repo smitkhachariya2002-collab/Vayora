@@ -26,7 +26,7 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    catalog=widget.catalog??PlanCatalog(widget.state.db);
+    catalog=widget.catalog??PlanCatalog(widget.state.db, changes:widget.state.remoteChangesEnabled?null:const Stream<void>.empty());
     catalog.start();
     reload();
     WidgetsBinding.instance.addObserver(this);
@@ -38,6 +38,7 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
   }
 
   void reload() {
+    catalog.enabled=widget.state.paidEnabled;
     if (!widget.state.paidEnabled) {
       catalog.clear();
       openOrders = Future.value([]);

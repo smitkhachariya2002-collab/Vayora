@@ -83,7 +83,7 @@ try{
  await addForm.getByLabel("Code",{exact:true}).fill("weekend");
  await addForm.getByLabel("Price (₹)",{exact:true}).fill("99");
  await addForm.getByLabel("Duration (days)",{exact:true}).fill("2");
- await addForm.getByLabel("Perks",{exact:true}).fill("Full premium videos\\n2 TB cloud storage\\nDownload to your phone");
+ await addForm.getByLabel("Perks",{exact:true}).fill("Full premium videos\n2 TB cloud storage\nDownload to your phone");
  await addForm.getByLabel("Badge (optional)",{exact:true}).fill("New");
  await addForm.getByLabel("Order",{exact:true}).fill("5");
  await ownerPage.screenshot({path:"visual-artifacts/plans-add-desktop.png",fullPage:true});
