@@ -41,7 +41,7 @@ jobs:
         run: flutter build apk --debug --flavor direct --target-platform android-arm64 --dart-define-from-file=config/public.json
   release:
     needs: verify
-    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'build/flixvault-parity')
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi'))
     runs-on: ubuntu-latest
     environment: production
     env:

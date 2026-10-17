@@ -19,11 +19,17 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Environment
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
+import androidx.activity.result.contract.ActivityResultContracts
+import android.app.AlertDialog
+import android.widget.ArrayAdapter
+import android.widget.TextView
+import android.view.View
+import android.view.ViewGroup
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private var callback: MethodChannel.Result? = null
     private var photoCallback: MethodChannel.Result? = null
     private var mediaCallback: MethodChannel.Result? = null
@@ -31,6 +37,62 @@ class MainActivity : FlutterActivity() {
     private var linkChannel: MethodChannel? = null
     private var pendingLink: String? = null
     private val store by lazy { getSharedPreferences("vayora_upi", Context.MODE_PRIVATE) }
+
+    // Register unconditionally and in stable order, before the activity starts.
+    private val upiLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { answer ->
+        val data = answer.data
+        val raw = data?.getStringExtra("response")
+            ?: data?.extras?.keySet()?.mapNotNull { key -> data.extras?.get(key)?.toString() }?.firstOrNull { it.contains("Status=", true) }
+            ?: "Status=NO_RESPONSE&resultCode=${answer.resultCode}"
+        finishUpi(raw)
+    }
+
+    private fun finishUpi(raw: String) {
+        val order = store.getString("active_order", null)
+        if (order != null) store.edit().putString("response:$order", raw).remove("active_order").commit()
+        callback?.success(raw)
+        callback = null
+    }
+
+    private fun openUpi(intent: Intent) {
+        try { upiLauncher.launch(intent) }
+        catch (_: Exception) {
+            try {
+                startActivity(intent)
+                // No activity result: persist an explicit unknown result for server/poll recovery.
+                finishUpi("Status=NO_RESPONSE&resultCode=launch_without_result")
+            } catch (_: Exception) {
+                finishUpi("Status=NO_RESPONSE&resultCode=no_upi_app")
+            }
+        }
+    }
+
+    private fun pickUpi(uri: Uri) {
+        val apps = packageManager.queryIntentActivities(Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay")), 0)
+            .distinctBy { it.activityInfo.packageName }
+        if (apps.isEmpty()) {
+            val intent = Intent(Intent.ACTION_VIEW, uri)
+            if (intent.resolveActivity(packageManager) == null) {
+                finishUpi("Status=NO_RESPONSE&resultCode=no_upi_app")
+            } else openUpi(Intent.createChooser(intent, "Pay with UPI"))
+            return
+        }
+        val adapter = object : ArrayAdapter<String>(this, android.R.layout.select_dialog_item,
+            apps.map { it.loadLabel(packageManager).toString() }) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = super.getView(position, convertView, parent) as TextView
+                val icon = apps[position].loadIcon(packageManager)
+                val size = (40 * resources.displayMetrics.density).toInt()
+                icon.setBounds(0, 0, size, size)
+                view.setCompoundDrawables(icon, null, null, null)
+                view.compoundDrawablePadding = (16 * resources.displayMetrics.density).toInt()
+                return view
+            }
+        }
+        AlertDialog.Builder(this).setTitle("Pay with UPI").setAdapter(adapter) { _, index ->
+            openUpi(Intent(Intent.ACTION_VIEW, uri).setPackage(apps[index].activityInfo.packageName))
+        }.setOnCancelListener { finishUpi("Status=NO_RESPONSE&resultCode=picker_cancelled") }.show()
+    }
 
     override fun configureFlutterEngine(engine: FlutterEngine) {
         super.configureFlutterEngine(engine)
@@ -53,19 +115,9 @@ class MainActivity : FlutterActivity() {
                         if (uri.scheme != "upi" || uri.host != "pay" || order.isBlank()) {
                             result.error("invalid", "Invalid payment request", null)
                         } else {
-                            val intent = Intent(Intent.ACTION_VIEW, uri)
-                            if (intent.resolveActivity(packageManager) == null) {
-                                result.error("no_upi", "No UPI app found", null)
-                            } else {
-                                // Persist before switching apps; process recreation retains the order ID.
-                                store.edit().putString("active_order", order).commit()
-                                callback = result
-                                try { startActivityForResult(Intent.createChooser(intent, "Pay with UPI"), 701) }
-                                catch (_: ActivityNotFoundException) {
-                                    callback = null
-                                    result.error("no_upi", "No UPI app found", null)
-                                }
-                            }
+                            store.edit().putString("active_order", order).commit()
+                            callback = result
+                            pickUpi(uri)
                         }
                     }
                 }
@@ -325,14 +377,5 @@ class MainActivity : FlutterActivity() {
             }.start()
             return
         }
-        if (requestCode != 701) return
-        val order = store.getString("active_order", null)
-        val raw = data?.getStringExtra("response") ?: data?.dataString ?: "Status=UNKNOWN"
-        if (order != null) {
-            // Disk commit happens before Dart callback, so app/process loss cannot erase the answer.
-            store.edit().putString("response:$order", raw).remove("active_order").commit()
-        }
-        callback?.success(raw)
-        callback = null
     }
 }

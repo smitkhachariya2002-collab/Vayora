@@ -56,6 +56,9 @@ class AppState extends ChangeNotifier {
   bool busy = false;
   bool _reporting = false;
   Timer? _statusPoll;
+  Timer? _paymentRetry;
+  int _paymentBackoff = 2;
+  bool _disposed = false;
   bool recoveringPassword = false;
   int _statusRequest = 0;
   RealtimeChannel? _modeChannel;
@@ -245,6 +248,8 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
+    _paymentRetry?.cancel();
     _statusPoll?.cancel();
     if (_ownsSettingsClient) _settingsClient.close();
     if (_ownsUploadClient) uploadClient.close();
@@ -372,6 +377,7 @@ class AppState extends ChangeNotifier {
           )
           as Map,
     );
+    await prefs.setString('open_payment_order:$userId', order['id'] as String);
     await beforeLaunch?.call((order['amount_paise'] as num).toInt());
     const channel = MethodChannel('app/upi');
     final raw = await channel.invokeMethod<String>('pay', {
@@ -393,7 +399,8 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> retryPayments() async {
-    if (_reporting) return;
+    if (_reporting || _disposed || db.auth.currentSession == null || guest) return;
+    _paymentRetry?.cancel();
     _reporting = true;
     try {
       const native = MethodChannel('app/upi');
@@ -407,6 +414,7 @@ class AppState extends ChangeNotifier {
         // Native recovery is only available on Android.
       }
       await prefs.setString('pending_payments', jsonEncode(queue));
+      if (queue.isNotEmpty && remoteChangesEnabled) await db.auth.refreshSession();
       for (final entry in Map<String, String>.from(queue).entries) {
         try {
           await db.rpc(
@@ -416,13 +424,27 @@ class AppState extends ChangeNotifier {
           queue.remove(entry.key);
           await prefs.setString('pending_payments', jsonEncode(queue));
           await native.invokeMethod<void>('ack', {'order_id': entry.key});
+        } on PostgrestException catch (error) {
+          if (error.message == 'Order not found') {
+            queue.remove(entry.key);
+            await prefs.setString('pending_payments', jsonEncode(queue));
+            await native.invokeMethod<void>('ack', {'order_id': entry.key});
+          }
         } on Object {
-          // Keep the response until the server accepts it; retry on resume/start.
+          // The persisted response survives network failure and process death.
         }
       }
       await refreshStatus();
+    } on Object {
+      // Authentication/network failures retain the durable queue.
     } finally {
       _reporting = false;
+      if (!_disposed && remoteChangesEnabled) {
+        _paymentRetry = Timer(Duration(seconds: _paymentBackoff), () {
+          unawaited(retryPayments());
+        });
+        _paymentBackoff = (_paymentBackoff * 2).clamp(2, 60);
+      }
     }
   }
 }
