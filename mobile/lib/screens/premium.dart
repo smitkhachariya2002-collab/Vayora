@@ -296,11 +296,13 @@ class PremiumHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            const CrownIcon(),
-            const SizedBox(width: Gap.s),
-            Text('Premium', style: Theme.of(context).textTheme.titleLarge),
-          ]),
+          Row(
+            children: [
+              const CrownIcon(),
+              const SizedBox(width: Gap.s),
+              Text('Premium', style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
           const SizedBox(height: Gap.m),
           const Divider(),
           const SizedBox(height: Gap.s),
@@ -311,11 +313,22 @@ class PremiumHero extends StatelessWidget {
           ])
             Padding(
               padding: const EdgeInsets.only(bottom: Gap.s),
-              child: Row(children: [
-                const Icon(Icons.check, color: AppColors.primary, size: AppSizes.iconSmall),
-                const SizedBox(width: Gap.s),
-                Expanded(child: Text(perk, style: Theme.of(context).textTheme.bodyMedium)),
-              ]),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.check,
+                    color: AppColors.primary,
+                    size: AppSizes.iconSmall,
+                  ),
+                  const SizedBox(width: Gap.s),
+                  Expanded(
+                    child: Text(
+                      perk,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
             ),
         ],
       ),
@@ -324,7 +337,12 @@ class PremiumHero extends StatelessWidget {
 }
 
 class PlanCard extends StatelessWidget {
-  const PlanCard({super.key, required this.plan, required this.selected, required this.onTap});
+  const PlanCard({
+    super.key,
+    required this.plan,
+    required this.selected,
+    required this.onTap,
+  });
   final Map<String, dynamic> plan;
   final bool selected;
   final VoidCallback? onTap;
@@ -344,19 +362,38 @@ class PlanCard extends StatelessWidget {
             width: selected ? AppSizes.focusStroke : AppSizes.stroke,
           ),
         ),
-        child: Row(children: [
-          Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off,
-            color: selected ? AppColors.primary : AppColors.muted),
-          const SizedBox(width: Gap.m),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(plan['name'] as String, maxLines: 2, overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: Gap.xs),
-            Text(planDuration(plan['duration_days'] as num), style: Theme.of(context).textTheme.bodySmall),
-          ])),
-          const SizedBox(width: Gap.s),
-          Text(planPrice(plan['price_inr'] as num), style: Theme.of(context).textTheme.titleLarge),
-        ]),
+        child: Row(
+          children: [
+            Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+              color: selected ? AppColors.primary : AppColors.muted,
+            ),
+            const SizedBox(width: Gap.m),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    plan['name'] as String,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: Gap.xs),
+                  Text(
+                    planDuration(plan['duration_days'] as num),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: Gap.s),
+            Text(
+              planPrice(plan['price_inr'] as num),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ],
+        ),
       ),
     ),
   );

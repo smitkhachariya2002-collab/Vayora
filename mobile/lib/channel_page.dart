@@ -18,10 +18,16 @@ List<String> parseChannelTags(String raw) => raw
     .toList();
 
 enum ChannelTab { discover, joined, mine }
+
 enum ChannelSort { trending, latest }
 
 class ChannelList extends StatefulWidget {
-  const ChannelList({super.key, required this.state, required this.onOpen, this.initialMine = false});
+  const ChannelList({
+    super.key,
+    required this.state,
+    required this.onOpen,
+    this.initialMine = false,
+  });
   final AppState state;
   final void Function(Map<String, dynamic>) onOpen;
   final bool initialMine;
@@ -30,7 +36,9 @@ class ChannelList extends StatefulWidget {
 }
 
 class _ChannelListState extends State<ChannelList> {
-  final rows = <Map<String, dynamic>>[], joined = <String>{}, changing = <String>{};
+  final rows = <Map<String, dynamic>>[],
+      joined = <String>{},
+      changing = <String>{};
   final scroll = ScrollController();
   ChannelTab tab = ChannelTab.discover;
   ChannelSort sort = ChannelSort.trending;
@@ -39,7 +47,8 @@ class _ChannelListState extends State<ChannelList> {
   String search = '', fingerprint = '';
   String? failure;
   bool get mine => tab == ChannelTab.mine;
-  String get accessKey => '${widget.state.userId}:${widget.state.adsAccess}:${widget.state.status['is_admin']}';
+  String get accessKey =>
+      '${widget.state.userId}:${widget.state.adsAccess}:${widget.state.status['is_admin']}';
   @override
   void initState() {
     super.initState();
@@ -48,201 +57,513 @@ class _ChannelListState extends State<ChannelList> {
     scroll.addListener(more);
     reload();
   }
+
   @override
   void didUpdateWidget(covariant ChannelList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (fingerprint != accessKey) { fingerprint = accessKey; reload(); }
+    if (fingerprint != accessKey) {
+      fingerprint = accessKey;
+      reload();
+    }
   }
+
   @override
-  void dispose() { scroll.dispose(); super.dispose(); }
-  void more() {
-    if (scroll.hasClients && scroll.position.extentAfter < AppSizes.mediaHero) { load(); }
+  void dispose() {
+    scroll.dispose();
+    super.dispose();
   }
+
+  void more() {
+    if (scroll.hasClients && scroll.position.extentAfter < AppSizes.mediaHero) {
+      load();
+    }
+  }
+
   Future<void> reload() async {
     try {
-      final membership = widget.state.guest ? <Map<String, dynamic>>[] :
-        await widget.state.db.from('channel_members').select('channel_id').eq('user_id', widget.state.userId);
+      final membership = widget.state.guest
+          ? <Map<String, dynamic>>[]
+          : await widget.state.db
+                .from('channel_members')
+                .select('channel_id')
+                .eq('user_id', widget.state.userId);
       if (!mounted) return;
-      joined..clear()..addAll(membership.map((row) => row['channel_id'] as String));
+      joined
+        ..clear()
+        ..addAll(membership.map((row) => row['channel_id'] as String));
     } on Object {
-      if (mounted) { showFeedback(context, 'Could not refresh your joined channels.'); }
+      if (mounted) {
+        showFeedback(context, 'Could not refresh your joined channels.');
+      }
     }
-    if (mounted) { await load(refresh: true); }
+    if (mounted) {
+      await load(refresh: true);
+    }
   }
+
   Future<void> load({bool refresh = false}) async {
     if (!refresh && (loading || !hasMore)) return;
     final current = ++request;
-    setState(() { loading = true; failure = null; if (refresh) offset = 0; });
+    setState(() {
+      loading = true;
+      failure = null;
+      if (refresh) offset = 0;
+    });
     try {
       var query = widget.state.db.from('channels').select();
-      if (mine) { query = query.eq('created_by', widget.state.userId); }
-      else { query = query.eq('review_status', 'approved').eq('status', 'active'); }
+      if (mine) {
+        query = query.eq('created_by', widget.state.userId);
+      } else {
+        query = query.eq('review_status', 'approved').eq('status', 'active');
+      }
       final List<Map<String, dynamic>> next;
-      if (tab == ChannelTab.joined && joined.isEmpty) { next = []; }
-      else {
-        if (tab == ChannelTab.joined) { query = query.inFilter('id', joined.toList()); }
+      if (tab == ChannelTab.joined && joined.isEmpty) {
+        next = [];
+      } else {
+        if (tab == ChannelTab.joined) {
+          query = query.inFilter('id', joined.toList());
+        }
         next = await query
-          .order(sort == ChannelSort.trending && !mine ? 'members_count' : 'created_at', ascending: false)
-          .order('id')
-          .range(offset, offset + AppSizes.pageSize - 1);
+            .order(
+              sort == ChannelSort.trending && !mine
+                  ? 'members_count'
+                  : 'created_at',
+              ascending: false,
+            )
+            .order('id')
+            .range(offset, offset + AppSizes.pageSize - 1);
       }
       if (!mounted || current != request) return;
       setState(() {
         if (refresh) rows.clear();
         final ids = rows.map((row) => row['id']).toSet();
         rows.addAll(next.where((row) => ids.add(row['id'])));
-        offset += next.length; hasMore = next.length == AppSizes.pageSize; loading = false;
+        offset += next.length;
+        hasMore = next.length == AppSizes.pageSize;
+        loading = false;
       });
     } on Object {
       if (mounted && current == request) {
-        setState(() { loading = false; failure = "Couldn't load. Check your connection."; });
+        setState(() {
+          loading = false;
+          failure = "Couldn't load. Check your connection.";
+        });
       }
     }
   }
+
   Future<void> chooseTab(ChannelTab next) async {
-    if (next != ChannelTab.discover && !await ensureSignedIn(context, widget.state)) return;
+    if (next != ChannelTab.discover &&
+        !await ensureSignedIn(context, widget.state)) {
+      return;
+    }
     if (!mounted) return;
     setState(() => tab = next);
     if (scroll.hasClients) scroll.jumpTo(0);
     await reload();
   }
+
   Future<void> edit([Map<String, dynamic>? channel]) async {
     if (!await ensureSignedIn(context, widget.state) || !mounted) return;
-    final saved = await Navigator.push<bool>(context, MaterialPageRoute<bool>(
-      builder: (_) => ChannelEditor(state: widget.state, channel: channel)));
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute<bool>(
+        builder: (_) => ChannelEditor(state: widget.state, channel: channel),
+      ),
+    );
     if (saved == true && mounted) {
-      setState(() => tab = ChannelTab.mine); await reload();
-      if (mounted) { showFeedback(context, channel == null ? 'Channel created.' : 'Channel updated.'); }
+      setState(() => tab = ChannelTab.mine);
+      await reload();
+      if (mounted) {
+        showFeedback(
+          context,
+          channel == null ? 'Channel created.' : 'Channel updated.',
+        );
+      }
     }
   }
+
   Future<void> membership(Map<String, dynamic> channel) async {
     final id = channel['id'] as String;
     if (changing.contains(id)) return;
     if (!await ensureSignedIn(context, widget.state) || !mounted) return;
     final leaving = joined.contains(id);
-    if (leaving && !await confirmAction(context, title: 'Leave this channel?',
-      message: 'Its posts will no longer appear in your feed.', action: 'Leave channel', icon: Icons.logout_rounded)) { return; }
+    if (leaving &&
+        !await confirmAction(
+          context,
+          title: 'Leave this channel?',
+          message: 'Its posts will no longer appear in your feed.',
+          action: 'Leave channel',
+          icon: Icons.logout_rounded,
+        )) {
+      return;
+    }
     if (!mounted) return;
     setState(() => changing.add(id));
     try {
       if (leaving) {
-        await widget.state.db.from('channel_members').delete().eq('user_id', widget.state.userId).eq('channel_id', id);
+        await widget.state.db
+            .from('channel_members')
+            .delete()
+            .eq('user_id', widget.state.userId)
+            .eq('channel_id', id);
       } else {
-        await widget.state.db.from('channel_members').upsert({'user_id': widget.state.userId, 'channel_id': id}, ignoreDuplicates: true);
+        await widget.state.db.from('channel_members').upsert({
+          'user_id': widget.state.userId,
+          'channel_id': id,
+        }, ignoreDuplicates: true);
       }
       if (mounted) {
-        setState(() { if (leaving) { joined.remove(id); } else { joined.add(id); } });
-        showFeedback(context, leaving ? 'You left the channel.' : 'Channel joined.');
+        setState(() {
+          if (leaving) {
+            joined.remove(id);
+          } else {
+            joined.add(id);
+          }
+        });
+        showFeedback(
+          context,
+          leaving ? 'You left the channel.' : 'Channel joined.',
+        );
       }
     } on Object {
-      if (mounted) { showFeedback(context, 'Could not update your channels. Please try again.'); }
-    } finally { if (mounted) { setState(() => changing.remove(id)); } }
+      if (mounted) {
+        showFeedback(
+          context,
+          'Could not update your channels. Please try again.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => changing.remove(id));
+      }
+    }
   }
-  String statusLabel(Map<String, dynamic> row) => row['review_status'] == 'pending' ? 'Under review' :
-    row['review_status'] == 'rejected' ? 'Not published' : row['status'] == 'hidden' ? 'Hidden' : 'Live';
+
+  String statusLabel(Map<String, dynamic> row) =>
+      row['review_status'] == 'pending'
+      ? 'Under review'
+      : row['review_status'] == 'rejected'
+      ? 'Not published'
+      : row['status'] == 'hidden'
+      ? 'Hidden'
+      : 'Live';
   @override
   Widget build(BuildContext context) {
     final term = search.toLowerCase().trim();
-    final visible = rows.where((row) =>
-      !widget.state.blocked.contains(row['id']) &&
-      (tab != ChannelTab.joined || joined.contains(row['id'])) &&
-      (term.isEmpty || '${row['name']} ${row['description']} ${row['category']} ${row['tags']}'.toLowerCase().contains(term))).toList();
-    return Material(color: AppColors.transparent, child: Column(children: [
-      PageWidth(child: Padding(padding: Gap.list, child: Column(children: [
-        TextField(decoration: const InputDecoration(hintText: 'Search channels', suffixIcon: Icon(Icons.search)),
-          onChanged: (value) => setState(() => search = value)),
-        const SizedBox(height: Gap.s),
-        Row(children: [
-          Expanded(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
-            for (final item in const [ChannelTab.discover, ChannelTab.joined]) Padding(padding: const EdgeInsets.only(right: Gap.l),
-              child: InkWell(onTap: () => chooseTab(item), child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: Gap.m),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text(switch(item) { ChannelTab.discover => 'Discover', ChannelTab.joined => 'Joined', ChannelTab.mine => 'My channels' },
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: tab == item ? AppColors.primary : AppColors.muted)),
+    final visible = rows
+        .where(
+          (row) =>
+              !widget.state.blocked.contains(row['id']) &&
+              (tab != ChannelTab.joined || joined.contains(row['id'])) &&
+              (term.isEmpty ||
+                  '${row['name']} ${row['description']} ${row['category']} ${row['tags']}'
+                      .toLowerCase()
+                      .contains(term)),
+        )
+        .toList();
+    return Material(
+      color: AppColors.transparent,
+      child: Column(
+        children: [
+          PageWidth(
+            child: Padding(
+              padding: Gap.list,
+              child: Column(
+                children: [
+                  TextField(
+                    decoration: const InputDecoration(
+                      hintText: 'Search channels',
+                      suffixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: (value) => setState(() => search = value),
+                  ),
                   const SizedBox(height: Gap.s),
-                  Container(height: AppSizes.focusStroke, width: AppSizes.button,
-                    color: tab == item ? AppColors.primary : AppColors.transparent),
-                ]),
-              ))),
-          ]))),
-          IconButton(tooltip: 'My channels', isSelected: mine, onPressed: () => chooseTab(ChannelTab.mine),
-            icon: const Icon(Icons.folder_outlined), selectedIcon: const Icon(Icons.folder, color: AppColors.primary)),
-          IconButton(tooltip: 'Create channel', onPressed: () => edit(), icon: const Icon(Icons.add_circle_outline, color: AppColors.primary)),
-        ]),
-      ]))),
-      const Divider(height: AppSizes.stroke),
-      Expanded(child: RefreshIndicator(onRefresh: reload, child: PageWidth(child: ListView(
-        controller: scroll, physics: const AlwaysScrollableScrollPhysics(), padding: Gap.list, children: [
-          SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
-            for (final option in ChannelSort.values) Padding(padding: const EdgeInsets.only(right: Gap.s),
-              child: ChoiceChip(label: Text(option == ChannelSort.trending ? 'Trending' : 'Latest'),
-                selected: sort == option, showCheckmark: false,
-                labelStyle: TextStyle(color: sort == option ? AppColors.ink : AppColors.text),
-                onSelected: (_) { setState(() => sort = option); load(refresh: true); })),
-          ])),
-          const SizedBox(height: Gap.s),
-          if (loading && visible.isEmpty) const SkeletonList()
-          else if (failure != null && visible.isEmpty) ErrorRetry(onRetry: reload)
-          else if (visible.isEmpty) EmptyState(icon: Icons.live_tv_outlined,
-            title: tab == ChannelTab.joined ? 'Your channels start here' : mine ? 'Make this space yours' : 'New communities are on the way',
-            message: term.isNotEmpty ? 'Try a different name or tag.' : tab == ChannelTab.joined ?
-              'Join a channel in Discover to find it here.' : mine ? 'Create your first channel and start sharing.' : 'Explore again soon, or start a channel of your own.',
-            actionLabel: tab == ChannelTab.joined ? 'Discover channels' : 'Create channel',
-            onAction: tab == ChannelTab.joined ? () => chooseTab(ChannelTab.discover) : () => edit()),
-          for (final row in visible) ChannelDirectoryRow(
-            key: ValueKey('${row['id']}:$accessKey'),
-            state: widget.state, channel: row, joined: joined.contains(row['id']), busy: changing.contains(row['id']),
-            owner: row['created_by'] == widget.state.userId, status: statusLabel(row),
-            onOpen: () => widget.onOpen(row), onJoin: () => membership(row), onEdit: () => edit(row)),
-          if (loading && visible.isNotEmpty) const SkeletonBlock(height: AppSizes.button),
-          if (failure != null && visible.isNotEmpty) ErrorRetry(onRetry: () => load()),
-          if (hasMore && !loading) OutlinedButton(onPressed: () => load(), child: const Text('Load more')),
-          const SizedBox(height: Gap.xl),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              for (final item in const [
+                                ChannelTab.discover,
+                                ChannelTab.joined,
+                              ])
+                                Padding(
+                                  padding: const EdgeInsets.only(right: Gap.l),
+                                  child: InkWell(
+                                    onTap: () => chooseTab(item),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: Gap.m,
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            switch (item) {
+                                              ChannelTab.discover => 'Discover',
+                                              ChannelTab.joined => 'Joined',
+                                              ChannelTab.mine => 'My channels',
+                                            },
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                  color: tab == item
+                                                      ? AppColors.primary
+                                                      : AppColors.muted,
+                                                ),
+                                          ),
+                                          const SizedBox(height: Gap.s),
+                                          Container(
+                                            height: AppSizes.focusStroke,
+                                            width: AppSizes.button,
+                                            color: tab == item
+                                                ? AppColors.primary
+                                                : AppColors.transparent,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'My channels',
+                        isSelected: mine,
+                        onPressed: () => chooseTab(ChannelTab.mine),
+                        icon: const Icon(Icons.folder_outlined),
+                        selectedIcon: const Icon(
+                          Icons.folder,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Create channel',
+                        onPressed: () => edit(),
+                        icon: const Icon(
+                          Icons.add_circle_outline,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Divider(height: AppSizes.stroke),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: reload,
+              child: PageWidth(
+                child: ListView(
+                  controller: scroll,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: Gap.list,
+                  children: [
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (final option in ChannelSort.values)
+                            Padding(
+                              padding: const EdgeInsets.only(right: Gap.s),
+                              child: ChoiceChip(
+                                label: Text(
+                                  option == ChannelSort.trending
+                                      ? 'Trending'
+                                      : 'Latest',
+                                ),
+                                selected: sort == option,
+                                showCheckmark: false,
+                                labelStyle: TextStyle(
+                                  color: sort == option
+                                      ? AppColors.ink
+                                      : AppColors.text,
+                                ),
+                                onSelected: (_) {
+                                  setState(() => sort = option);
+                                  load(refresh: true);
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: Gap.s),
+                    if (loading && visible.isEmpty)
+                      const SkeletonList()
+                    else if (failure != null && visible.isEmpty)
+                      ErrorRetry(onRetry: reload)
+                    else if (visible.isEmpty)
+                      EmptyState(
+                        icon: Icons.live_tv_outlined,
+                        title: tab == ChannelTab.joined
+                            ? 'Your channels start here'
+                            : mine
+                            ? 'Make this space yours'
+                            : 'New communities are on the way',
+                        message: term.isNotEmpty
+                            ? 'Try a different name or tag.'
+                            : tab == ChannelTab.joined
+                            ? 'Join a channel in Discover to find it here.'
+                            : mine
+                            ? 'Create your first channel and start sharing.'
+                            : 'Explore again soon, or start a channel of your own.',
+                        actionLabel: tab == ChannelTab.joined
+                            ? 'Discover channels'
+                            : 'Create channel',
+                        onAction: tab == ChannelTab.joined
+                            ? () => chooseTab(ChannelTab.discover)
+                            : () => edit(),
+                      ),
+                    for (final row in visible)
+                      ChannelDirectoryRow(
+                        key: ValueKey('${row['id']}:$accessKey'),
+                        state: widget.state,
+                        channel: row,
+                        joined: joined.contains(row['id']),
+                        busy: changing.contains(row['id']),
+                        owner: row['created_by'] == widget.state.userId,
+                        status: statusLabel(row),
+                        onOpen: () => widget.onOpen(row),
+                        onJoin: () => membership(row),
+                        onEdit: () => edit(row),
+                      ),
+                    if (loading && visible.isNotEmpty)
+                      const SkeletonBlock(height: AppSizes.button),
+                    if (failure != null && visible.isNotEmpty)
+                      ErrorRetry(onRetry: () => load()),
+                    if (hasMore && !loading)
+                      OutlinedButton(
+                        onPressed: () => load(),
+                        child: const Text('Load more'),
+                      ),
+                    const SizedBox(height: Gap.xl),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
-      )))),
-    ]));
+      ),
+    );
   }
 }
 
 class ChannelDirectoryRow extends StatelessWidget {
-  const ChannelDirectoryRow({super.key, required this.state, required this.channel, required this.joined,
-    required this.busy, required this.owner, required this.status, required this.onOpen, required this.onJoin, required this.onEdit});
+  const ChannelDirectoryRow({
+    super.key,
+    required this.state,
+    required this.channel,
+    required this.joined,
+    required this.busy,
+    required this.owner,
+    required this.status,
+    required this.onOpen,
+    required this.onJoin,
+    required this.onEdit,
+  });
   final AppState state;
   final Map<String, dynamic> channel;
   final bool joined, busy, owner;
   final String status;
   final VoidCallback onOpen, onJoin, onEdit;
-  Widget action() => owner ? OutlinedButton(onPressed: onEdit, child: const Text('Edit channel')) :
-    joined ? OutlinedButton(onPressed: busy ? null : onJoin, child: Text(busy ? 'Please wait…' : 'Joined')) :
-      FilledButton(onPressed: busy ? null : onJoin, child: Text(busy ? 'Please wait…' : 'Join'));
+  Widget action() => owner
+      ? OutlinedButton(onPressed: onEdit, child: const Text('Edit channel'))
+      : joined
+      ? OutlinedButton(
+          onPressed: busy ? null : onJoin,
+          child: Text(busy ? 'Please wait…' : 'Joined'),
+        )
+      : FilledButton(
+          onPressed: busy ? null : onJoin,
+          child: Text(busy ? 'Please wait…' : 'Join'),
+        );
   @override
-  Widget build(BuildContext context) => Column(children: [
-    Padding(padding: const EdgeInsets.symmetric(vertical: Gap.l), child: LayoutBuilder(builder: (context, limits) {
-      final details = Row(children: [
-        ChannelAvatar(channel: channel),
-        const SizedBox(width: Gap.l),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(channel['name'] as String, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: Gap.xs),
-          Row(children: [
-            const Icon(Icons.people_outline, size: AppSizes.iconSmall, color: AppColors.muted),
-            const SizedBox(width: Gap.xs),
-            Expanded(child: Text('${compactNumber(channel['members_count'] as num?)} members',
-              maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall)),
-          ]),
-          if (owner) ...[const SizedBox(height: Gap.xs), Text(status, style: Theme.of(context).textTheme.bodySmall)],
-        ])),
-      ]);
-      if (MediaQuery.textScalerOf(context).scale(AppSizes.body) > AppSizes.title) {
-        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          PressScale(onTap: onOpen, child: details), const SizedBox(height: Gap.m), action(),
-        ]);
-      }
-      return Row(children: [Expanded(child: PressScale(onTap: onOpen, child: details)), const SizedBox(width: Gap.m), action()]);
-    })),
-    const Divider(height: AppSizes.stroke),
-  ]);
+  Widget build(BuildContext context) => Column(
+    children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: Gap.l),
+        child: LayoutBuilder(
+          builder: (context, limits) {
+            final details = Row(
+              children: [
+                ChannelAvatar(channel: channel),
+                const SizedBox(width: Gap.l),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        channel['name'] as String,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: Gap.xs),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.people_outline,
+                            size: AppSizes.iconSmall,
+                            color: AppColors.muted,
+                          ),
+                          const SizedBox(width: Gap.xs),
+                          Expanded(
+                            child: Text(
+                              '${compactNumber(channel['members_count'] as num?)} members',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (owner) ...[
+                        const SizedBox(height: Gap.xs),
+                        Text(
+                          status,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            );
+            if (MediaQuery.textScalerOf(context).scale(AppSizes.body) >
+                AppSizes.title) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  PressScale(onTap: onOpen, child: details),
+                  const SizedBox(height: Gap.m),
+                  action(),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(
+                  child: PressScale(onTap: onOpen, child: details),
+                ),
+                const SizedBox(width: Gap.m),
+                action(),
+              ],
+            );
+          },
+        ),
+      ),
+      const Divider(height: AppSizes.stroke),
+    ],
+  );
 }
 
 class ChannelEditor extends StatefulWidget {

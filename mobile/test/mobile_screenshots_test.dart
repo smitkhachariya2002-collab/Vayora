@@ -121,11 +121,46 @@ void main() {
                 value = <Object>[];
               } else if (request.url.path.endsWith('/plans')) {
                 value = [
-                  {'id':'trial','name':'Trial','price_inr':49.0,'duration_days':7,'position':0,'perks':['2 TB cloud','Full premium videos']},
-                  {'id':'silver','name':'Silver','price_inr':129.0,'duration_days':7,'position':1,'perks':['2 TB cloud','Full premium videos']},
-                  {'id':'gold','name':'Gold','price_inr':259.0,'duration_days':30,'position':2,'perks':['2 TB cloud','Full premium videos']},
-                  {'id':'platinum','name':'Platinum','price_inr':599.0,'duration_days':180,'position':3,'perks':['2 TB cloud','Full premium videos']},
-                  {'id':'diamond','name':'Diamond','price_inr':999.0,'duration_days':365,'position':4,'perks':['2 TB cloud','Full premium videos']},
+                  {
+                    'id': 'trial',
+                    'name': 'Trial',
+                    'price_inr': 49.0,
+                    'duration_days': 7,
+                    'position': 0,
+                    'perks': ['2 TB cloud', 'Full premium videos'],
+                  },
+                  {
+                    'id': 'silver',
+                    'name': 'Silver',
+                    'price_inr': 129.0,
+                    'duration_days': 7,
+                    'position': 1,
+                    'perks': ['2 TB cloud', 'Full premium videos'],
+                  },
+                  {
+                    'id': 'gold',
+                    'name': 'Gold',
+                    'price_inr': 259.0,
+                    'duration_days': 30,
+                    'position': 2,
+                    'perks': ['2 TB cloud', 'Full premium videos'],
+                  },
+                  {
+                    'id': 'platinum',
+                    'name': 'Platinum',
+                    'price_inr': 599.0,
+                    'duration_days': 180,
+                    'position': 3,
+                    'perks': ['2 TB cloud', 'Full premium videos'],
+                  },
+                  {
+                    'id': 'diamond',
+                    'name': 'Diamond',
+                    'price_inr': 999.0,
+                    'duration_days': 365,
+                    'position': 4,
+                    'perks': ['2 TB cloud', 'Full premium videos'],
+                  },
                 ];
               } else if (request.url.path.endsWith('/payment_orders')) {
                 value = [order];
