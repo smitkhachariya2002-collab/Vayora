@@ -1,0 +1,97 @@
+name: Mobile visual review
+on:
+  pull_request:
+    paths: ['mobile/**', '.github/workflows/mobile-visual.yml']
+permissions:
+  contents: read
+concurrency:
+  group: mobile-visual-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  screenshots:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: after
+      - uses: actions/checkout@v4
+        with:
+          ref: b4031746e4f36df5a7f7fdeee9fc5ef75018641c
+          path: before
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+      - name: Prepare identical fictional fixtures for the previous UI
+        run: |
+          cp after/mobile/test/mobile_screenshots_test.dart before/mobile/test/
+          mkdir -p before/mobile/test/support
+          cp after/mobile/test/support/fake_video.dart before/mobile/test/support/
+          cp after/mobile/test/account_test.dart before/mobile/test/
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('before/mobile/pubspec.yaml')
+          p.write_text(p.read_text().replace('  flutter_lints: 6.0.0','  flutter_lints: 6.0.0\n  video_player_platform_interface: 6.7.0'))
+          Path('before/mobile/test/capture_theme.dart').write_text("""import 'package:flutter/material.dart';
+          import 'package:vayora/app_state.dart';
+          import 'package:vayora/main.dart';
+          ThemeData captureTheme()=>ThemeData.dark(useMaterial3:true).copyWith(
+            colorScheme:ColorScheme.fromSeed(seedColor:const Color(0xFFFF7A1A),brightness:Brightness.dark),
+            scaffoldBackgroundColor:const Color(0xFF111318));
+          Widget paymentScreen(AppState state)=>Payments(state:state);
+          """)
+          PY
+      - name: Capture previous screens at both phone widths and text sizes
+        working-directory: before/mobile
+        run: |
+          flutter pub get
+          flutter test test/mobile_screenshots_test.dart --dart-define=SCREENSHOTS=true --dart-define=BEFORE=true --update-goldens
+      - name: Capture redesigned screens and components with overflow assertions
+        working-directory: after/mobile
+        run: |
+          flutter pub get --enforce-lockfile
+          flutter test test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true --update-goldens
+          flutter test test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true
+      - name: Format the redesigned UI sources and verify the complete suite
+        working-directory: after/mobile
+        run: |
+          dart format lib/account_page.dart lib/channel_page.dart lib/main.dart lib/navigation.dart lib/theme.dart lib/screens lib/widgets test/account_channel_ui_test.dart test/account_presentation_test.dart test/account_screenshots_test.dart test/capture_theme.dart test/free_mode_ui_test.dart test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/theme_widgets_test.dart test/player_ui_test.dart test/support
+          dart fix --apply --code=curly_braces_in_flow_control_structures
+          dart format lib/account_page.dart lib/channel_page.dart lib/main.dart lib/navigation.dart lib/theme.dart lib/screens lib/widgets test/account_channel_ui_test.dart test/account_presentation_test.dart test/account_screenshots_test.dart test/capture_theme.dart test/free_mode_ui_test.dart test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/theme_widgets_test.dart test/player_ui_test.dart test/support
+          git diff --exit-code -- lib/app_state.dart lib/upi.dart ../supabase ../admin android
+          flutter analyze
+          flutter test
+      - name: Collect screenshots
+        if: always()
+        run: |
+          mkdir -p after/docs/mobile-ui/screenshots
+          cp -r before/mobile/test/goldens/before after/docs/mobile-ui/screenshots/ 2>/dev/null || true
+          cp -r after/mobile/test/goldens/after after/docs/mobile-ui/screenshots/ 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Vayora-mobile-visual-review
+          path: |
+            after/docs/mobile-ui/screenshots/
+            after/mobile/test/failures/
+          retention-days: 7
+      - name: Save review screenshots and reference goldens on this PR only
+        working-directory: after
+        env:
+          PR_BRANCH: ${{ github.head_ref }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git fetch origin "$PR_BRANCH"
+          test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_SHA"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/mobile-ui/screenshots mobile/test/goldens mobile/lib mobile/test/*.dart mobile/test/support
+          if ! git diff --cached --quiet; then
+            git commit -m "style: format redesigned UI and capture review screens"
+            git push origin "HEAD:$PR_BRANCH"
+          fi
