@@ -98,6 +98,7 @@ try{
  await addForm.locator('textarea[name="perks"]').fill("Full premium videos\n2 TB cloud storage\nDownload to your phone");
  await addForm.getByLabel("Badge (optional)",{exact:true}).fill("New");
  await addForm.getByLabel("Order",{exact:true}).fill("5");
+ await ownerPage.evaluate(()=>{document.activeElement?.blur();window.scrollTo(0,0)});
  await ownerPage.screenshot({path:"visual-artifacts/plans-add-desktop.png",fullPage:true});
  await addForm.getByRole("button",{name:"Save plan",exact:true}).click();
  await addForm.getByRole("status").filter({hasText:"Plan saved."}).waitFor();
