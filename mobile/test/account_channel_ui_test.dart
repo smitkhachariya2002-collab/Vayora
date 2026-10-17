@@ -25,9 +25,10 @@ void main() {
     await tester.pumpAndSettle();
   }
   Future<void> submit(WidgetTester tester, String key) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     tester.testTextInput.hide();
     await tester.pump();
-    await tester.scrollUntilVisible(find.byKey(ValueKey(key)), 150, scrollable: find.byType(Scrollable).last);
+    await tester.scrollUntilVisible(find.byKey(ValueKey(key)), 150, scrollable: find.descendant(of: find.byType(ListView).last, matching: find.byType(Scrollable)).first);
     await tester.ensureVisible(find.byKey(ValueKey(key)));
     await tester.tap(find.byKey(ValueKey(key)));
     await tester.pumpAndSettle();

@@ -32,7 +32,7 @@ class PageWidth extends StatelessWidget {
   final bool form;
   @override
   Widget build(BuildContext context) => Align(heightFactor: 1, alignment: Alignment.topCenter, child: ConstrainedBox(
-    constraints: BoxConstraints(maxWidth: form ? AppSizes.formWidth : AppSizes.contentWidth), child: child));
+    constraints: BoxConstraints(maxWidth: form ? AppSizes.formWidth : AppSizes.contentWidth), child: SizedBox(width: double.infinity, child: child)));
 }
 class BrandMark extends StatelessWidget {
   const BrandMark({super.key, this.large = false});
