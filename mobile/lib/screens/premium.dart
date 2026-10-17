@@ -270,134 +270,93 @@ class _PlansState extends State<Plans> {
   );
 }
 
+String planPrice(num value) {
+  final fraction = value != value.roundToDouble();
+  return '₹${value.toStringAsFixed(fraction ? 2 : 0)}';
+}
+
+String planDuration(num raw) {
+  final days = raw.toInt();
+  return switch (days) {
+    1 => '1 Day',
+    30 => '1 Month',
+    90 => '3 Months',
+    180 => '6 Months',
+    365 => '1 Year',
+    _ => '$days Days',
+  };
+}
+
 class PremiumHero extends StatelessWidget {
   const PremiumHero({super.key});
   @override
-  Widget build(BuildContext context) => Container(
-    padding: Gap.page,
-    decoration: const BoxDecoration(
-      gradient: AppColors.gradient,
-      borderRadius: Radii.cardRadius,
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const CrownIcon(color: AppColors.ink, size: AppSizes.dialogIcon),
-        const SizedBox(height: Gap.l),
-        Text(
-          'Go Premium',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineMedium?.copyWith(color: AppColors.ink),
-        ),
-        const SizedBox(height: Gap.s),
-        Text(
-          'More room. More stories. More you.',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyLarge?.copyWith(color: AppColors.ink),
-        ),
-        const SizedBox(height: Gap.xl),
-        for (final perk in const [
-          '2 TB cloud allowance',
-          'Full premium videos',
-          'Fast downloads',
-        ])
-          Padding(
-            padding: const EdgeInsets.only(bottom: Gap.s),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle_outline, color: AppColors.ink),
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(Gap.l),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const CrownIcon(),
+            const SizedBox(width: Gap.s),
+            Text('Premium', style: Theme.of(context).textTheme.titleLarge),
+          ]),
+          const SizedBox(height: Gap.m),
+          const Divider(),
+          const SizedBox(height: Gap.s),
+          for (final perk in const [
+            '2 TB cloud allowance',
+            'Full premium videos',
+            'Fast downloads',
+          ])
+            Padding(
+              padding: const EdgeInsets.only(bottom: Gap.s),
+              child: Row(children: [
+                const Icon(Icons.check, color: AppColors.primary, size: AppSizes.iconSmall),
                 const SizedBox(width: Gap.s),
-                Expanded(
-                  child: Text(
-                    perk,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(color: AppColors.ink),
-                  ),
-                ),
-              ],
+                Expanded(child: Text(perk, style: Theme.of(context).textTheme.bodyMedium)),
+              ]),
             ),
-          ),
-      ],
+        ],
+      ),
     ),
   );
 }
 
 class PlanCard extends StatelessWidget {
-  const PlanCard({
-    super.key,
-    required this.plan,
-    required this.selected,
-    required this.onTap,
-  });
+  const PlanCard({super.key, required this.plan, required this.selected, required this.onTap});
   final Map<String, dynamic> plan;
   final bool selected;
   final VoidCallback? onTap;
   @override
-  Widget build(BuildContext context) => PressScale(
-    onTap: onTap,
-    child: Container(
-      padding: Gap.page,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: Radii.cardRadius,
-        border: Border.all(
-          color: selected ? AppColors.primary : AppColors.border,
-          width: selected ? AppSizes.focusStroke : AppSizes.stroke,
+  Widget build(BuildContext context) => Semantics(
+    selected: selected,
+    inMutuallyExclusiveGroup: true,
+    child: PressScale(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(Gap.l),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: Radii.cardRadius,
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.border,
+            width: selected ? AppSizes.focusStroke : AppSizes.stroke,
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: Gap.m,
-            runSpacing: Gap.s,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                plan['name'] as String,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              if ((plan['name'] as String).toLowerCase().contains('gold'))
-                const StatusPill('Best value', tone: NoticeTone.warning),
-              if (selected)
-                const Icon(Icons.check_circle, color: AppColors.primary),
-            ],
-          ),
-          const SizedBox(height: Gap.l),
-          Text(
-            '₹${plan['price_inr']}',
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          Text(
-            'for ${plan['duration_days']} days',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: Gap.l),
-          for (final perk in (plan['perks'] as List? ?? []))
-            Padding(
-              padding: const EdgeInsets.only(bottom: Gap.s),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.check,
-                    size: AppSizes.iconSmall,
-                    color: AppColors.success,
-                  ),
-                  const SizedBox(width: Gap.s),
-                  Expanded(
-                    child: Text(
-                      perk.toString(),
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
+        child: Row(children: [
+          Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off,
+            color: selected ? AppColors.primary : AppColors.muted),
+          const SizedBox(width: Gap.m),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(plan['name'] as String, maxLines: 2, overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: Gap.xs),
+            Text(planDuration(plan['duration_days'] as num), style: Theme.of(context).textTheme.bodySmall),
+          ])),
+          const SizedBox(width: Gap.s),
+          Text(planPrice(plan['price_inr'] as num), style: Theme.of(context).textTheme.titleLarge),
+        ]),
       ),
     ),
   );

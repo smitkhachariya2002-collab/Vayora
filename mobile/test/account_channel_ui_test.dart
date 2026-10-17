@@ -377,4 +377,24 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 45)),
   );
+  testWidgets('Joined tab uses real memberships and compact directory rows', (tester) async {
+    await tester.runAsync(() => f.state.login('existing@example.test', 'password123'));
+    channels.add({'id':'joined-channel','name':'Travel India','created_by':'creator','description':'Travel stories',
+      'tags':['travel'],'review_status':'approved','status':'active','members_count':510,'icon_url':null});
+    final previous = f.intercept;
+    f.intercept = (request) => request.url.path.endsWith('/channel_members') && request.method == 'GET'
+      ? reply(request,[{'channel_id':'joined-channel'}]) : previous!(request);
+    await open(tester,ChannelList(state:f.state,onOpen:(_){}));
+    expect(find.text('Travel India'),findsOneWidget);
+    expect(find.text('510 members'),findsOneWidget);
+    expect(find.text('Create a space for what you love'),findsNothing);
+    expect(find.byTooltip('Create channel'),findsOneWidget);
+    await tester.tap(find.text('Joined').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Travel India'),findsOneWidget);
+    final query=f.calls.lastWhere((request)=>request.url.path.endsWith('/channels'));
+    expect(query.url.queryParameters['id'],'in.(joined-channel)');
+    expect(tester.takeException(),isNull);
+  },timeout:const Timeout(Duration(seconds:45)));
+
 }

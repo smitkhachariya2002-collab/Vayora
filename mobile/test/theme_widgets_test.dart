@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vayora/theme.dart';
+import 'package:vayora/screens/premium.dart';
 import 'package:vayora/widgets/common.dart';
 import 'package:vayora/widgets/post_card.dart';
 
@@ -102,6 +103,52 @@ void main() {
       }
     });
   }
+  test('Plan labels retain exact prices and readable durations', () {
+    expect(planPrice(999.0), '₹999');
+    expect(planPrice(49.5), '₹49.50');
+    expect(planDuration(7), '7 Days');
+    expect(planDuration(30), '1 Month');
+    expect(planDuration(180), '6 Months');
+    expect(planDuration(365), '1 Year');
+  });
+  for (final scale in [1.0, 1.6]) {
+    testWidgets('Compact plans show benefits once and preserve selection at $scale', (tester) async {
+      tester.view.physicalSize = const Size(360, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final plans = [
+        {'name':'Trial','price_inr':49.0,'duration_days':7,'perks':['Do not repeat this']},
+        {'name':'Silver','price_inr':129.0,'duration_days':7,'perks':['Do not repeat this']},
+        {'name':'Gold','price_inr':259.0,'duration_days':30,'perks':['Do not repeat this']},
+        {'name':'Platinum','price_inr':599.0,'duration_days':180,'perks':['Do not repeat this']},
+        {'name':'Diamond','price_inr':999.0,'duration_days':365,'perks':['Do not repeat this']},
+      ];
+      var selected = 'Trial';
+      await tester.pumpWidget(MaterialApp(theme:buildTheme(),home:MediaQuery(
+        data:MediaQueryData(textScaler:TextScaler.linear(scale)),
+        child:Scaffold(body:StatefulBuilder(builder:(context,update)=>SingleChildScrollView(
+          child:Padding(padding:Gap.page,child:Column(children:[
+            const PremiumHero(),
+            for(final plan in plans)Padding(padding:const EdgeInsets.only(top:Gap.m),
+              child:PlanCard(plan:plan,selected:plan['name']==selected,onTap:()=>update(()=>selected=plan['name'] as String))),
+          ])),
+        ))),
+      )));
+      expect(find.text('2 TB cloud allowance'),findsOneWidget);
+      expect(find.text('Full premium videos'),findsOneWidget);
+      expect(find.text('Do not repeat this'),findsNothing);
+      expect(find.text('₹999'),findsOneWidget);
+      expect(find.text('₹999.0'),findsNothing);
+      await tester.ensureVisible(find.text('Gold'));
+      await tester.tap(find.text('Gold'));
+      await tester.pumpAndSettle();
+      expect(selected,'Gold');
+      expect(find.byIcon(Icons.radio_button_checked),findsOneWidget);
+      expect(tester.takeException(),isNull);
+    });
+  }
+
 }
 
 void noop() {}
