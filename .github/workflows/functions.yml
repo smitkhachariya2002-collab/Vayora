@@ -17,3 +17,6 @@ jobs:
         with:
           deno-version: v2.5.4
       - run: deno check supabase/functions/delete-account/index.ts
+
+      - run: deno check supabase/functions/admin-delete-account/index.ts
+      - run: deno check supabase/functions/admin-invite/index.ts

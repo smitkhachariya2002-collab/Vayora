@@ -24,6 +24,7 @@ export async function requireAdmin(owner = false) {
   const { data: { user }, error } = await client.auth.getUser();
   if (error || !user || user.is_anonymous) redirect("/login");
   const { data: admin } = await client.from("admins").select("role").eq("user_id", user.id).single();
-  if (!admin || (owner && admin.role !== "owner")) redirect("/login?error=Admin+access+required");
+  if (!admin) redirect("/login?error=This+account+is+not+an+admin.");
+  if (owner && admin.role !== "owner") redirect("/?error=That+page+is+only+available+to+the+owner.");
   return { client, user, owner: admin.role === "owner" };
 }

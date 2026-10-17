@@ -12,7 +12,7 @@ enabled = false
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["com.vayora.app://login-callback"]
+additional_redirect_urls = ["com.vayora.app://login-callback", "http://localhost:3000/invite", "https://vayora-eta.vercel.app/invite"]
 enable_anonymous_sign_ins = true
 enable_manual_linking = true
 [auth.email]
@@ -23,4 +23,10 @@ enable_confirmations = true
 enabled = true
 file_size_limit = "50MiB"
 [functions.delete-account]
+verify_jwt = false
+
+[functions.admin-delete-account]
+verify_jwt = false
+
+[functions.admin-invite]
 verify_jwt = false

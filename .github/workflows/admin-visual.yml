@@ -1,0 +1,44 @@
+name: Admin responsive review
+on:
+  pull_request:
+    paths: ['admin/**', 'supabase/**', '.github/workflows/admin-visual.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: admin-visual-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ea95b6383bb1f3e818da1430eade7621ba38881a
+          path: baseline
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.81.3
+      - run: supabase start
+      - run: npm ci
+        working-directory: admin
+      - run: npm ci
+        working-directory: baseline/admin
+      - run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund @playwright/test@1.56.1
+        working-directory: admin
+      - run: npx playwright install --with-deps chromium
+        working-directory: admin
+      - run: node scripts/visual-review.mjs
+        working-directory: admin
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: admin-before-after
+          path: admin/visual-artifacts
+      - run: supabase stop --no-backup
+        if: always()

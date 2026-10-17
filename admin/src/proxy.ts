@@ -15,4 +15,4 @@ export async function proxy(request: NextRequest) {
   await client.auth.getUser();
   return response;
 }
-export const config={matcher:["/dashboard/:path*","/login"]};
+export const config={matcher:["/dashboard/:path*","/","/channels/:path*","/posts/:path*","/approvals","/payments","/meta","/users","/requests","/plans","/admins","/login"]};
