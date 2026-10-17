@@ -46,7 +46,7 @@ class AppState extends ChangeNotifier {
   String get installSecret => prefs.getString('install_secret')!;
   Set<String> get blocked => (prefs.getStringList('blocked_channels') ?? []).toSet();
 
-  Future<void> initialize() async {
+  Future<void> initialize({bool watchRemoteChanges = true}) async {
     if (!prefs.containsKey('install_id')) {
       await prefs.setString('install_id', const Uuid().v4());
       await prefs.setString('install_secret', '${const Uuid().v4()}${const Uuid().v4()}');
@@ -62,6 +62,7 @@ class AppState extends ChangeNotifier {
       await prefs.setBool('install_recorded', true);
     }
     await afterLogin();
+    if (!watchRemoteChanges) return;
     // Realtime switches mode immediately; polling also picks up approvals,
     // revocations and expiry while a screen remains open.
     _statusPoll ??= Timer.periodic(const Duration(seconds: 30), (_) {

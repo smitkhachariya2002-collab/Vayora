@@ -28,7 +28,7 @@ class Fixture {
   Future<void> start() async {
     SharedPreferences.setMockInitialValues({});
     db = SupabaseClient('https://example.supabase.co', 'test-key',
-      authOptions: const AuthClientOptions(autoRefreshToken: false),
+      authOptions: const AuthClientOptions(autoRefreshToken: false, authFlowType: AuthFlowType.implicit),
       httpClient: MockClient((request) async {
         calls.add(request);
         Object? body;
@@ -49,7 +49,7 @@ class Fixture {
         return http.Response(jsonEncode(body), 200, request: request, headers: {'content-type':'application/json'});
       }));
     state = AppState(db, await SharedPreferences.getInstance());
-    await state.initialize();
+    await state.initialize(watchRemoteChanges: false);
   }
   Future<void> close() async { state.dispose(); await db.dispose(); }
 }
@@ -63,7 +63,7 @@ void main() {
     expect(f.state.guest, isTrue);
     final install = f.state.installId;
     expect(f.state.installSecret.length, greaterThanOrEqualTo(32));
-    await f.state.initialize();
+    await f.state.initialize(watchRemoteChanges: false);
     expect(f.state.installId, install);
     expect(f.calls.where((r) => r.url.path.endsWith('/record_install')), hasLength(1));
   });
