@@ -41,7 +41,7 @@ jobs:
         run: flutter build apk --debug --flavor direct --target-platform android-arm64 --dart-define-from-file=config/public.json
       - name: Test native discovery for arbitrary UPI app packages
         working-directory: mobile/android
-        run: ./gradlew :app:testDirectDebugUnitTest
+        run: ./gradlew :app:testDirectDebugUnitTest -Pandroid.enableJetifier=false
       - name: Verify installed-app visibility in the compiled Android manifest
         working-directory: mobile
         run: |
