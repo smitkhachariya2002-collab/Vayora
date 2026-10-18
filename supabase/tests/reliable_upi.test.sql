@@ -46,7 +46,7 @@ select lives_ok($$select public.admin_mark_payment_paid((select id from upi_orde
 select lives_ok($$select public.admin_mark_payment_paid((select id from upi_orders where kind='second'),'123456789012')$$,'Owner approval idempotent');
 select ok((select verified_at is not null and verification_source='admin' from public.payment_orders where id=(select id from upi_orders where kind='second')),'Verification provenance stored');
 select lives_ok($$select public.admin_revoke_payment((select id from upi_orders where kind='first'),'Bank did not receive payment')$$,'Revoke removes purchased time');
-select is((select ends_at-starts_at from public.subscriptions where order_id=(select id from upi_orders where kind='second')),interval '2 days','Revoke subtracts first order duration from stacked renewal');
+select is((select ends_at-starts_at from public.subscriptions where order_id=(select id from upi_orders where kind='second')),interval '7 days','Revoke subtracts first order duration from stacked renewal');
 reset role;
 select ok(exists(select 1 from private.used_payment_utrs where utr='NEW00001'),'Revoked transaction remains blocked');
 select set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000002',true);

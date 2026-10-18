@@ -403,6 +403,7 @@ class AppState extends ChangeNotifier {
   Future<void> retryPayments() async {
     if (_reporting || _disposed || db.auth.currentSession == null || guest) return;
     _paymentRetry?.cancel();
+    var retryNeeded = false;
     _reporting = true;
     try {
       const native = MethodChannel('app/upi');
@@ -416,6 +417,7 @@ class AppState extends ChangeNotifier {
         // Native recovery is only available on Android.
       }
       await prefs.setString('pending_payments', jsonEncode(queue));
+      retryNeeded = queue.isNotEmpty;
       if (queue.isNotEmpty && remoteChangesEnabled) await db.auth.refreshSession();
       for (final entry in Map<String, String>.from(queue).entries) {
         final owner = prefs.getString('payment_owner:${entry.key}');
@@ -438,12 +440,17 @@ class AppState extends ChangeNotifier {
           // The persisted response survives network failure and process death.
         }
       }
+      retryNeeded = queue.entries.any((entry) {
+        final owner = prefs.getString('payment_owner:${entry.key}');
+        return owner == null || owner == userId;
+      });
+      if (!retryNeeded) _paymentBackoff = 2;
       await refreshStatus();
     } on Object {
       // Authentication/network failures retain the durable queue.
     } finally {
       _reporting = false;
-      if (!_disposed && remoteChangesEnabled) {
+      if (!_disposed && remoteChangesEnabled && retryNeeded) {
         _paymentRetry = Timer(Duration(seconds: _paymentBackoff), () {
           unawaited(retryPayments());
         });
