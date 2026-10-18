@@ -75,6 +75,7 @@ try{
  const rejectCard=ownerPage.locator('[data-testid^="channel-request-"]').filter({hasText:"Reject this request"});
  ownerPage.once("dialog",dialog=>dialog.accept());
  await rejectCard.getByRole("button",{name:"Reject",exact:true}).click();
+ await rejectCard.waitFor({state:"detached"});
  await ownerPage.waitForURL(url=>url.pathname==="/channels"&&url.searchParams.has("ok"));
  const {data:rejectedChannel}=await admin.from("channels").select("review_status,status").eq("name","Reject this request").single();
  if(rejectedChannel?.review_status!=="rejected"||rejectedChannel?.status!=="draft")throw new Error("Reject must keep draft");
