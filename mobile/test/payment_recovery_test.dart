@@ -63,6 +63,10 @@ void main(){
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,null);
  });
  testWidgets('Failed payment accepts exactly 12-digit UTR and displays submitted state',(tester)async{
+  tester.view.physicalSize = const Size(430, 1200);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
   final f=Fixture();var submitted=false;
   final order={'id':'order','reference':'VYUTRTEST','status':'failed','amount_paise':4900,'plans':{'name':'Trial'}};
   f.intercept=(r){
@@ -74,11 +78,15 @@ void main(){
   await tester.runAsync(()=>f.state.login('member@example.test','password123'));
   await tester.pumpWidget(MaterialApp(theme:buildTheme(),home:Payments(state:f.state,orderId:'order')));
   await tester.pumpAndSettle();
+  await tester.runAsync(()=>Future<void>.delayed(const Duration(milliseconds:80)));
+  await tester.pumpAndSettle();
+  expect(find.text('Payment failed. Please try again.'),findsOneWidget);
   final action=find.text('Paid but not active? Enter UTR');
-  await tester.ensureVisible(action);await tester.tap(action);await tester.pumpAndSettle();
+  await tester.scrollUntilVisible(action,200,scrollable:find.byType(Scrollable).first);
+  await tester.tap(action);await tester.pumpAndSettle();
   await tester.enterText(find.byType(TextField),'123456789012');await tester.tap(find.text('Submit'));
   await tester.runAsync(()=>Future<void>.delayed(const Duration(milliseconds:80)));
-  await tester.pump();
+  for(var i=0;i<5;i++){await tester.pump(const Duration(milliseconds:100));}
   expect(submitted,true);
   expect(find.text('Submitted'),findsOneWidget);
   await tester.pumpWidget(const SizedBox.shrink());await tester.runAsync(f.close);
