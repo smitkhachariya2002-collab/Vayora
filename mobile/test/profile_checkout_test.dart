@@ -103,6 +103,7 @@ void main() {
         find.text('Payment successful! Your plan is now active.'),
         findsOneWidget,
       );
+      await tester.scrollUntilVisible(find.text('Done'),200,scrollable:find.byType(Scrollable).first);
       await tester.tap(find.text('Done'));
       await tester.runAsync(()=>Future<void>.delayed(const Duration(milliseconds:100)));
       await tester.pumpAndSettle();
