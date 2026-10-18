@@ -50,6 +50,23 @@ class UpiAppsTest {
         assertTrue(UpiApps.discover(pm, uri).isEmpty())
     }
 
+    @Test fun rawResponseIsReturnedUnchanged() {
+        val raw = "txnId=SBI123456789&Status=SUCCESS&txnRef=VY123"
+        assertEquals(raw, UpiApps.rawResult(Intent().putExtra("response", raw), -1))
+    }
+
+    @Test fun separateWalletExtrasKeepStatusReferenceAndTransactionId() {
+        val data = Intent().putExtra("STATUS", "SUCCESS").putExtra("txnRef", "VY123").putExtra("txnId", "BANK1234")
+        val parsed = Uri.parse("upi://result?" + UpiApps.rawResult(data, -1))
+        assertEquals("SUCCESS", parsed.getQueryParameter("STATUS"))
+        assertEquals("VY123", parsed.getQueryParameter("txnRef"))
+        assertEquals("BANK1234", parsed.getQueryParameter("txnId"))
+    }
+
+    @Test fun missingResultIsPendingEvidenceRatherThanSuccess() {
+        assertEquals("Status=NO_RESPONSE&resultCode=0", UpiApps.rawResult(null, 0))
+    }
+
     @Test fun chosenAppGetsExactPaymentUriWithoutNewTaskFlag() {
         val intent = UpiApps.paymentIntent(uri, "bank.any.upi")
         assertEquals("bank.any.upi", intent.getPackage())

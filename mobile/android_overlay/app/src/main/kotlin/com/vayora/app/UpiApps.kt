@@ -21,6 +21,20 @@ object UpiApps {
             .sortedBy { it.loadLabel(pm).toString().lowercase() }
     }
 
+    /** Keep an app's raw response intact; support wallets returning separate extras too. */
+    fun rawResult(data: Intent?, resultCode: Int): String {
+        val extras = data?.extras
+        val entries = extras?.keySet()?.map { it to extras.get(it)?.toString().orEmpty() }.orEmpty()
+        entries.firstOrNull { it.first.equals("response", true) && it.second.isNotBlank() }
+            ?.let { return it.second }
+        entries.firstOrNull { it.second.contains("Status=", true) }?.let { return it.second }
+        val fields = entries.filter { it.first.lowercase() in setOf("status", "txnref", "txnid", "approvalrefno", "responsecode") }
+        if (fields.any { it.first.equals("status", true) }) {
+            return fields.joinToString("&") { Uri.encode(it.first) + "=" + Uri.encode(it.second) }
+        }
+        return "Status=NO_RESPONSE&resultCode=$resultCode"
+    }
+
     fun paymentIntent(uri: Uri, packageName: String): Intent =
         Intent(Intent.ACTION_VIEW, uri).setPackage(packageName)
 }

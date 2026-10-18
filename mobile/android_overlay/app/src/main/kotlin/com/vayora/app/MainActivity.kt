@@ -40,11 +40,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     // Register unconditionally and in stable order, before the activity starts.
     private val upiLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { answer ->
-        val data = answer.data
-        val raw = data?.getStringExtra("response")
-            ?: data?.extras?.keySet()?.mapNotNull { key -> data.extras?.get(key)?.toString() }?.firstOrNull { it.contains("Status=", true) }
-            ?: "Status=NO_RESPONSE&resultCode=${answer.resultCode}"
-        finishUpi(raw)
+        finishUpi(UpiApps.rawResult(answer.data, answer.resultCode))
     }
 
     private fun finishUpi(raw: String) {
