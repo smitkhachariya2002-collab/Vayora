@@ -55,8 +55,9 @@ begin
 end $$;
 
 -- Preserve existing approved communities; do not expose pending/rejected rows.
-update public.channels set status=case when review_status<>'approved' then 'draft'
- when status='active' then 'published' else status end;
+-- Keep legacy approved/active rows for already-installed APKs that filter on
+-- active. New approvals always write published; the new app supports both.
+update public.channels set status='draft' where review_status<>'approved';
 alter table public.channels add constraint channels_name_minimum check(length(btrim(name)) between 3 and 120) not valid;
 
 create or replace function private.visible_channel(p_id uuid) returns boolean
