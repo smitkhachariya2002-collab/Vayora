@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../app_state.dart';
+import '../plan_catalog.dart';
 import '../channel_page.dart';
 import '../navigation.dart';
 import '../theme.dart';
@@ -12,14 +13,38 @@ import 'payments.dart';
 import 'policies.dart';
 import 'premium.dart';
 
+/// The Profile tab opens Premium directly until the server confirms an active plan.
 class Profile extends StatefulWidget {
-  const Profile({super.key, required this.state});
+  const Profile({super.key, required this.state, this.catalog});
   final AppState state;
+  final PlanCatalog? catalog;
   @override
   State<Profile> createState() => _ProfileState();
 }
 
 class _ProfileState extends State<Profile> {
+  bool checkoutOpen = false;
+  void checkoutChanged(bool value) {
+    if (mounted && checkoutOpen != value) setState(() => checkoutOpen = value);
+  }
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: widget.state,
+    builder: (context, _) => widget.state.paidEnabled &&
+        (!widget.state.premium || checkoutOpen)
+      ? Plans(state: widget.state, catalog: widget.catalog, onCheckoutChanged: checkoutChanged)
+      : AccountProfile(state: widget.state),
+  );
+}
+
+class AccountProfile extends StatefulWidget {
+  const AccountProfile({super.key, required this.state});
+  final AppState state;
+  @override
+  State<AccountProfile> createState() => _AccountProfileState();
+}
+
+class _AccountProfileState extends State<AccountProfile> {
   List<Map<String, dynamic>> owned = [], joined = [];
   bool loading = true;
   int membershipVersion = -1;
@@ -423,8 +448,6 @@ class _ProfileState extends State<Profile> {
                       ),
                       if (state.paidEnabled) ...[
                         const SizedBox(height: 16),
-                        ProfilePlanPicker(state: state),
-                        const SizedBox(height: 12),
                         ProfileTile(
                           icon: Icons.workspace_premium_outlined,
                           title: hasPlan ? 'Manage Premium' : 'Explore Premium',

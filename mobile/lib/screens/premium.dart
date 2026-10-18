@@ -12,9 +12,10 @@ import 'payments.dart';
 import 'profile.dart';
 
 class Plans extends StatefulWidget {
-  const Plans({super.key, required this.state, this.catalog});
+  const Plans({super.key, required this.state, this.catalog, this.onCheckoutChanged});
   final AppState state;
   final PlanCatalog? catalog;
+  final ValueChanged<bool>? onCheckoutChanged;
   @override
   State<Plans> createState() => _PlansState();
 }
@@ -84,6 +85,7 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
   Future<void> pay(Map<String, dynamic> plan) async {
     if (checkoutRequested) return;
     checkoutRequested = true;
+    widget.onCheckoutChanged?.call(true);
     try {
       if (!await accountLoginDialog(
             context,
@@ -115,6 +117,7 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
       if (mounted) await refresh();
     } finally {
       checkoutRequested = false;
+      widget.onCheckoutChanged?.call(false);
       if (mounted) setState(() => busy = false);
     }
   }
@@ -230,7 +233,7 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute<void>(
-              builder: (_) => AppPage(body: Profile(state: state)),
+              builder: (_) => AppPage(body: AccountProfile(state: state)),
             ),
           ),
         ),
@@ -548,144 +551,5 @@ class PlanCard extends StatelessWidget {
         ),
       ),
     ),
-  );
-}
-
-class ProfilePlanPicker extends StatefulWidget {
-  const ProfilePlanPicker({super.key, required this.state, this.catalog});
-  final AppState state;
-  final PlanCatalog? catalog;
-  @override
-  State<ProfilePlanPicker> createState() => _ProfilePlanPickerState();
-}
-
-class _ProfilePlanPickerState extends State<ProfilePlanPicker> {
-  late final PlanCatalog catalog;
-  bool busy = false, checkoutRequested = false;
-  @override
-  void initState() {
-    super.initState();
-    catalog =
-        widget.catalog ??
-        PlanCatalog(
-          widget.state.db,
-          changes: widget.state.remoteChangesEnabled
-              ? null
-              : const Stream<void>.empty(),
-        );
-    catalog.start();
-    unawaited(catalog.refresh());
-  }
-
-  @override
-  void dispose() {
-    if (widget.catalog == null) catalog.dispose();
-    super.dispose();
-  }
-
-  Future<void> pay(Map<String, dynamic> plan) async {
-    if (checkoutRequested) return;
-    checkoutRequested = true;
-    try {
-      if (!await accountLoginDialog(
-            context,
-            widget.state,
-            plan: plan['name'] as String,
-          ) ||
-          !mounted) {
-        return;
-      }
-      if (!await loginGate(context, widget.state) || !mounted) return;
-      await widget.state.refreshStatus();
-      if (!mounted || !widget.state.paidEnabled) return;
-      setState(() => busy = true);
-      final order = await launchPlanPayment(
-        context,
-        widget.state,
-        plan['id'] as String,
-        displayedPrice: plan['price_inr'] as num,
-      );
-      if (order != null && mounted) {
-        await Navigator.push(
-          context,
-          MaterialPageRoute<void>(
-            builder: (_) =>
-                Payments(state: widget.state, orderId: order['id'] as String),
-          ),
-        );
-      }
-      await widget.state.refreshStatus();
-    } finally {
-      checkoutRequested = false;
-      if (mounted) setState(() => busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: catalog,
-    builder: (context, _) {
-      final matches = catalog.rows.where((p) => p['id'] == catalog.selected);
-      final plan = matches.isEmpty ? null : matches.first;
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Choose your plan',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
-              if (catalog.error != null)
-                ErrorRetry(onRetry: catalog.refresh)
-              else if (!catalog.loaded)
-                const LinearProgressIndicator()
-              else if (catalog.rows.isEmpty)
-                const Text('No plans available right now.')
-              else ...[
-                DropdownButtonFormField<String>(
-                  key: ValueKey(catalog.selected),
-                  initialValue: plan?['id'] as String?,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Premium plan'),
-                  hint: const Text('Select a plan'),
-                  items: catalog.rows
-                      .map(
-                        (p) => DropdownMenuItem<String>(
-                          value: p['id'] as String,
-                          child: Text(
-                            "${p['name']} · ${planDuration(p['duration_days'] as num)} · ${planPrice(p['price_inr'] as num)}",
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: busy
-                      ? null
-                      : (id) {
-                          if (id != null) catalog.select(id);
-                        },
-                ),
-                const SizedBox(height: 16),
-                GradientButton(
-                  label: premiumButtonLabel(
-                    selected: plan != null,
-                    guest: widget.state.guest,
-                    busy: busy,
-                    price: plan?['price_inr'] as num?,
-                  ),
-                  icon: Icons.payment,
-                  busy: busy,
-                  onPressed: busy || plan == null ? null : () => pay(plan),
-                ),
-              ],
-            ],
-          ),
-        ),
-      );
-    },
   );
 }

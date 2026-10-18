@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:vayora/plan_catalog.dart';
+import 'package:vayora/screens/profile.dart';
 import 'package:vayora/screens/premium.dart';
 import 'package:vayora/theme.dart';
 import 'account_test.dart' show Fixture;
@@ -44,7 +45,10 @@ void main() {
         if (r.url.path.endsWith('/create_payment_order')) {
           return reply(r, order);
         }
-        if (r.url.path.endsWith('/report_result')) return reply(r, 'paid');
+        if (r.url.path.endsWith('/report_result')) {
+          f.currentStatus = {'is_premium':true,'plan_name':'Trial'};
+          return reply(r, 'paid');
+        }
         if (r.url.path.endsWith('/payment_orders')) {
           return reply(
             r,
@@ -75,17 +79,14 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: buildTheme(),
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: ProfilePlanPicker(state: f.state, catalog: catalog),
-            ),
-          ),
+          home: Scaffold(body: Profile(state: f.state, catalog: catalog)),
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Trial ·').last);
+      expect(find.byType(PlanCard), findsOneWidget);
+      expect(find.text('Explore Premium'), findsNothing);
+      expect(find.text('My Channels'), findsNothing);
+      await tester.tap(find.text('Trial'));
       await tester.pumpAndSettle();
       expect(find.text('Pay ₹1 via UPI'), findsOneWidget);
       await tester.runAsync(() async {
@@ -102,6 +103,12 @@ void main() {
         find.text('Payment successful! Your plan is now active.'),
         findsOneWidget,
       );
+      await tester.tap(find.text('Done'));
+      await tester.runAsync(()=>Future<void>.delayed(const Duration(milliseconds:100)));
+      await tester.pumpAndSettle();
+      expect(find.byType(AccountProfile), findsOneWidget);
+      expect(find.byType(PlanCard), findsNothing);
+      expect(find.text('My Channels'), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
       catalog.dispose();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

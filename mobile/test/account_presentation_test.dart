@@ -23,7 +23,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildTheme(),
-        home: Scaffold(body: Profile(state: f.state)),
+        home: Scaffold(body: AccountProfile(state: f.state)),
       ),
     );
     await tester.pumpAndSettle();
@@ -110,7 +110,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: buildTheme(),
-          home: Scaffold(body: Profile(state: f.state)),
+          home: Scaffold(body: AccountProfile(state: f.state)),
         ),
       );
       await tester.pumpAndSettle();
@@ -118,7 +118,6 @@ void main() {
       expect(find.text('Log in / Create account'), findsOneWidget);
       expect(find.text('Delete Account'), findsNothing);
       expect(find.text('Payment history'), findsNothing);
-      await tester.ensureVisible(find.text('Add Channel'));
       await tester.ensureVisible(find.text('Add Channel'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Add Channel'));
@@ -155,7 +154,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildTheme(),
-        home: Scaffold(body: Profile(state: f.state)),
+        home: Scaffold(body: AccountProfile(state: f.state)),
       ),
     );
     await tester.pumpAndSettle();
