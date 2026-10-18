@@ -27,7 +27,6 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   int selected = 2;
   final visited = <int>{2};
   final storage = PageStorageBucket();
-  final cloudKey = GlobalKey<CloudViewState>();
   bool showingRecovery = false, searching = false;
   String search = '';
   late final StreamSubscription<AuthState> auth;
@@ -300,13 +299,6 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             ),
           ),
         ),
-        fab: selected == 0
-            ? FloatingActionButton(
-                tooltip: 'Cloud options',
-                onPressed: () => cloudKey.currentState?.actions(),
-                child: const Icon(Icons.add),
-              )
-            : null,
         navigation: DecoratedBox(
           decoration: const BoxDecoration(
             color: AppColors.navigation,

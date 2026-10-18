@@ -46,17 +46,11 @@ jobs:
         working-directory: mobile
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print build/app/outputs/flutter-apk/app-direct-debug.apk > /tmp/vayora-manifest.xml
-          python3 - <<'PY'
-          import xml.etree.ElementTree as ET
-          root=ET.parse('/tmp/vayora-manifest.xml').getroot()
-          name='{http://schemas.android.com/apk/res/android}name'
-          packages={node.get(name) for node in root.findall('./queries/package')}
-          assert {'com.google.android.apps.nbu.paisa.user','com.phonepe.app','net.one97.paytm','in.org.npci.upiapp'} <= packages
-          print('PASS: all supported UPI packages visible in final Android manifest')
-          PY
+          python3 tool/verify_upi_manifest.py /tmp/vayora-manifest.xml
+
   release:
     needs: verify
-    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-app-discovery' || github.head_ref == 'fix/upi-order-window' || github.head_ref == 'ui/profile-plans-first'))
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-app-discovery' || github.head_ref == 'fix/upi-order-window' || github.head_ref == 'ui/profile-plans-first' || github.head_ref == 'fix/cloud-upi-options'))
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -112,6 +106,21 @@ jobs:
           cp build/app/outputs/flutter-apk/app-direct-release.apk artifacts/Vayora-ads.apk
           flutter build appbundle --release --flavor play --dart-define-from-file=/tmp/vayora-defines.json --dart-define=PLAY_STORE=true
           cp build/app/outputs/bundle/playRelease/app-play-release.aab artifacts/Vayora-play.aab
+      - name: Verify UPI visibility in every release flavor
+        working-directory: mobile
+        run: |
+          for apk in artifacts/Vayora.apk artifacts/Vayora-ads.apk; do
+            "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "$apk" > /tmp/vayora-release-manifest.xml
+            python3 tool/verify_upi_manifest.py /tmp/vayora-release-manifest.xml
+          done
+          python3 - <<'PY'
+          import glob, subprocess
+          for flavor in ['directRelease', 'playRelease']:
+              paths=glob.glob(f'build/app/intermediates/merged_manifests/{flavor}/**/AndroidManifest.xml',recursive=True)
+              paths+=glob.glob(f'build/app/intermediates/merged_manifest/{flavor}/**/AndroidManifest.xml',recursive=True)
+              assert paths, f'No merged release manifest found for {flavor}'
+              subprocess.run(['python3','tool/verify_upi_manifest.py',*paths],check=True)
+          PY
       - name: Verify all release signatures and checksums
         working-directory: mobile
         run: |

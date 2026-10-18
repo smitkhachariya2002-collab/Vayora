@@ -4,22 +4,27 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import java.util.Locale
 
-/** Discover every exported UPI handler; package hints are only a fallback. */
+/** Discover installed UPI handlers at runtime, without a package catalogue. */
 object UpiApps {
-    fun discover(pm: PackageManager, uri: Uri): List<ApplicationInfo> {
-        val discovered = listOf(uri, Uri.parse("upi://pay"), Uri.parse("upi://pay/"))
-            .flatMap { pm.queryIntentActivities(Intent(Intent.ACTION_VIEW, it), PackageManager.MATCH_ALL) }
+    fun discover(pm: PackageManager, uri: Uri, ownPackage: String): List<ApplicationInfo> =
+        listOf(uri, Uri.parse("upi://pay"))
+            .flatMap { link ->
+                val intent = Intent(Intent.ACTION_VIEW, link)
+                if (Build.VERSION.SDK_INT >= 33) {
+                    pm.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()))
+                } else {
+                    @Suppress("DEPRECATION")
+                    pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+                }
+            }
             .filter { it.activityInfo.exported && it.activityInfo.enabled && it.activityInfo.applicationInfo.enabled }
             .map { it.activityInfo.applicationInfo }
-        val hints = listOf("com.google.android.apps.nbu.paisa.user", "com.phonepe.app",
-            "net.one97.paytm", "in.org.npci.upiapp").mapNotNull { name ->
-                try { pm.getApplicationInfo(name, 0).takeIf { it.enabled } }
-                catch (_: PackageManager.NameNotFoundException) { null }
-            }
-        return (discovered + hints).distinctBy { it.packageName }
-            .sortedBy { it.loadLabel(pm).toString().lowercase() }
-    }
+            .filter { it.packageName != ownPackage }
+            .distinctBy { it.packageName }
+            .sortedBy { it.loadLabel(pm).toString().lowercase(Locale.ROOT) }
 
     /** Keep an app's raw response intact; support wallets returning separate extras too. */
     fun rawResult(data: Intent?, resultCode: Int): String {

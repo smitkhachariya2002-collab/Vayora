@@ -14,7 +14,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], manifest = Config.NONE)
+@Config(sdk = [32, 34], manifest = Config.NONE)
 class UpiAppsTest {
     private val uri = Uri.parse("upi://pay?pa=test@upi&pn=Merchant&tr=VY123&am=1.00&cu=INR")
     private val pm get() = RuntimeEnvironment.getApplication().packageManager
@@ -29,25 +29,40 @@ class UpiAppsTest {
         }
     }
 
-    @Test fun discoversAllHandlersIncludingPackagesOutsideTheHints() {
+    @Test fun discoversArbitraryInstalledHandlersWithoutACatalogue() {
         val packages = (1..8).map { "bank.example.wallet$it" }
         packages.forEach { pkg ->
             shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, uri), handler(pkg))
         }
-        assertEquals(packages.toSet(), UpiApps.discover(pm, uri).map { it.packageName }.toSet())
+        assertEquals(packages.toSet(), UpiApps.discover(pm, uri, "com.vayora.app").map { it.packageName }.toSet())
     }
 
     @Test fun mergesGenericAndFullUriHandlersAndDeduplicates() {
         shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, uri), handler("bank.example.one"))
         shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay")), handler("bank.example.one"))
-        shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay/")), handler("bank.example.two"))
-        assertEquals(setOf("bank.example.one", "bank.example.two"), UpiApps.discover(pm, uri).map { it.packageName }.toSet())
+        shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay")), handler("bank.example.two"))
+        assertEquals(setOf("bank.example.one", "bank.example.two"), UpiApps.discover(pm, uri, "com.vayora.app").map { it.packageName }.toSet())
     }
 
     @Test fun excludesDisabledAndUnexportedHandlers() {
         shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, uri), handler("bank.disabled", enabled=false))
         shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, uri), handler("bank.private", exported=false))
-        assertTrue(UpiApps.discover(pm, uri).isEmpty())
+        assertTrue(UpiApps.discover(pm, uri, "com.vayora.app").isEmpty())
+    }
+
+    @Test fun excludesOwnAppAndQueriesFreshEachTime() {
+        shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, uri), handler("com.vayora.app"))
+        assertTrue(UpiApps.discover(pm, uri, "com.vayora.app").isEmpty())
+        shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, uri), handler("wallet.newly.installed"))
+        assertEquals(listOf("wallet.newly.installed"), UpiApps.discover(pm, uri, "com.vayora.app").map { it.packageName })
+    }
+
+    @Test fun sortsByDisplayName() {
+        val z = handler("bank.z").apply { activityInfo.applicationInfo.nonLocalizedLabel = "Zebra Pay" }
+        val a = handler("bank.a").apply { activityInfo.applicationInfo.nonLocalizedLabel = "Alpha Pay" }
+        shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, uri), z)
+        shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, uri), a)
+        assertEquals(listOf("bank.a", "bank.z"), UpiApps.discover(pm, uri, "com.vayora.app").map { it.packageName })
     }
 
     @Test fun rawResponseIsReturnedUnchanged() {
