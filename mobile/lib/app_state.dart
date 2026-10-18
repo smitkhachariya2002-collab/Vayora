@@ -401,7 +401,9 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> retryPayments() async {
-    if (_reporting || _disposed || db.auth.currentSession == null || guest) return;
+    if (_reporting || _disposed || db.auth.currentSession == null || guest) {
+      return;
+    }
     _paymentRetry?.cancel();
     var retryNeeded = false;
     _reporting = true;
@@ -410,7 +412,8 @@ class AppState extends ChangeNotifier {
       final queue = readPendingPayments(prefs.getString('pending_payments'));
       try {
         final recovered = await native.invokeMapMethod<String, String>(
-          'pending', {'user_id': userId},
+          'pending',
+          {'user_id': userId},
         );
         if (recovered != null) queue.addAll(recovered);
       } on MissingPluginException {
@@ -418,7 +421,9 @@ class AppState extends ChangeNotifier {
       }
       await prefs.setString('pending_payments', jsonEncode(queue));
       retryNeeded = queue.isNotEmpty;
-      if (queue.isNotEmpty && remoteChangesEnabled) await db.auth.refreshSession();
+      if (queue.isNotEmpty && remoteChangesEnabled) {
+        await db.auth.refreshSession();
+      }
       for (final entry in Map<String, String>.from(queue).entries) {
         final owner = prefs.getString('payment_owner:${entry.key}');
         if (owner != null && owner != userId) continue;

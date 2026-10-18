@@ -245,7 +245,12 @@ void main() {
       for (var i = 0; i < 5; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
-      expect(find.text("Payment verification is pending. We're checking your payment."), findsOneWidget);
+      expect(
+        find.text(
+          "Payment verification is pending. We're checking your payment.",
+        ),
+        findsOneWidget,
+      );
       success = true;
       f.currentStatus = {'is_premium': true, 'plan_name': 'Gold'};
       await tester.pump(const Duration(seconds: 5));

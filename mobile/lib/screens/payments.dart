@@ -31,7 +31,8 @@ NoticeTone paymentTone(String status) => switch (status) {
 String paymentMessage(String status) => switch (status) {
   'paid' || 'success' => 'Payment successful! Your plan is now active.',
   'failed' => 'Payment failed. Please try again.',
-  'rejected' => 'Payment rejected after bank review. Contact support if you need help.',
+  'rejected' =>
+    'Payment rejected after bank review. Contact support if you need help.',
   'cancelled' => 'Payment cancelled. You can try again.',
   'revoked' =>
     'This payment was reversed after review. Contact support if you think this is wrong.',
@@ -39,7 +40,8 @@ String paymentMessage(String status) => switch (status) {
   'expired' => 'This payment has expired. You can try again.',
   _ => "Payment verification is pending. We're checking your payment.",
 };
-bool paymentPending(String status) => ['pending','submitted','review'].contains(status);
+bool paymentPending(String status) =>
+    ['pending', 'submitted', 'review'].contains(status);
 String orderAmount(Map<String, dynamic> order) {
   final value = (order['amount_paise'] as num? ?? 0) / 100;
   return '₹ ${value.toStringAsFixed(value == value.roundToDouble() ? 0 : 2)}';
@@ -76,7 +78,13 @@ class _PaymentsState extends State<Payments> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    selected = widget.orderId ?? (widget.showLatest ? widget.state.prefs.getString('open_payment_order:${widget.state.userId}') : null);
+    selected =
+        widget.orderId ??
+        (widget.showLatest
+            ? widget.state.prefs.getString(
+                'open_payment_order:${widget.state.userId}',
+              )
+            : null);
     details = widget.showLatest || selected != null;
     WidgetsBinding.instance.addObserver(this);
     reload();
@@ -121,7 +129,9 @@ class _PaymentsState extends State<Payments> with WidgetsBindingObserver {
       final next = await fetch();
       if (!mounted || widget.state.userId != user) return;
       // The server is the only authority for payment success and entitlements.
-      if (next.any((o) => (o['status'] == 'paid' || o['status'] == 'success'))) {
+      if (next.any(
+        (o) => (o['status'] == 'paid' || o['status'] == 'success'),
+      )) {
         await widget.state.refreshStatus();
       }
       if (mounted && widget.state.userId == user) {
@@ -152,9 +162,15 @@ class _PaymentsState extends State<Payments> with WidgetsBindingObserver {
       builder: (_) => const _PaymentUtrDialog(),
     );
     if (utr == null || !mounted) return;
-    if (!RegExp(r'^[0-9]{12}$').hasMatch(utr)) { showFeedback(context,'Enter the 12-digit bank UTR.'); return; }
+    if (!RegExp(r'^[0-9]{12}$').hasMatch(utr)) {
+      showFeedback(context, 'Enter the 12-digit bank UTR.');
+      return;
+    }
     await runAction(context, () async {
-      await widget.state.db.rpc('submit_payment_utr',params:{'order_id':order['id'],'utr':utr});
+      await widget.state.db.rpc(
+        'submit_payment_utr',
+        params: {'order_id': order['id'], 'utr': utr},
+      );
       await refresh();
     });
   }
@@ -359,7 +375,8 @@ class _PaymentsState extends State<Payments> with WidgetsBindingObserver {
                                       context,
                                     ).textTheme.bodySmall,
                                   ),
-                                  if (row['utr'] != null) Text('UTR ${row['utr']}'),
+                                  if (row['utr'] != null)
+                                    Text('UTR ${row['utr']}'),
                                   Text(
                                     paymentDate(row['created_at'] as String?),
                                     style: Theme.of(
@@ -422,7 +439,8 @@ class PaymentStatusView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = order['status'] as String? ?? 'pending';
-    final pending = paymentPending(status), success = (status == 'paid' || status == 'success');
+    final pending = paymentPending(status),
+        success = (status == 'paid' || status == 'success');
     final noAnswer =
         (order['raw_response'] as String? ?? '').isEmpty ||
         (order['raw_response'] as String? ?? '').toUpperCase().contains(
@@ -473,7 +491,8 @@ class PaymentStatusView extends StatelessWidget {
                         'Premium plan',
                   ),
                   DetailRow('Amount', orderAmount(order)),
-                  if (order['utr'] != null) DetailRow('UTR', order['utr'] as String, selectable: true),
+                  if (order['utr'] != null)
+                    DetailRow('UTR', order['utr'] as String, selectable: true),
                   const SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerLeft,
@@ -494,8 +513,18 @@ class PaymentStatusView extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 24),
-          if (['pending','failed','cancelled','submitted','review'].contains(status) && onSubmitUtr != null)
-            TextButton(onPressed: busy ? null : onSubmitUtr, child: const Text('Paid but not active? Enter UTR')),
+          if ([
+                'pending',
+                'failed',
+                'cancelled',
+                'submitted',
+                'review',
+              ].contains(status) &&
+              onSubmitUtr != null)
+            TextButton(
+              onPressed: busy ? null : onSubmitUtr,
+              child: const Text('Paid but not active? Enter UTR'),
+            ),
           if (!success) ...[
             OutlinedButton.icon(
               onPressed: busy ? null : onCheck,
@@ -578,6 +607,7 @@ class _PaymentUtrDialog extends StatefulWidget {
   @override
   State<_PaymentUtrDialog> createState() => _PaymentUtrDialogState();
 }
+
 class _PaymentUtrDialogState extends State<_PaymentUtrDialog> {
   final input = TextEditingController();
   final form = GlobalKey<FormState>();
@@ -586,21 +616,38 @@ class _PaymentUtrDialogState extends State<_PaymentUtrDialog> {
     input.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: const Text('Paid but not active? Enter UTR'),
-    content: Form(key: form, child: TextFormField(
-      controller: input,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
-      decoration: const InputDecoration(labelText: '12-digit bank UTR'),
-      validator: (value) => RegExp(r'^[0-9]{12}$').hasMatch(value ?? '') ? null : 'Enter the 12-digit bank UTR.',
-    )),
+    content: Form(
+      key: form,
+      child: TextFormField(
+        controller: input,
+        keyboardType: TextInputType.number,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(12),
+        ],
+        decoration: const InputDecoration(labelText: '12-digit bank UTR'),
+        validator: (value) => RegExp(r'^[0-9]{12}$').hasMatch(value ?? '')
+            ? null
+            : 'Enter the 12-digit bank UTR.',
+      ),
+    ),
     actions: [
-      TextButton(onPressed: () => Navigator.pop(context),child: const Text('Cancel')),
-      FilledButton(onPressed: () {
-        if (form.currentState!.validate()) Navigator.pop(context,input.text.trim());
-      },child: const Text('Submit')),
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () {
+          if (form.currentState!.validate()) {
+            Navigator.pop(context, input.text.trim());
+          }
+        },
+        child: const Text('Submit'),
+      ),
     ],
   );
 }
