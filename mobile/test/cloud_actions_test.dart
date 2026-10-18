@@ -45,6 +45,8 @@ void main(){
     expect(find.text('Files'),findsOneWidget);
     await tester.tap(find.text('Photos & Videos'));
     await tester.pumpAndSettle();
+    await tester.runAsync(()=>Future<void>.delayed(const Duration(milliseconds:100)));
+    await tester.pumpAndSettle();
     expect(kinds,['media']);
     await tester.runAsync(()async{
       await tester.tap(find.text('Upload'));
@@ -52,6 +54,8 @@ void main(){
     });
     await tester.pumpAndSettle();
     await tester.tap(find.text('Files'));
+    await tester.pumpAndSettle();
+    await tester.runAsync(()=>Future<void>.delayed(const Duration(milliseconds:100)));
     await tester.pumpAndSettle();
     expect(kinds,['media','any']);
     expect(find.byTooltip('New folder'),findsOneWidget);
