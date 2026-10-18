@@ -27,13 +27,18 @@ class _ProfileState extends State<Profile> {
   void checkoutChanged(bool value) {
     if (mounted && checkoutOpen != value) setState(() => checkoutOpen = value);
   }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.state,
-    builder: (context, _) => widget.state.paidEnabled &&
-        (!widget.state.premium || checkoutOpen)
-      ? Plans(state: widget.state, catalog: widget.catalog, onCheckoutChanged: checkoutChanged)
-      : AccountProfile(state: widget.state),
+    builder: (context, _) =>
+        widget.state.paidEnabled && (!widget.state.premium || checkoutOpen)
+        ? Plans(
+            state: widget.state,
+            catalog: widget.catalog,
+            onCheckoutChanged: checkoutChanged,
+          )
+        : AccountProfile(state: widget.state),
   );
 }
 

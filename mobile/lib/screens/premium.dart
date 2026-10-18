@@ -12,7 +12,12 @@ import 'payments.dart';
 import 'profile.dart';
 
 class Plans extends StatefulWidget {
-  const Plans({super.key, required this.state, this.catalog, this.onCheckoutChanged});
+  const Plans({
+    super.key,
+    required this.state,
+    this.catalog,
+    this.onCheckoutChanged,
+  });
   final AppState state;
   final PlanCatalog? catalog;
   final ValueChanged<bool>? onCheckoutChanged;

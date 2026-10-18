@@ -46,7 +46,7 @@ void main() {
           return reply(r, order);
         }
         if (r.url.path.endsWith('/report_result')) {
-          f.currentStatus = {'is_premium':true,'plan_name':'Trial'};
+          f.currentStatus = {'is_premium': true, 'plan_name': 'Trial'};
           return reply(r, 'paid');
         }
         if (r.url.path.endsWith('/payment_orders')) {
@@ -79,7 +79,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: buildTheme(),
-          home: Scaffold(body: Profile(state: f.state, catalog: catalog)),
+          home: Scaffold(
+            body: Profile(state: f.state, catalog: catalog),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -103,9 +105,15 @@ void main() {
         find.text('Payment successful! Your plan is now active.'),
         findsOneWidget,
       );
-      await tester.scrollUntilVisible(find.text('Done'),200,scrollable:find.byType(Scrollable).first);
+      await tester.scrollUntilVisible(
+        find.text('Done'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.text('Done'));
-      await tester.runAsync(()=>Future<void>.delayed(const Duration(milliseconds:100)));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(AccountProfile), findsOneWidget);
       expect(find.byType(PlanCard), findsNothing);
