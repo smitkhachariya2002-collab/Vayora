@@ -147,15 +147,10 @@ class _PaymentsState extends State<Payments> with WidgetsBindingObserver {
   }
 
   Future<void> submitUtr(Map<String, dynamic> order) async {
-    final input = TextEditingController();
-    final utr = await showDialog<String>(context: context, builder: (dialog) => AlertDialog(
-      title: const Text('Paid but not active? Enter UTR'),
-      content: TextField(controller: input, keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
-        decoration: const InputDecoration(labelText: '12-digit bank UTR')),
-      actions: [TextButton(onPressed: () => Navigator.pop(dialog), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(dialog,input.text.trim()),child: const Text('Submit'))]));
-    input.dispose();
+    final utr = await showDialog<String>(
+      context: context,
+      builder: (_) => const _PaymentUtrDialog(),
+    );
     if (utr == null || !mounted) return;
     if (!RegExp(r'^[0-9]{12}$').hasMatch(utr)) { showFeedback(context,'Enter the 12-digit bank UTR.'); return; }
     await runAction(context, () async {
@@ -576,4 +571,36 @@ class PaymentStatusIcon extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PaymentUtrDialog extends StatefulWidget {
+  const _PaymentUtrDialog();
+  @override
+  State<_PaymentUtrDialog> createState() => _PaymentUtrDialogState();
+}
+class _PaymentUtrDialogState extends State<_PaymentUtrDialog> {
+  final input = TextEditingController();
+  final form = GlobalKey<FormState>();
+  @override
+  void dispose() {
+    input.dispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Paid but not active? Enter UTR'),
+    content: Form(key: form, child: TextFormField(
+      controller: input,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
+      decoration: const InputDecoration(labelText: '12-digit bank UTR'),
+      validator: (value) => RegExp(r'^[0-9]{12}$').hasMatch(value ?? '') ? null : 'Enter the 12-digit bank UTR.',
+    )),
+    actions: [
+      TextButton(onPressed: () => Navigator.pop(context),child: const Text('Cancel')),
+      FilledButton(onPressed: () {
+        if (form.currentState!.validate()) Navigator.pop(context,input.text.trim());
+      },child: const Text('Submit')),
+    ],
+  );
 }
