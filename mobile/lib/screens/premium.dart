@@ -22,7 +22,7 @@ class Plans extends StatefulWidget {
 class _PlansState extends State<Plans> with WidgetsBindingObserver {
   late Future<List<Map<String, dynamic>>> openOrders;
   late final PlanCatalog catalog;
-  bool busy = false;
+  bool busy = false, checkoutRequested = false;
   @override
   void initState() {
     super.initState();
@@ -82,8 +82,8 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
   }
 
   Future<void> pay(Map<String, dynamic> plan) async {
-    if (busy) return;
-    setState(() => busy = true);
+    if (checkoutRequested) return;
+    checkoutRequested = true;
     try {
     if (!await accountLoginDialog(
           context,
@@ -96,6 +96,7 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
     if (!await loginGate(context, widget.state) || !mounted) return;
     await widget.state.refreshStatus();
     if (!mounted || !widget.state.paidEnabled) return;
+      setState(() => busy = true);
       final order = await launchPlanPayment(
         context,
         widget.state,
@@ -113,6 +114,7 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
       }
       if (mounted) await refresh();
     } finally {
+      checkoutRequested = false;
       if (mounted) setState(() => busy = false);
     }
   }
@@ -559,7 +561,7 @@ class ProfilePlanPicker extends StatefulWidget {
 
 class _ProfilePlanPickerState extends State<ProfilePlanPicker> {
   late final PlanCatalog catalog;
-  bool busy = false;
+  bool busy = false, checkoutRequested = false;
   @override
   void initState() {
     super.initState();
@@ -574,13 +576,14 @@ class _ProfilePlanPickerState extends State<ProfilePlanPicker> {
     super.dispose();
   }
   Future<void> pay(Map<String,dynamic> plan) async {
-    if (busy) return;
-    setState(() => busy = true);
+    if (checkoutRequested) return;
+    checkoutRequested = true;
     try {
       if (!await accountLoginDialog(context,widget.state,plan:plan['name'] as String) || !mounted) return;
       if (!await loginGate(context,widget.state) || !mounted) return;
       await widget.state.refreshStatus();
       if (!mounted || !widget.state.paidEnabled) return;
+      setState(() => busy = true);
       final order = await launchPlanPayment(context,widget.state,plan['id'] as String,
         displayedPrice:plan['price_inr'] as num);
       if (order != null && mounted) {
@@ -589,6 +592,7 @@ class _ProfilePlanPickerState extends State<ProfilePlanPicker> {
       }
       await widget.state.refreshStatus();
     } finally {
+      checkoutRequested = false;
       if (mounted) setState(() => busy = false);
     }
   }
