@@ -440,6 +440,9 @@ void main() {
     await open(tester, ChannelEditor(state: f.state));
     await tester.tap(find.byKey(const ValueKey('channel-photo')));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Choose a picture smaller than 5 MB.'), 150,
+      scrollable: find.descendant(of: find.byType(ListView).last, matching: find.byType(Scrollable)).first);
+    await tester.pumpAndSettle();
     expect(find.text('Choose a picture smaller than 5 MB.'), findsOneWidget);
     expect(channels, isEmpty);
   });

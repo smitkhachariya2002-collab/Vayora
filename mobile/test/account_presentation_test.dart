@@ -409,6 +409,27 @@ void main() {
       await tester.runAsync(() => temp.delete(recursive: true));
     },
   );
+  testWidgets('Pending and rejected My Channels have review chips and no upload action', (tester) async {
+    final f=Fixture();
+    f.intercept=(r)=>r.url.path.endsWith('/channels') ? response(r,[
+      {'id':'pending-channel','name':'Waiting channel','created_by':existingId,'review_status':'pending','status':'draft'},
+      {'id':'rejected-channel','name':'Rejected channel','created_by':existingId,'review_status':'rejected','status':'draft'},
+    ]) : r.url.path.endsWith('/channel_members') ? response(r,[]) : null;
+    await tester.runAsync(f.start);
+    await tester.runAsync(()=>f.state.login('test@example.test','password123'));
+    await tester.pumpWidget(MaterialApp(theme:buildTheme(),home:Scaffold(body:AccountProfile(state:f.state))));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Not approved'),150,
+      scrollable:find.descendant(of:find.byType(CustomScrollView),matching:find.byType(Scrollable)).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Waiting for approval'),findsOneWidget);
+    expect(find.text('Not approved'),findsOneWidget);
+    expect(find.text('Upload'),findsNothing);
+    expect(find.text('Upload content'),findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.runAsync(f.close);
+  });
+
 }
 
 http.Response response(http.Request r, Object? value) => http.Response(

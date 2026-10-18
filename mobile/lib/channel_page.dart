@@ -696,6 +696,7 @@ class _ChannelEditorState extends State<ChannelEditor> {
         }
       }
       if (mounted && widget.channel == null) {
+        setState(() => busy = false);
         await showDialog<void>(
           context: context,
           barrierDismissible: false,

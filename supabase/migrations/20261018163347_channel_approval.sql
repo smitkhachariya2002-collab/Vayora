@@ -32,6 +32,7 @@ begin
  if TG_OP='INSERT' then
    if not private.is_member() then raise insufficient_privilege using message='Log in to create a channel'; end if;
    new.created_by=auth.uid();
+   new.created_at=now();
    new.members_count=0;
    if privileged then
      new.review_status='approved'; new.status='published';
@@ -79,6 +80,13 @@ language sql stable security definer set search_path='' as $$
  and c.status in ('published','active') and
  (c.created_by=auth.uid() or (private.is_admin() and private.manage_channel(c.id))))
 $$;
+
+-- Direct row predicates also authorize INSERT ... RETURNING before a row lookup
+-- can see that new row; the same policy remains creator/admin-only for drafts.
+drop policy channels_read on public.channels;
+create policy channels_read on public.channels for select to authenticated
+ using(created_by=(select auth.uid()) or (select private.is_admin()) or
+ (review_status='approved' and status in ('published','active') and public.can_see(audience)));
 
 drop policy channels_edit on public.channels;
 create policy channels_edit on public.channels for update to authenticated

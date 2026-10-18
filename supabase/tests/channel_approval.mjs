@@ -17,7 +17,7 @@ const token=login.data.access_token,uid=login.data.user.id;
 const responses=await Promise.all(Array.from({length:6},(_,i)=>request('/rest/v1/channels',token,'POST',{
  id:randomUUID(),name:'Concurrent request '+i,created_by:uid,review_status:'approved',status:'published',audience:'ads',members_count:100,
 })));
-assert.equal(responses.filter(r=>r.status===201).length,3,'Exactly three simultaneous requests allowed');
+assert.equal(responses.filter(r=>r.status===201).length,3,'Exactly three simultaneous requests allowed: '+JSON.stringify(responses.map(r=>({status:r.status,code:r.data?.code,message:r.data?.message}))));
 assert.equal(responses.filter(r=>r.data?.message==='you already have 3 channels waiting for approval').length,3);
 const rows=await request('/rest/v1/channels?created_by=eq.'+uid,token);
 assert.equal(rows.data.length,3);

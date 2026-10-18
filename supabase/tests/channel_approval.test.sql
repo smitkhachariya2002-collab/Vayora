@@ -15,7 +15,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','ca000000-0000-4000-8000-000000000002',true);
 select lives_ok($$insert into public.channels(id,name,created_by,review_status,status,audience,members_count,reviewed_by,reviewed_at)
 values('cb000000-0000-4000-8000-000000000001','Creator channel','ca000000-0000-4000-8000-000000000001',
-'approved','published','ads',99,'ca000000-0000-4000-8000-000000000001',now())$$,'App creation normalizes forged fields');
+'approved','published','ads',99,'ca000000-0000-4000-8000-000000000001',now()) returning id$,'App creation with RETURNING normalizes forged fields');
 select is((select review_status from public.channels where id='cb000000-0000-4000-8000-000000000001'),'pending','Always pending');
 select is((select status from public.channels where id='cb000000-0000-4000-8000-000000000001'),'draft','Always draft');
 select is((select audience::text from public.channels where id='cb000000-0000-4000-8000-000000000001'),'all','Always Everyone');
