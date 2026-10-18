@@ -203,7 +203,12 @@ void main() {
       expect(channels.single['created_by'], existingId);
       expect(channels.single['category'], 'Entertainment');
       expect(find.text('Request sent'), findsOneWidget);
-      expect(find.text("Your channel has been sent for approval. You'll find it under Profile → My Channels. Once it's approved, you can start posting."), findsOneWidget);
+      expect(
+        find.text(
+          "Your channel has been sent for approval. You'll find it under Profile → My Channels. Once it's approved, you can start posting.",
+        ),
+        findsOneWidget,
+      );
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
       expect(find.text('Open'), findsOneWidget);
@@ -427,24 +432,39 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 45)),
   );
-  testWidgets('Guest channel creation asks for login instead of showing the form', (tester) async {
-    await open(tester, ChannelEditor(state: f.state));
-    expect(find.text('Please log in'), findsOneWidget);
-    expect(find.text('Log in to create a channel'), findsOneWidget);
-    expect(find.byKey(const ValueKey('channel-submit')), findsNothing);
-  });
+  testWidgets(
+    'Guest channel creation asks for login instead of showing the form',
+    (tester) async {
+      await open(tester, ChannelEditor(state: f.state));
+      expect(find.text('Please log in'), findsOneWidget);
+      expect(find.text('Log in to create a channel'), findsOneWidget);
+      expect(find.byKey(const ValueKey('channel-submit')), findsNothing);
+    },
+  );
   testWidgets('Channel picture must be smaller than 5 MiB', (tester) async {
-    await tester.runAsync(() => f.state.login('existing@example.test', 'password123'));
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-      const MethodChannel('app/photo'), (_) async => Uint8List(5*1024*1024));
+    await tester.runAsync(
+      () => f.state.login('existing@example.test', 'password123'),
+    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('app/photo'),
+          (_) async => Uint8List(5 * 1024 * 1024),
+        );
     await open(tester, ChannelEditor(state: f.state));
     await tester.tap(find.byKey(const ValueKey('channel-photo')));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Choose a picture smaller than 5 MB.'), 150,
-      scrollable: find.descendant(of: find.byType(ListView).last, matching: find.byType(Scrollable)).first);
+    await tester.scrollUntilVisible(
+      find.text('Choose a picture smaller than 5 MB.'),
+      150,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView).last,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.pumpAndSettle();
     expect(find.text('Choose a picture smaller than 5 MB.'), findsOneWidget);
     expect(channels, isEmpty);
   });
-
 }

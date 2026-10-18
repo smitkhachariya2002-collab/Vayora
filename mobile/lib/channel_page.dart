@@ -118,7 +118,10 @@ class _ChannelListState extends State<ChannelList> {
       if (mine) {
         query = query.eq('created_by', widget.state.userId);
       } else {
-        query = query.eq('review_status', 'approved').inFilter('status', ['published', 'active']);
+        query = query.eq('review_status', 'approved').inFilter('status', [
+          'published',
+          'active',
+        ]);
       }
       final List<Map<String, dynamic>> next;
       if (tab == ChannelTab.joined && joined.isEmpty) {
@@ -168,7 +171,10 @@ class _ChannelListState extends State<ChannelList> {
   }
 
   Future<void> edit([Map<String, dynamic>? channel]) async {
-    if (!await accountLoginDialog(context, widget.state, channel: true) || !mounted) return;
+    if (!await accountLoginDialog(context, widget.state, channel: true) ||
+        !mounted) {
+      return;
+    }
     final saved = await Navigator.push<bool>(
       context,
       MaterialPageRoute<bool>(
@@ -585,7 +591,11 @@ class _ChannelEditorState extends State<ChannelEditor> {
     name = TextEditingController(
       text: widget.channel?['name'] as String? ?? '',
     );
-    category = TextEditingController(text: (widget.channel?['category'] as String?)?.isNotEmpty == true ? widget.channel!['category'] as String : 'Entertainment');
+    category = TextEditingController(
+      text: (widget.channel?['category'] as String?)?.isNotEmpty == true
+          ? widget.channel!['category'] as String
+          : 'Entertainment',
+    );
     description = TextEditingController(
       text: widget.channel?['description'] as String? ?? '',
     );
@@ -624,7 +634,9 @@ class _ChannelEditorState extends State<ChannelEditor> {
     } on Object catch (e) {
       if (mounted) {
         setState(
-          () => failure = e is StateError ? e.message.toString() : 'Could not open this photo. Try another image.',
+          () => failure = e is StateError
+              ? e.message.toString()
+              : 'Could not open this photo. Try another image.',
         );
       }
     } finally {
@@ -686,12 +698,19 @@ class _ChannelEditorState extends State<ChannelEditor> {
       committed = true;
       final previous = widget.channel?['icon_url'] as String?;
       if (previous != null && previous != url) {
-        for (final previousBucket in [bucket, widget.state.db.storage.from('public')]) {
+        for (final previousBucket in [
+          bucket,
+          widget.state.db.storage.from('public'),
+        ]) {
           final prefix = previousBucket.getPublicUrl(ownerPrefix);
           if (!previous.startsWith(prefix)) continue;
           try {
-            await previousBucket.remove(['$ownerPrefix${previous.substring(prefix.length)}']);
-          } on Object { /* Saved; old picture cleanup can retry later. */ }
+            await previousBucket.remove([
+              '$ownerPrefix${previous.substring(prefix.length)}',
+            ]);
+          } on Object {
+            /* Saved; old picture cleanup can retry later. */
+          }
           break;
         }
       }
@@ -702,8 +721,15 @@ class _ChannelEditorState extends State<ChannelEditor> {
           barrierDismissible: false,
           builder: (dialog) => AlertDialog(
             title: const Text('Request sent'),
-            content: const Text("Your channel has been sent for approval. You'll find it under Profile → My Channels. Once it's approved, you can start posting."),
-            actions: [TextButton(onPressed: () => Navigator.pop(dialog), child: const Text('OK'))],
+            content: const Text(
+              "Your channel has been sent for approval. You'll find it under Profile → My Channels. Once it's approved, you can start posting.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialog),
+                child: const Text('OK'),
+              ),
+            ],
           ),
         );
       }
@@ -718,8 +744,11 @@ class _ChannelEditorState extends State<ChannelEditor> {
       }
       if (mounted) {
         setState(
-          () => failure = e is PostgrestException && e.message.contains('3 channels waiting') ? e.message :
-              'Could not save your channel. Your details are still here; please try again.',
+          () => failure =
+              e is PostgrestException &&
+                  e.message.contains('3 channels waiting')
+              ? e.message
+              : 'Could not save your channel. Your details are still here; please try again.',
         );
       }
     } finally {
@@ -730,14 +759,19 @@ class _ChannelEditorState extends State<ChannelEditor> {
   @override
   Widget build(BuildContext context) {
     if (widget.state.guest) {
-      return AppPage(title: 'Create channel', body: EmptyState(
-        icon: Icons.lock_outline, title: 'Please log in',
-        message: 'Log in to create a channel', actionLabel: 'Log in',
-        onAction: () async {
-          await accountLoginDialog(context, widget.state, channel: true);
-          if (mounted) setState(() {});
-        },
-      ));
+      return AppPage(
+        title: 'Create channel',
+        body: EmptyState(
+          icon: Icons.lock_outline,
+          title: 'Please log in',
+          message: 'Log in to create a channel',
+          actionLabel: 'Log in',
+          onAction: () async {
+            await accountLoginDialog(context, widget.state, channel: true);
+            if (mounted) setState(() {});
+          },
+        ),
+      );
     }
     final preview = photo;
     final oldUrl = removePhoto ? null : widget.channel?['icon_url'] as String?;
@@ -834,8 +868,13 @@ class _ChannelEditorState extends State<ChannelEditor> {
                 controller: category,
                 enabled: !busy,
                 maxLength: 80,
-                decoration: const InputDecoration(labelText: 'Category', hintText: 'e.g. Entertainment'),
-                validator: (value) => value == null || value.trim().isEmpty ? 'Enter a category' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  hintText: 'e.g. Entertainment',
+                ),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Enter a category'
+                    : null,
               ),
               const SizedBox(height: Gap.l),
               TextFormField(
@@ -882,7 +921,9 @@ class _ChannelEditorState extends State<ChannelEditor> {
               ),
               if (widget.channel == null) ...[
                 const SizedBox(height: Gap.l),
-                const Text('New channels are reviewed before they appear in the app.'),
+                const Text(
+                  'New channels are reviewed before they appear in the app.',
+                ),
               ],
               if (failure != null) ...[
                 const SizedBox(height: Gap.l),
