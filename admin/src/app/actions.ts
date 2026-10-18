@@ -59,14 +59,6 @@ export async function saveUpi(form: FormData) {
   }).eq("id",true)).error);
   revalidatePath("/dashboard/payments");
 }
-export async function savePlan(form: FormData) {
-  const { client } = await requireAdmin(true);
-  const values = {name:text(form,"name"),duration_days:Number(text(form,"duration_days")),
-    price_inr:Number(text(form,"price_inr")),perks:text(form,"perks").split("\n").filter(Boolean),active:form.has("active"),position:Number(text(form,"position"))||0};
-  const id=text(form,"id");
-  checked((id?await client.from("plans").update(values).eq("id",id):await client.from("plans").insert({...values,code:randomUUID()})).error);
-  revalidatePath("/dashboard/plans");
-}
 export async function saveChannel(form: FormData) {
   const { client, user, owner } = await requireAdmin();
   const values: Record<string, unknown> = {name:text(form,"name"),description:text(form,"description"),

@@ -7,15 +7,46 @@ import '../widgets/common.dart';
 Future<Map<String, dynamic>?> launchPlanPayment(
   BuildContext context,
   AppState state,
-  String planId,
-) async {
+  String planId, {
+  num? displayedPrice,
+}) async {
   try {
     final id = playStore
         ? await state.payPlay(
             planId,
             chooseBillingState: () => billingStateDialog(context),
           )
-        : await state.pay(planId);
+        : await state.pay(
+            planId,
+            beforeLaunch: (amountPaise) async {
+              if (displayedPrice != null &&
+                  (displayedPrice * 100).round() != amountPaise &&
+                  context.mounted) {
+                final amount = amountPaise / 100;
+                await showDialog<void>(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (dialog) => PopScope(
+                    canPop: false,
+                    child: AlertDialog(
+                      title: Text(
+                        'Price updated to ₹${amount.toStringAsFixed(amount == amount.roundToDouble() ? 0 : 2)}',
+                      ),
+                      content: const Text(
+                        'The plan price changed. This payment uses the current price.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialog),
+                          child: const Text('Continue'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+            },
+          );
     if (id == null) {
       if (context.mounted && state.premium) {
         showFeedback(context, 'Payment successful! Your plan is now active.');

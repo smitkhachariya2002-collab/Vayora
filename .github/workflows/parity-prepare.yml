@@ -1,4 +1,4 @@
-name: Prepare parity migration
+name: Prepare reviewed migration
 on:
   pull_request:
     paths: ['supabase/changes/*.sql']
@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   prepare:
-    if: github.head_ref == 'build/flixvault-parity' && github.event.pull_request.head.repo.full_name == github.repository
+    if: (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/live-plan-management') && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       contents: write

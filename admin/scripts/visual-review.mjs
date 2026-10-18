@@ -49,6 +49,62 @@ try{
  // Verify create/save/delete feedback through real server actions.
  const ownerContext=await browser.newContext(),ownerPage=await ownerContext.newPage();
  await ownerPage.goto("http://localhost:3000/login");await ownerPage.locator('input[name="email"]').fill(email);await ownerPage.locator('input[name="password"]').fill(password);await ownerPage.getByRole("button",{name:"Sign in",exact:true}).click();await ownerPage.waitForURL("http://localhost:3000/");
+
+ // Real browser plan edits + real Postgres Changes delivery, with no production data.
+ await ownerPage.goto("http://localhost:3000/plans");
+ const trialForm=ownerPage.locator("form").filter({has:ownerPage.getByRole("heading",{name:"Trial",exact:true})});
+ await trialForm.locator('input[name="code"]').evaluate(el=>{if(!el.readOnly)throw new Error("Code must be readonly")});
+ await ownerPage.screenshot({path:"visual-artifacts/plans-edit-desktop.png",fullPage:true});
+ const guest=createClient(api,anon);const {error:guestError}=await guest.auth.signInAnonymously();if(guestError)throw guestError;
+ let revisionEvents=0,planEvents=0;
+ const live=guest.channel("plans-browser-review").on("postgres_changes",{event:"*",schema:"public",table:"plans"},()=>planEvents++)
+ .on("postgres_changes",{event:"*",schema:"public",table:"plan_catalog"},()=>revisionEvents++);
+ await new Promise((resolve,reject)=>{
+  const timeout=setTimeout(()=>reject(new Error("PostgreSQL realtime listener did not become ready")),20000);
+  live.on("system",{},message=>{
+   console.log("Realtime system",JSON.stringify(message));
+   if(message.extension==="postgres_changes"&&message.status==="ok"){clearTimeout(timeout);resolve();}
+   else if(message.status==="error"){clearTimeout(timeout);reject(new Error(message.message));}
+  });
+  live.subscribe((state,error)=>{
+   console.log("Realtime state",state,error?.message??"");
+   if(state==="CHANNEL_ERROR"||state==="TIMED_OUT"){clearTimeout(timeout);reject(new Error("Realtime channel failed"));}
+  });
+ });
+ await trialForm.getByLabel("Price (₹)",{exact:true}).fill("79");
+ await trialForm.getByLabel("Badge (optional)",{exact:true}).fill("Best value");
+ ownerPage.once("dialog",dialog=>dialog.accept());
+ await trialForm.getByRole("button",{name:"Save plan",exact:true}).click();
+ await ownerPage.getByRole("status").filter({hasText:"Plan saved."}).waitFor();
+ for(let i=0;i<100&&(!planEvents||!revisionEvents);i++)await new Promise(r=>setTimeout(r,100));
+ if(!planEvents||!revisionEvents)throw new Error("Real plan/catalog realtime events missing: plans="+planEvents+" revisions="+revisionEvents);
+ const {data:changed}=await guest.from("plans").select("price_inr,badge").eq("code","trial").single();
+ if(changed?.price_inr!==79||changed.badge!=="Best value")throw new Error("Live catalog edit not readable");
+ const revisionBeforeHide=revisionEvents;
+ await trialForm.getByLabel("Show in app",{exact:true}).uncheck();
+ ownerPage.once("dialog",dialog=>dialog.accept());
+ await trialForm.getByRole("button",{name:"Save plan",exact:true}).click();
+ for(let i=0;i<100&&revisionEvents===revisionBeforeHide;i++)await new Promise(r=>setTimeout(r,100));
+ if(revisionEvents===revisionBeforeHide)throw new Error("Hide invalidation missing");
+ const {data:hidden}=await guest.from("plans").select("id").eq("code","trial");
+ if(hidden?.length)throw new Error("Hidden plan leaked through guest RLS");
+ await guest.removeChannel(live);await guest.auth.signOut();
+ await ownerPage.goto("http://localhost:3000/plans?new=1");
+ const addForm=ownerPage.locator("form").filter({has:ownerPage.getByRole("heading",{name:"New plan",exact:true})});
+ await addForm.getByLabel("Name",{exact:true}).fill("Weekend");
+ await addForm.locator('input[name="code"]').fill("weekend");
+ await addForm.getByLabel("Price (₹)",{exact:true}).fill("99");
+ await addForm.locator('input[name="duration_days"]').fill("2");
+ await addForm.locator('textarea[name="perks"]').fill("Full premium videos\n2 TB cloud storage\nDownload to your phone");
+ await addForm.getByLabel("Badge (optional)",{exact:true}).fill("New");
+ await addForm.getByLabel("Order",{exact:true}).fill("5");
+ await ownerPage.evaluate(()=>{document.activeElement?.blur();window.scrollTo(0,0)});
+ await ownerPage.screenshot({path:"visual-artifacts/plans-add-desktop.png",fullPage:true});
+ await addForm.getByRole("button",{name:"Save plan",exact:true}).click();
+ await addForm.getByRole("status").filter({hasText:"Plan saved."}).waitFor();
+ const {data:createdPlan}=await client.from("plans").select("active,code").eq("code","weekend").single();
+ if(createdPlan?.active!==false)throw new Error("Created plan must default inactive");
+ report.push({check:"plan-edit-add-confirmation-and-real-realtime-price-hide",passed:true});
  await ownerPage.goto("http://localhost:3000/channels/new");await ownerPage.getByLabel("Channel name",{exact:true}).fill("Created through the browser");await ownerPage.getByRole("button",{name:"Create channel",exact:true}).click();await ownerPage.waitForURL(url=>url.pathname==="/channels"&&url.searchParams.has("ok"));await ownerPage.getByRole("status").filter({hasText:"Changes saved"}).waitFor();
  await ownerPage.goto("http://localhost:3000/posts/new");await ownerPage.getByLabel("Title",{exact:true}).fill("Browser-created draft");await ownerPage.locator('select[name="channel_id"]').selectOption(channelId);await ownerPage.getByRole("button",{name:"Create post",exact:true}).click();await ownerPage.waitForURL(url=>url.pathname.startsWith("/posts/")&&url.searchParams.has("ok"));await ownerPage.getByText("No media yet. Add a video or image below.",{exact:true}).waitFor();
  await ownerPage.waitForLoadState("networkidle");

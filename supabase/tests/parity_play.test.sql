@@ -23,7 +23,7 @@ set local role authenticated;
 select is(public.quota_bytes(auth.uid()),16106127360::bigint,'Verified Play member gets 15 GB');
 select is(public.my_status()->>'free_mode','true','Play session follows effective free mode');
 select is(public.my_status()->>'play_billing_enabled','false','Billing flag starts off');
-select is((select count(*) from public.plans),0::bigint,'Play free session cannot query prices');
+select ok((select count(*) from public.plans)>0,'Active catalog remains readable; free/Play UI hides purchases');
 select is(public.is_premium_user(),false,'Organic Play user still needs approval');
 select lives_ok($$select public.request_full_access()$$,'Organic Play can request approval');
 select throws_ok($$select public.create_payment_order((select id from public.plans limit 1))$$,'P0001','Use Google Play billing choice','Play cannot bypass Google choice through direct UPI RPC');

@@ -2,14 +2,14 @@
 import {revalidatePath} from "next/cache";
 import {redirect,unstable_rethrow} from "next/navigation";
 import {requireAdmin} from "@/lib/supabase";
-import {changeAccess,grantPlan,markPaid,revokePayment,saveMode,saveUpi,savePlan,saveChannel,savePost} from "./actions";
+import {changeAccess,grantPlan,markPaid,revokePayment,saveMode,saveUpi,saveChannel,savePost} from "./actions";
 const value=(f:FormData,k:string)=>String(f.get(k)??"").trim();
 export async function workspaceAction(f:FormData){
  const op=value(f,"operation"),raw=value(f,"return_to");
  let back=(/^\/(dashboard|channels|posts|approvals|payments|users|requests|plans|admins|meta)(\/|$)/.test(raw)||raw==="/")?raw.split("?")[0]:"/";
  let error="";
  try{
- const existing:Record<string,(f:FormData)=>Promise<unknown>>={changeAccess,grantPlan,markPaid,revokePayment,saveMode,saveUpi,savePlan,saveChannel,savePost};
+ const existing:Record<string,(f:FormData)=>Promise<unknown>>={changeAccess,grantPlan,markPaid,revokePayment,saveMode,saveUpi,saveChannel,savePost};
  if(existing[op]){const result=await existing[op](f);if(op==="savePost"&&!value(f,"id")&&typeof result==="string")back="/posts/"+result;}
  else{
   const {client}=await requireAdmin(!["deletePost","removeItem","saveItem","reorderItems"].includes(op));

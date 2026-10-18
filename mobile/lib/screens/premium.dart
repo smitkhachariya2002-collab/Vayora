@@ -1,3 +1,5 @@
+import 'dart:async';
+import '../plan_catalog.dart';
 import 'package:flutter/material.dart';
 import '../app_state.dart';
 import '../navigation.dart';
@@ -10,20 +12,31 @@ import 'payments.dart';
 import 'profile.dart';
 
 class Plans extends StatefulWidget {
-  const Plans({super.key, required this.state});
+  const Plans({super.key, required this.state, this.catalog});
   final AppState state;
+  final PlanCatalog? catalog;
   @override
   State<Plans> createState() => _PlansState();
 }
 
-class _PlansState extends State<Plans> {
-  late Future<List<Map<String, dynamic>>> plans, openOrders;
-  String? selected;
+class _PlansState extends State<Plans> with WidgetsBindingObserver {
+  late Future<List<Map<String, dynamic>>> openOrders;
+  late final PlanCatalog catalog;
   bool busy = false;
   @override
   void initState() {
     super.initState();
+    catalog =
+        widget.catalog ??
+        PlanCatalog(
+          widget.state.db,
+          changes: widget.state.remoteChangesEnabled
+              ? null
+              : const Stream<void>.empty(),
+        );
+    catalog.start();
     reload();
+    WidgetsBinding.instance.addObserver(this);
     widget.state.addListener(changed);
   }
 
@@ -32,16 +45,13 @@ class _PlansState extends State<Plans> {
   }
 
   void reload() {
+    catalog.enabled = widget.state.paidEnabled;
     if (!widget.state.paidEnabled) {
-      plans = Future.value([]);
+      catalog.clear();
       openOrders = Future.value([]);
       return;
     }
-    plans = widget.state.db
-        .from('plans')
-        .select()
-        .eq('active', true)
-        .order('position');
+    unawaited(catalog.refresh());
     openOrders = widget.state.guest
         ? Future.value([])
         : widget.state.db
@@ -55,11 +65,18 @@ class _PlansState extends State<Plans> {
   Future<void> refresh() async {
     await widget.state.refreshStatus();
     if (mounted) setState(reload);
-    await Future.wait([plans, openOrders]);
+    await Future.wait([catalog.refresh(), openOrders]);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(refresh());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (widget.catalog == null) catalog.dispose();
     widget.state.removeListener(changed);
     super.dispose();
   }
@@ -83,6 +100,7 @@ class _PlansState extends State<Plans> {
         context,
         widget.state,
         plan['id'] as String,
+        displayedPrice: plan['price_inr'] as num,
       );
       if (order != null && mounted) {
         await Navigator.push(
@@ -222,22 +240,20 @@ class _PlansState extends State<Plans> {
           body: freeAccount(freeMode: true),
         );
       }
-      return FutureBuilder<List<Map<String, dynamic>>>(
-        future: plans,
-        builder: (context, snapshot) {
-          if (snapshot.hasData && snapshot.data!.isEmpty) {
+      return ListenableBuilder(
+        listenable: catalog,
+        builder: (context, _) {
+          if (catalog.loaded && catalog.error == null && catalog.rows.isEmpty) {
             return AppPage(
               title: 'Premium',
               actions: actions,
               body: freeAccount(freeMode: false),
             );
           }
-          final rows = snapshot.data ?? <Map<String, dynamic>>[];
-          final matches = rows.where((p) => p['id'] == selected);
+          final rows = catalog.rows;
+          final matches = rows.where((p) => p['id'] == catalog.selected);
           final plan = matches.isEmpty ? null : matches.first;
-          final perks =
-              (plan?['perks'] ?? (rows.isEmpty ? null : rows.first['perks']))
-                  as List?;
+          final perks = planPerks(plan, rows);
           return AppPage(
             title: 'Premium',
             actions: actions,
@@ -311,15 +327,13 @@ class _PlansState extends State<Plans> {
                         );
                       },
                     ),
-                    PremiumHero(
-                      perks: perks?.whereType<String>().toList() ?? [],
-                    ),
+                    PremiumHero(perks: perks),
                     const SizedBox(height: 24),
                     const SectionTitle('Choose your plan'),
                     const SizedBox(height: 16),
-                    if (snapshot.hasError)
+                    if (catalog.error != null)
                       ErrorRetry(onRetry: () => setState(reload))
-                    else if (!snapshot.hasData)
+                    else if (!catalog.loaded)
                       const SkeletonList()
                     else
                       for (final row in rows)
@@ -327,12 +341,10 @@ class _PlansState extends State<Plans> {
                           padding: const EdgeInsets.only(bottom: 12),
                           child: PlanCard(
                             plan: row,
-                            selected: row['id'] == selected,
+                            selected: row['id'] == catalog.selected,
                             onTap: busy
                                 ? null
-                                : () => setState(
-                                    () => selected = row['id'] as String,
-                                  ),
+                                : () => catalog.select(row['id'] as String),
                           ),
                         ),
                     const SizedBox(height: 8),
@@ -372,11 +384,23 @@ String planDuration(num raw) {
   return switch (days) {
     1 => '1 day',
     30 => '1 month',
-    90 => '3 months',
     180 => '6 months',
     365 => '1 year',
     _ => '$days days',
   };
+}
+
+List<String> planPerks(
+  Map<String, dynamic>? selected,
+  List<Map<String, dynamic>> rows,
+) {
+  List<String> read(Map<String, dynamic>? row) => (row?['perks'] as List? ?? [])
+      .whereType<String>()
+      .where((p) => p.trim().isNotEmpty)
+      .toList();
+  final own = read(selected);
+  if (own.isNotEmpty) return own;
+  return read(rows.isEmpty ? null : rows.first);
 }
 
 class PremiumHero extends StatelessWidget {
@@ -485,6 +509,25 @@ class PlanCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
+                  if ((plan['badge'] as String? ?? '').trim().isNotEmpty) ...[
+                    const SizedBox(height: Gap.xs),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        plan['badge'] as String,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: Gap.xs),
                   Text(
                     planDuration(plan['duration_days'] as num),

@@ -131,7 +131,7 @@ select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002'
 select is(public.quota_bytes('10000000-0000-0000-0000-000000000002'),16106127360::bigint,'Free mode uses 15 GiB even with a stored paid subscription');
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000003',true);
-select is((select count(*) from public.plans),0::bigint,'Free mode hides plans');
+select ok((select count(*) from public.plans)>0,'Active catalog remains readable; free/Play UI hides purchases');
 select throws_ok($$select public.create_payment_order('00000000-0000-0000-0000-000000000001')$$,'P0001',null,'Exclusive free mode blocks orders');
 reset role;
 update public.payment_orders set created_at=now()-interval '25 hours' where id=(select id from test_orders where kind='second');

@@ -52,6 +52,7 @@ class AppState extends ChangeNotifier {
   }
 
   Map<String, dynamic> status = {};
+  bool remoteChangesEnabled = true;
   bool busy = false;
   bool _reporting = false;
   Timer? _statusPoll;
@@ -80,6 +81,7 @@ class AppState extends ChangeNotifier {
       (prefs.getStringList('blocked_channels') ?? []).toSet();
 
   Future<void> initialize({bool watchRemoteChanges = true}) async {
+    remoteChangesEnabled = watchRemoteChanges;
     if (!prefs.containsKey('install_id')) {
       await prefs.setString('install_id', const Uuid().v4());
       await prefs.setString(
@@ -351,6 +353,7 @@ class AppState extends ChangeNotifier {
     String planId, {
     String? externalToken,
     String? billingState,
+    Future<void> Function(int amountPaise)? beforeLaunch,
   }) async {
     if (playStore && externalToken == null) {
       throw StateError('Use Google Play billing choice');
@@ -369,6 +372,7 @@ class AppState extends ChangeNotifier {
           )
           as Map,
     );
+    await beforeLaunch?.call((order['amount_paise'] as num).toInt());
     const channel = MethodChannel('app/upi');
     final raw = await channel.invokeMethod<String>('pay', {
       'uri': buildUpiLink(

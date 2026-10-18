@@ -10,6 +10,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   screenshots:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -40,5 +42,26 @@ jobs:
         with:
           name: admin-before-after
           path: admin/visual-artifacts
+      - name: Realtime diagnostics on failure
+        if: failure()
+        run: docker logs supabase_realtime_vayora 2>&1 | grep -Ei 'error|publication|replication|subscription|wal|permission' | tail -80 || true
+      - name: Save Plans review screenshots
+        if: github.head_ref == 'build/live-plan-management'
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BRANCH: ${{ github.head_ref }}
+        run: |
+          mkdir -p docs/plan-management/admin
+          cp admin/visual-artifacts/after-plans-*.png admin/visual-artifacts/plans-*.png docs/plan-management/admin/
+          git fetch origin "$PR_BRANCH"
+          git diff --exit-code "$EXPECTED_SHA" FETCH_HEAD -- admin supabase .github/workflows/admin-visual.yml
+          git checkout -B "$PR_BRANCH" FETCH_HEAD
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/plan-management/admin
+          if ! git diff --cached --quiet; then
+            git commit -m "Capture Plans editor and add-form review"
+            git push origin "HEAD:$PR_BRANCH"
+          fi
       - run: supabase stop --no-backup
         if: always()
