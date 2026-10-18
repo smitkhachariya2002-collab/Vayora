@@ -59,7 +59,10 @@ void main() {
     expect(find.text('Copy UPI ID'),findsOneWidget);
     expect(f.calls.where((r)=>r.url.path.endsWith('/payment_settings')),isEmpty);
     expect(f.state.paymentUpiId('checkout-order'),'merchant@upi');
-    await tester.tap(find.text('Continue'));
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Continue'));
+      await Future<void>.delayed(const Duration(milliseconds:100));
+    });
     await tester.pumpAndSettle();
     expect(result?['id'],'checkout-order');
     expect(find.text('Could not start payment. Check your payment history before trying again.'),findsNothing);
