@@ -60,16 +60,16 @@ export async function saveUpi(form: FormData) {
   revalidatePath("/dashboard/payments");
 }
 export async function saveChannel(form: FormData) {
-  const { client, user, owner } = await requireAdmin();
-  const values: Record<string, unknown> = {name:text(form,"name"),description:text(form,"description"),
+  const { client } = await requireAdmin();
+  const {error} = await client.rpc("admin_save_channel", {
+    channel_id:text(form,"id")||null,
+    channel_name:text(form,"name"),description:text(form,"description"),
     category:text(form,"category"),icon_url:text(form,"icon_url")||null,
-    audience:text(form,"audience") || "all",status:text(form,"status") || "active"};
-  if (owner && text(form,"review_status")) values.review_status = text(form,"review_status");
-  const id = text(form,"id");
-  const result = id ? await client.from("channels").update(values).eq("id",id)
-    : await client.from("channels").insert({...values,created_by:user.id});
-  checked(result.error);
-  revalidatePath("/dashboard/channels");
+    audience:text(form,"audience")||"all",status:text(form,"status")||"published",
+    tags:text(form,"tags").split(",").map(v=>v.trim()).filter(Boolean),
+  });
+  checked(error);
+  revalidatePath("/channels");
 }
 export async function savePost(form: FormData) {
   const { client, user } = await requireAdmin();

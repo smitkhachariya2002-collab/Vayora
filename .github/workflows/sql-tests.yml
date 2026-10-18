@@ -31,5 +31,6 @@ jobs:
           supabase status --help > /dev/null
           supabase status --output json > /tmp/vayora-local-status.json
           node supabase/tests/auth_flow.mjs /tmp/vayora-local-status.json
+          node supabase/tests/channel_approval.mjs /tmp/vayora-local-status.json
       - if: always()
         run: supabase stop --no-backup

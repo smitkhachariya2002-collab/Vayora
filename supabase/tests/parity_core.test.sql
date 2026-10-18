@@ -18,7 +18,8 @@ select throws_ok($$insert into public.posts(channel_id,title,created_by) values(
 reset role;
 select set_config('request.jwt.claims','{"sub":"a1000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000001',true);
-update public.channels set review_status='approved' where id in('a2000000-0000-4000-8000-000000000001','a2000000-0000-4000-8000-000000000002');
+select public.review_channel('a2000000-0000-4000-8000-000000000001',true,'all');
+select public.review_channel('a2000000-0000-4000-8000-000000000002',true,'all');
 select set_config('request.jwt.claims','{"sub":"a1000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000002',true);
 set local role authenticated;
@@ -39,7 +40,7 @@ select is(public.increment_view('a3000000-0000-4000-8000-000000000001'),2::bigin
 reset role;
 select set_config('request.jwt.claims','{"sub":"a1000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000001',true);
-update public.channels set status='hidden' where id='a2000000-0000-4000-8000-000000000001';
+select public.admin_save_channel('a2000000-0000-4000-8000-000000000001','Travel India','','Travel',null,'all','hidden');
 set local role authenticated;
 select throws_ok($$select public.prepare_account_deletion()$$,'P0001','Transfer ownership before deleting this account','Last owner cannot prepare deletion');
 reset role;

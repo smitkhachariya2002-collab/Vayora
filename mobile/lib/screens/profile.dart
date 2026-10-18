@@ -156,7 +156,7 @@ class _AccountProfileState extends State<AccountProfile> {
   Future<void> upload([Map<String, dynamic>? channel]) async {
     final eligible = owned
         .where(
-          (c) => c['review_status'] == 'approved' && c['status'] == 'active',
+          (c) => c['review_status'] == 'approved' && ['published', 'active'].contains(c['status']),
         )
         .toList();
     if (eligible.isEmpty) return;
@@ -258,7 +258,7 @@ class _AccountProfileState extends State<AccountProfile> {
           state.status['plan_name'] != null;
       final eligible = owned
           .where(
-            (c) => c['review_status'] == 'approved' && c['status'] == 'active',
+            (c) => c['review_status'] == 'approved' && ['published', 'active'].contains(c['status']),
           )
           .toList();
       return RefreshIndicator(
@@ -551,7 +551,7 @@ class _AccountProfileState extends State<AccountProfile> {
   );
   Widget profileChannel(Map<String, dynamic> row, {bool mine = false}) {
     final approved =
-        row['review_status'] == 'approved' && row['status'] == 'active';
+        row['review_status'] == 'approved' && ['published', 'active'].contains(row['status']);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Card(

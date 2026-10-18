@@ -12,6 +12,7 @@ await admin.from("admins").insert({user_id:user.id,role:"owner"});
 const client=createClient(api,anon);await client.auth.signInWithPassword({email,password});
 const channelId=randomUUID(),postId=randomUUID();
 const channel=await client.from("channels").insert({id:channelId,name:"Stories across India",description:"Independent voices and everyday inspiration.",category:"Lifestyle",created_by:user.id,audience:"all",status:"active"});if(channel.error)throw channel.error;
+const reviewed=await client.rpc("review_channel",{channel_id:channelId,approve:true,audience:"all"});if(reviewed.error)throw reviewed.error;
 const post=await client.from("posts").insert({id:postId,channel_id:channelId,title:"A fresh perspective",description:"A new story from our community.",audience:"all",status:"published",created_by:user.id});if(post.error)throw post.error;
 await client.from("post_items").insert({post_id:postId,media_key:user.id+"/"+postId+"/fixture",mime:"video/mp4",is_premium:true,duration_s:120});
 const member=await admin.auth.admin.createUser({email:"creator@example.test",password:randomUUID()+"Bb2!",email_confirm:true});
@@ -50,6 +51,29 @@ try{
  const ownerContext=await browser.newContext(),ownerPage=await ownerContext.newPage();
  await ownerPage.goto("http://localhost:3000/login");await ownerPage.locator('input[name="email"]').fill(email);await ownerPage.locator('input[name="password"]').fill(password);await ownerPage.getByRole("button",{name:"Sign in",exact:true}).click();await ownerPage.waitForURL("http://localhost:3000/");
 
+
+ // Review through the real server action; verify all atomic database effects.
+ await ownerPage.goto("http://localhost:3000/channels");
+ const requestCard=ownerPage.locator('[data-testid^="channel-request-"]').filter({hasText:"Community channel request"});
+ await requestCard.getByText("creator@example.test",{exact:false}).waitFor();
+ await requestCard.locator('select[name="audience"]').selectOption("organic");
+ await ownerPage.screenshot({path:"visual-artifacts/channel-request-before-desktop.png",fullPage:true});
+ await requestCard.getByRole("button",{name:"Approve",exact:true}).click();
+ await ownerPage.waitForURL(url=>url.pathname==="/channels"&&url.searchParams.has("ok"));
+ const {data:approvedChannel,error:reviewError}=await admin.from("channels").select("*").eq("name","Community channel request").single();
+ if(reviewError||approvedChannel.review_status!=="approved"||approvedChannel.status!=="published"||approvedChannel.audience!=="organic"||!approvedChannel.reviewed_at||approvedChannel.reviewed_by!==user.id)throw new Error("Approval did not publish chosen audience and reviewer");
+ const {data:creatorMembership}=await admin.from("channel_members").select("*").eq("channel_id",approvedChannel.id).eq("user_id",member.data.user.id);
+ if(creatorMembership?.length!==1)throw new Error("Approval did not auto-join creator");
+ await ownerPage.screenshot({path:"visual-artifacts/channel-request-approved-desktop.png",fullPage:true});
+ const {error:rejectSeed}=await admin.from("channels").insert({name:"Reject this request",description:"Rejected fixture",created_by:member.data.user.id});if(rejectSeed)throw rejectSeed;
+ await ownerPage.reload();
+ const rejectCard=ownerPage.locator('[data-testid^="channel-request-"]').filter({hasText:"Reject this request"});
+ ownerPage.once("dialog",dialog=>dialog.accept());
+ await rejectCard.getByRole("button",{name:"Reject",exact:true}).click();
+ await ownerPage.waitForURL(url=>url.pathname==="/channels"&&url.searchParams.has("ok"));
+ const {data:rejectedChannel}=await admin.from("channels").select("review_status,status").eq("name","Reject this request").single();
+ if(rejectedChannel?.review_status!=="rejected"||rejectedChannel?.status!=="draft")throw new Error("Reject must keep draft");
+ report.push({check:"channel-review-audience-reviewer-auto-join-reject",passed:true});
  // Real browser plan edits + real Postgres Changes delivery, with no production data.
  await ownerPage.goto("http://localhost:3000/plans");
  const trialForm=ownerPage.locator("form").filter({has:ownerPage.getByRole("heading",{name:"Trial",exact:true})});
@@ -106,6 +130,8 @@ try{
  if(createdPlan?.active!==false)throw new Error("Created plan must default inactive");
  report.push({check:"plan-edit-add-confirmation-and-real-realtime-price-hide",passed:true});
  await ownerPage.goto("http://localhost:3000/channels/new");await ownerPage.getByLabel("Channel name",{exact:true}).fill("Created through the browser");await ownerPage.getByRole("button",{name:"Create channel",exact:true}).click();await ownerPage.waitForURL(url=>url.pathname==="/channels"&&url.searchParams.has("ok"));await ownerPage.getByRole("status").filter({hasText:"Changes saved"}).waitFor();
+ const {data:panelChannel}=await admin.from("channels").select("review_status,status").eq("name","Created through the browser").single();
+ if(panelChannel?.review_status!=="approved"||panelChannel?.status!=="published")throw new Error("Admin panel creation must approve immediately");
  await ownerPage.goto("http://localhost:3000/posts/new");await ownerPage.getByLabel("Title",{exact:true}).fill("Browser-created draft");await ownerPage.locator('select[name="channel_id"]').selectOption(channelId);await ownerPage.getByRole("button",{name:"Create post",exact:true}).click();await ownerPage.waitForURL(url=>url.pathname.startsWith("/posts/")&&url.searchParams.has("ok"));await ownerPage.getByText("No media yet. Add a video or image below.",{exact:true}).waitFor();
  await ownerPage.waitForLoadState("networkidle");
  const image=await ownerPage.evaluate(()=>{const canvas=document.createElement("canvas");canvas.width=32;canvas.height=32;const ctx=canvas.getContext("2d");ctx.fillStyle="#b91c1c";ctx.fillRect(0,0,32,32);return canvas.toDataURL("image/png").split(",")[1]});

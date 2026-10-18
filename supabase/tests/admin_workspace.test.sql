@@ -32,6 +32,7 @@ select lives_ok($$select public.admin_user_plans()$$,'Owner can read active plan
 select ok(not has_function_privilege('anon','public.admin_directory()','execute'),'Anon has no directory execution');
 select ok(not has_function_privilege('anon','public.admin_reorder_post_items(uuid,uuid[])','execute'),'Anon cannot reorder');
 insert into public.channels(id,name,created_by) values('b0000000-0000-0000-0000-000000000001','Reorder test','a0000000-0000-0000-0000-000000000001');
+select public.review_channel('b0000000-0000-0000-0000-000000000001',true,'all');
 insert into public.posts(id,channel_id,title,created_by) values('b0000000-0000-0000-0000-000000000002','b0000000-0000-0000-0000-000000000001','Reorder','a0000000-0000-0000-0000-000000000001');
 insert into public.post_items(id,post_id,media_key) values
 ('b0000000-0000-0000-0000-000000000003','b0000000-0000-0000-0000-000000000002','a0000000-0000-0000-0000-000000000001/b0000000-0000-0000-0000-000000000002/reorder1'),
