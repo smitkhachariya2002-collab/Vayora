@@ -386,6 +386,8 @@ class AppState extends ChangeNotifier {
       'payment_upi_id:${order['id']}',
       order['upi_id'] as String,
     );
+    // A bank-review order must never launch another debit.
+    if (order['checkout_allowed'] == false) return order['id'] as String;
     await beforeLaunch?.call((order['amount_paise'] as num).toInt());
     const channel = MethodChannel('app/upi');
     final raw = await channel.invokeMethod<String>('pay', {

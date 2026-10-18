@@ -68,18 +68,7 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun pickUpi(uri: Uri) {
-        // Generic intent discovery can be filtered on Android 11+. Explicitly visible
-        // known UPI packages supplement it; launch the selected package with the full URI.
-        val discovered = (packageManager.queryIntentActivities(Intent(Intent.ACTION_VIEW, uri), 0)
-            + packageManager.queryIntentActivities(Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay")), 0))
-            .filter { it.activityInfo.exported }.map { it.activityInfo.applicationInfo }
-        val known = listOf("com.google.android.apps.nbu.paisa.user", "com.phonepe.app",
-            "net.one97.paytm", "in.org.npci.upiapp").mapNotNull { name ->
-                try { packageManager.getApplicationInfo(name, 0) }
-                catch (_: android.content.pm.PackageManager.NameNotFoundException) { null }
-            }
-        val apps = (discovered + known).filter { it.enabled }.distinctBy { it.packageName }
-            .sortedBy { it.loadLabel(packageManager).toString().lowercase() }
+        val apps = UpiApps.discover(packageManager, uri)
         if (apps.isEmpty()) {
             val intent = Intent(Intent.ACTION_VIEW, uri)
             if (intent.resolveActivity(packageManager) == null) {
@@ -100,7 +89,9 @@ class MainActivity : FlutterFragmentActivity() {
             }
         }
         AlertDialog.Builder(this).setTitle("Pay with UPI").setAdapter(adapter) { _, index ->
-            openUpi(Intent(Intent.ACTION_VIEW, uri).setPackage(apps[index].packageName))
+            openUpi(UpiApps.paymentIntent(uri, apps[index].packageName))
+        }.setNeutralButton("Other UPI apps") { _, _ ->
+            openUpi(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri), "Pay with UPI"))
         }.setOnCancelListener { finishUpi("Status=NO_RESPONSE&resultCode=picker_cancelled") }.show()
     }
 
