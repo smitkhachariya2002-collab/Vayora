@@ -47,6 +47,16 @@ void main() {
       expect(find.textContaining('₹'), findsNothing);
       expect(find.textContaining('UPI'), findsNothing);
       expect(tester.takeException(), isNull);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildTheme(),
+          home: Scaffold(body: Profile(state: f.state)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(AccountProfile), findsOneWidget);
+      expect(find.byType(PlanCard), findsNothing);
+      expect(find.textContaining('₹'), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.runAsync(f.close);
     },
