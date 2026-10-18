@@ -22,6 +22,7 @@ class Profile extends StatefulWidget {
 class _ProfileState extends State<Profile> {
   List<Map<String, dynamic>> owned = [], joined = [];
   bool loading = true;
+  int membershipVersion = -1;
   String? failure, loadedUser;
   AppState get state => widget.state;
   @override
@@ -32,12 +33,16 @@ class _ProfileState extends State<Profile> {
   }
 
   void changed() {
-    if (loadedUser != state.db.auth.currentUser?.id) load();
+    if (loadedUser != state.db.auth.currentUser?.id ||
+        membershipVersion != state.membershipRevision) {
+      load();
+    }
   }
 
   Future<void> load() async {
     final id = state.db.auth.currentUser?.id;
     loadedUser = id;
+    membershipVersion = state.membershipRevision;
     if (state.guest || id == null) {
       if (mounted) {
         setState(() {
@@ -197,7 +202,9 @@ class _ProfileState extends State<Profile> {
         ],
       ),
     );
-    // The dialog route may still be completing its exit animation.
+    // Wait for the route to finish using its controller before disposal.
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    input.dispose();
     if (value == null || !mounted) return;
     await runAction(context, () async {
       await state.db
@@ -712,7 +719,7 @@ class SettingsPage extends StatelessWidget {
   final AppState? state;
   @override
   Widget build(BuildContext context) => AppPage(
-    title: 'Settings',
+    title: 'App Setting',
     body: PageWidth(
       form: true,
       child: ListView(
@@ -725,7 +732,7 @@ class SettingsPage extends StatelessWidget {
                 ListTile(
                   leading: Icon(Icons.dark_mode_outlined),
                   title: Text('Appearance'),
-                  subtitle: Text('Dark · orange · Poppins'),
+                  subtitle: Text('Dark theme'),
                 ),
                 Divider(),
                 ListTile(

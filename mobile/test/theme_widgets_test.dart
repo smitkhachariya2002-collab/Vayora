@@ -185,8 +185,8 @@ void main() {
             ),
           ),
         );
-        expect(find.text('Access 2 TB Cloud Storage'), findsOneWidget);
-        expect(find.text('Ad-Free Experience'), findsOneWidget);
+        expect(find.text('2 TB cloud storage'), findsOneWidget);
+        expect(find.text('Full premium videos'), findsOneWidget);
         expect(find.text('Do not repeat this'), findsNothing);
         expect(find.text('₹ 999'), findsOneWidget);
         expect(find.text('₹ 999.0'), findsNothing);

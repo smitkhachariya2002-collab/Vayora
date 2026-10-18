@@ -33,4 +33,11 @@ jobs:
       - run: supabase functions deploy delete-account --project-ref "$SUPABASE_PROJECT_REF"
       - run: supabase functions deploy admin-delete-account --project-ref "$SUPABASE_PROJECT_REF"
       - run: supabase functions deploy admin-invite --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Deploy the reviewed payment, cloud and Play functions
+        run: |
+          supabase functions deploy upi-webhook --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy cloud-files --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy post-delete --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy play-verify --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy play-report --project-ref "$SUPABASE_PROJECT_REF"
       - run: supabase migration list

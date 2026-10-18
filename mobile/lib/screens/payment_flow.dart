@@ -10,27 +10,25 @@ Future<Map<String, dynamic>?> launchPlanPayment(
   String planId,
 ) async {
   try {
-    final previous = await state.db
-        .from('payment_orders')
-        .select('id')
-        .eq('user_id', state.userId)
-        .eq('plan_id', planId)
-        .order('created_at', ascending: false)
-        .limit(1);
-    await state.pay(planId);
-    final latest = await state.db
+    final id = playStore
+        ? await state.payPlay(
+            planId,
+            chooseBillingState: () => billingStateDialog(context),
+          )
+        : await state.pay(planId);
+    if (id == null) {
+      if (context.mounted && state.premium) {
+        showFeedback(context, 'Payment successful! Your plan is now active.');
+      }
+      return null;
+    }
+    final order = await state.db
         .from('payment_orders')
         .select('*,plans(name)')
         .eq('user_id', state.userId)
-        .eq('plan_id', planId)
-        .order('created_at', ascending: false)
-        .limit(1);
-    if (latest.isEmpty ||
-        (previous.isNotEmpty && previous.first['id'] == latest.first['id'])) {
-      return null;
-    }
-    if (latest.first['status'] == 'cancelled') return null;
-    return latest.first;
+        .eq('id', id)
+        .single();
+    return order;
   } on PlatformException catch (error) {
     if (!context.mounted) return null;
     if (error.code == 'no_upi') {
@@ -61,4 +59,78 @@ Future<Map<String, dynamic>?> launchPlanPayment(
     }
   }
   return null;
+}
+
+const indianBillingStates = [
+  'ANDAMAN AND NICOBAR ISLANDS',
+  'ANDHRA PRADESH',
+  'ARUNACHAL PRADESH',
+  'ASSAM',
+  'BIHAR',
+  'CHANDIGARH',
+  'CHHATTISGARH',
+  'DADRA AND NAGAR HAVELI AND DAMAN AND DIU',
+  'DELHI',
+  'GOA',
+  'GUJARAT',
+  'HARYANA',
+  'HIMACHAL PRADESH',
+  'JAMMU AND KASHMIR',
+  'JHARKHAND',
+  'KARNATAKA',
+  'KERALA',
+  'LADAKH',
+  'LAKSHADWEEP',
+  'MADHYA PRADESH',
+  'MAHARASHTRA',
+  'MANIPUR',
+  'MEGHALAYA',
+  'MIZORAM',
+  'NAGALAND',
+  'ODISHA',
+  'PUDUCHERRY',
+  'PUNJAB',
+  'RAJASTHAN',
+  'SIKKIM',
+  'TAMIL NADU',
+  'TELANGANA',
+  'TRIPURA',
+  'UTTAR PRADESH',
+  'UTTARAKHAND',
+  'WEST BENGAL',
+];
+Future<String?> billingStateDialog(BuildContext context) async {
+  String? selected;
+  return showDialog<String>(
+    context: context,
+    builder: (dialog) => StatefulBuilder(
+      builder: (dialog, update) => AlertDialog(
+        title: const Text('Your billing state'),
+        content: DropdownButtonFormField<String>(
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'State or union territory',
+          ),
+          items: indianBillingStates
+              .map(
+                (s) => DropdownMenuItem(value: s, child: Text(s, maxLines: 2)),
+              )
+              .toList(),
+          onChanged: (s) => update(() => selected = s),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: selected == null
+                ? null
+                : () => Navigator.pop(dialog, selected),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    ),
+  );
 }

@@ -66,6 +66,7 @@ class _ChannelDetailState extends State<ChannelDetail> {
           'channel_id': channel['id'],
         }, ignoreDuplicates: true);
       }
+      widget.state.membershipChanged();
       if (mounted) {
         setState(() => joined = !joined);
         showFeedback(
@@ -121,10 +122,12 @@ class _ChannelDetailState extends State<ChannelDetail> {
       final blocked = widget.state.blocked.contains(channel['id']);
       if (!await confirmAction(
             context,
-            title: blocked ? 'Unblock this channel?' : 'Block this channel?',
+            title: blocked
+                ? 'Unblock this channel?'
+                : 'Block ${channel['name']}?',
             message: blocked
                 ? 'Its posts can appear again.'
-                : 'You won’t see its posts while browsing.',
+                : "You won't see posts from this channel in Explore, Feed or the channel list. You can unblock it any time from the channel page.",
             action: blocked ? 'Unblock' : 'Block',
             icon: Icons.block,
           ) ||

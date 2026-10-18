@@ -92,3 +92,24 @@ await request('/auth/v1/recover?redirect_to='+encodeURIComponent('com.vayora.app
   {method:'POST',body:{email}});
 await confirmation(email,'recovery');
 console.log('PASS: real recovery email uses Android callback');
+
+// Competing real API requests reserve against the same locked profile counter.
+const service=config.SERVICE_ROLE_KEY;
+assert(service,'Local service role key is present');
+const cloudMember=await request('/auth/v1/token?grant_type=password',{method:'POST',body:{email,password}});
+await request('/rest/v1/app_mode?id=eq.true',{token:service,method:'PATCH',body:{free_mode:true}});
+const folderResponse=await fetch(api+'/rest/v1/rpc/cloud_reserve',{method:'POST',headers:{apikey:key,Authorization:'Bearer '+cloudMember.access_token,'Content-Type':'application/json',Accept:'application/vnd.pgrst.object+json'},
+ body:JSON.stringify({name:'Cloud folder',is_folder:true})});
+assert(folderResponse.ok,'Composite reservation supports a single-row response');
+const folder=await folderResponse.json();assert.equal(typeof folder.id,'string');assert.equal(folder.is_folder,true);
+const quota=16106127360,chunk=1024*1024;
+await request('/rest/v1/profiles?id=eq.'+id,{token:service,method:'PATCH',body:{used_bytes:quota-3*chunk}});
+const reservations=await Promise.all(Array.from({length:8},async(_,i)=>{
+ const result=await fetch(api+'/rest/v1/rpc/cloud_reserve',{method:'POST',headers:{apikey:key,Authorization:'Bearer '+cloudMember.access_token,'Content-Type':'application/json'},
+ body:JSON.stringify({name:'Concurrent-'+i+'.bin',size:chunk,mime:'application/octet-stream'})});
+ return result.status;
+}));
+assert.equal(reservations.filter(s=>s>=200&&s<300).length,3,'Only the remaining quota is reserved under concurrency');
+status=await rpc('my_status',cloudMember.access_token);
+assert.equal(status.used_bytes,quota,'Atomic counter stops exactly at quota');
+console.log('PASS: concurrent cloud reservations cannot oversubscribe quota');

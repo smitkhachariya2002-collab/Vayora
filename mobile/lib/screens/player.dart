@@ -19,9 +19,12 @@ class Watch extends StatefulWidget {
     required this.channelAudience,
     required this.createdBy,
     this.title = 'Now playing',
+    this.refreshUrl,
+    this.personalCloud = false,
   });
+  final Future<String> Function()? refreshUrl;
   final String url, title, audience, channelAudience, createdBy;
-  final bool trailer, isPremium;
+  final bool trailer, isPremium, personalCloud;
   final AppState state;
   @override
   State<Watch> createState() => _WatchState();
@@ -32,6 +35,7 @@ class _WatchState extends State<Watch> {
   bool ended = false, ready = false;
   String? failure;
   int rotation = 0;
+  Duration lastPosition = Duration.zero;
   @override
   void initState() {
     super.initState();
@@ -41,26 +45,29 @@ class _WatchState extends State<Watch> {
   }
 
   void accessChanged() {
-    final allowed =
-        widget.state.status['is_admin'] == true ||
-        widget.state.userId == widget.createdBy ||
-        (widget.state.canSee(widget.audience) &&
-            widget.state.canSee(widget.channelAudience) &&
-            (widget.trailer
-                ? widget.state.adsAccess
-                : !widget.state.guest &&
-                      (!widget.isPremium || widget.state.premium)));
+    final allowed = widget.personalCloud
+        ? !widget.state.guest &&
+              (widget.state.status['quota_bytes'] as num? ?? 0) > 0
+        : widget.state.status['is_admin'] == true ||
+              widget.state.userId == widget.createdBy ||
+              (widget.state.canSee(widget.audience) &&
+                  widget.state.canSee(widget.channelAudience) &&
+                  (widget.trailer
+                      ? widget.state.adsAccess
+                      : !widget.state.guest &&
+                            (!widget.isPremium || widget.state.premium)));
     if (!allowed && mounted) {
       unawaited(video.pause());
       if (ModalRoute.of(context)?.isCurrent == true) Navigator.pop(context);
     }
   }
 
-  Future<void> prepare() async {
+  Future<void> prepare({Duration resumeAt = Duration.zero}) async {
     try {
       await video.initialize();
       if (!mounted) return;
       video.addListener(checkEnd);
+      if (resumeAt > Duration.zero) await video.seekTo(resumeAt);
       await video.play();
       if (mounted) setState(() => ready = true);
     } on Object {
@@ -69,22 +76,30 @@ class _WatchState extends State<Watch> {
   }
 
   Future<void> retry() async {
+    final position = video.value.hasError ? lastPosition : video.value.position;
     video.removeListener(checkEnd);
-    // A native creation failure can leave the old controller's dispose future pending.
-    // Retrying must not wait on that failed decoder.
     unawaited(video.dispose());
     if (!mounted) return;
     setState(() {
-      video = VideoPlayerController.networkUrl(Uri.parse(widget.url));
       ready = false;
       failure = null;
       ended = false;
     });
-    await prepare();
+    try {
+      final fresh = widget.refreshUrl == null
+          ? widget.url
+          : await widget.refreshUrl!();
+      if (!mounted) return;
+      video = VideoPlayerController.networkUrl(Uri.parse(fresh));
+      await prepare(resumeAt: position);
+    } on Object {
+      if (mounted) setState(() => failure = 'Could not play this video.');
+    }
   }
 
   void checkEnd() {
     if (!mounted) return;
+    if (!video.value.hasError) lastPosition = video.value.position;
     if (video.value.hasError && failure == null) {
       setState(() {
         failure = 'Could not play this video.';
@@ -136,7 +151,15 @@ class _WatchState extends State<Watch> {
                       ),
                     );
                   }
-                  if (mounted) Navigator.pop(context);
+                  if (mounted) {
+                    await widget.state.refreshStatus();
+                    if (mounted) {
+                      Navigator.pop(
+                        context,
+                        !widget.state.guest && widget.state.premium,
+                      );
+                    }
+                  }
                 },
                 child: const Text('Watch full video'),
               ),

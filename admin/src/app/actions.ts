@@ -55,7 +55,7 @@ export async function saveMode(form: FormData) {
 export async function saveUpi(form: FormData) {
   const { client } = await requireAdmin(true);
   checked((await client.from("payment_settings").update({
-    upi_id:text(form,"upi_id"), payee_name:text(form,"payee_name"), enabled:form.has("enabled"),
+    upi_id:text(form,"upi_id"), payee_name:text(form,"payee_name"), enabled:form.has("enabled"), activation_mode:text(form,"activation_mode")||"instant",
   }).eq("id",true)).error);
   revalidatePath("/dashboard/payments");
 }

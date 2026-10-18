@@ -4,6 +4,7 @@ import '../navigation.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'account_ui.dart';
+import 'cloud.dart';
 import 'payment_flow.dart';
 import 'payments.dart';
 import 'profile.dart';
@@ -47,7 +48,7 @@ class _PlansState extends State<Plans> {
               .from('payment_orders')
               .select('*,plans(name)')
               .eq('user_id', widget.state.userId)
-              .inFilter('status', ['created', 'pending'])
+              .inFilter('status', ['initiated', 'pending'])
               .order('created_at', ascending: false);
   }
 
@@ -132,9 +133,17 @@ class _PlansState extends State<Plans> {
                     const SizedBox(height: 16),
                     Text(
                       state.guest
-                          ? 'Log in to get 15 GB of free cloud storage for your photos, videos and files.'
-                          : 'You have 15 GB of cloud storage.',
+                          ? (freeMode
+                                ? 'Log in to get 15 GB of free cloud storage for your photos, videos and files.'
+                                : 'Log in to manage your account.')
+                          : (state.status['quota_bytes'] as num? ?? 0) > 0
+                          ? 'Your allowance is ${storageLabel(state.status['quota_bytes'] as num?)}.'
+                          : 'Get 2 TB with Premium',
                     ),
+                    if (!state.guest) ...[
+                      const SizedBox(height: 16),
+                      StorageMeter(state: state),
+                    ],
                     if (state.guest) ...[
                       const SizedBox(height: 16),
                       GradientButton(
@@ -278,10 +287,12 @@ class _PlansState extends State<Plans> {
                           child: NoticeCard(
                             title: active
                                 ? 'Premium active'
+                                : order?['status'] == 'initiated'
+                                ? 'Payment not completed'
                                 : 'Payment being checked',
                             message: active
                                 ? 'You have ${state.status['plan_name']} until ${shortDate(state.status['plan_ends_at'] as String?)}.'
-                                : 'Payment for ${(order?['plans'] as Map?)?['name'] ?? 'Premium'} (order ${order?['reference']}) is being checked. Tap to see the status.',
+                                : 'Payment for ${(order?['plans'] as Map?)?['name'] ?? 'Premium'} (order ${order?['reference']}) is ${order?['status'] == 'initiated' ? 'not completed' : 'being checked'}. Tap to see the status.',
                             tone: active
                                 ? NoticeTone.success
                                 : NoticeTone.warning,
@@ -395,9 +406,9 @@ class PremiumHero extends StatelessWidget {
               in perks.isNotEmpty
                   ? perks
                   : const [
-                      'Ad-Free Experience',
-                      'Access 2 TB Cloud Storage',
-                      'Fast Upload & Download Speed',
+                      'Full premium videos',
+                      '2 TB cloud storage',
+                      'Download to your phone',
                     ])
             Padding(
               padding: const EdgeInsets.only(bottom: Gap.s),

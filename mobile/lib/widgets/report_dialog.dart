@@ -10,7 +10,7 @@ Future<void> reportContent(
   required String channelId,
 }) async {
   final details = TextEditingController();
-  var reason = 'Copyright';
+  var reason = reportReasons.first;
   final send = await showDialog<bool>(
     context: context,
     builder: (dialog) => StatefulBuilder(
@@ -34,7 +34,7 @@ Future<void> reportContent(
                 initialValue: reason,
                 isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Reason'),
-                items: const ['Copyright', 'Abuse', 'Illegal content', 'Other']
+                items: reportReasons
                     .map(
                       (reason) =>
                           DropdownMenuItem(value: reason, child: Text(reason)),
@@ -45,7 +45,7 @@ Future<void> reportContent(
               const SizedBox(height: Gap.l),
               TextField(
                 controller: details,
-                maxLength: 4000,
+                maxLength: 500,
                 minLines: 3,
                 maxLines: 5,
                 decoration: const InputDecoration(labelText: 'Details'),
@@ -79,10 +79,21 @@ Future<void> reportContent(
         'details': text,
       },
     );
-    if (context.mounted) showFeedback(context, 'Report submitted.');
+    if (context.mounted) {
+      showFeedback(context, 'Thanks — our team will review this report.');
+    }
   } on Object {
     if (context.mounted) {
       showFeedback(context, 'Could not send your report. Please try again.');
     }
   }
 }
+
+const reportReasons = [
+  'Sexual or nude content',
+  'Violence or dangerous content',
+  'Hate speech or harassment',
+  'Copyright — this is my content',
+  'Spam, scam or misleading',
+  'Other',
+];

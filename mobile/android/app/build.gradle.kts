@@ -19,6 +19,12 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
+    buildFeatures { buildConfig = true }
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("direct") { dimension = "distribution" }
+        create("play") { dimension = "distribution" }
+    }
     signingConfigs {
         if (System.getenv("ANDROID_KEYSTORE_PASSWORD") != null) {
             create("release") {
@@ -36,3 +42,9 @@ android {
     }
 }
 flutter { source = "../.." }
+
+dependencies {
+ implementation("androidx.core:core-ktx:1.16.0")
+ implementation("com.android.billingclient:billing:8.3.0")
+ implementation("com.google.android.play:integrity:1.6.0")
+}

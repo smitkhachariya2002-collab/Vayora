@@ -72,7 +72,10 @@ class _LoginState extends State<Login> {
     } on AuthException catch (e) {
       if (!mounted) return;
       setState(() {
-        if (e.code == 'email_exists' || e.code == 'user_already_exists') {
+        if (e.code == 'provider_disabled') {
+          failure = 'Google sign-in is coming soon. Please log in with email.';
+        } else if (e.code == 'email_exists' ||
+            e.code == 'user_already_exists') {
           create = false;
           failure =
               'This email already has an account. Log in or reset your password.';

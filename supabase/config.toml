@@ -30,3 +30,18 @@ verify_jwt = false
 
 [functions.admin-invite]
 verify_jwt = false
+
+[functions.upi-webhook]
+verify_jwt = false
+
+[functions.cloud-files]
+verify_jwt = false
+
+[functions.post-delete]
+verify_jwt = false
+
+[functions.play-verify]
+verify_jwt = false
+
+[functions.play-report]
+verify_jwt = false

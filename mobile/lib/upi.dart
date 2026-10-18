@@ -14,13 +14,15 @@ String buildUpiLink({
     'cu': 'INR',
     'tn': 'Vayora $reference',
   };
-  return 'upi://pay?${values.entries.map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}').join('&')}';
+  return 'upi://pay?${values.entries.map((e) => '${Uri.encodeComponent(e.key)}=${e.key == 'pa' ? Uri.encodeComponent(e.value).replaceAll('%40', '@') : Uri.encodeComponent(e.value)}').join('&')}';
 }
 
 Map<String, String> parseUpiResponse(String raw) {
   try {
     final query = raw.contains('?') ? raw.substring(raw.indexOf('?') + 1) : raw;
-    return Uri.splitQueryString(query).map((k, v) => MapEntry(k.toLowerCase(), v));
+    return Uri.splitQueryString(
+      query,
+    ).map((k, v) => MapEntry(k.toLowerCase(), v));
   } on Object {
     return {'status': 'unknown', 'raw': raw};
   }

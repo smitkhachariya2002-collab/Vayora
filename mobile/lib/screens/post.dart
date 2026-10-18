@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../app_state.dart';
@@ -10,10 +11,35 @@ import 'content.dart';
 import 'premium.dart';
 import 'player.dart';
 
-class PostPage extends StatelessWidget {
+class PostPage extends StatefulWidget {
   const PostPage({super.key, required this.state, required this.post});
   final AppState state;
   final Map<String, dynamic> post;
+  @override
+  State<PostPage> createState() => _PostPageState();
+}
+
+class _PostPageState extends State<PostPage> {
+  AppState get state => widget.state;
+  Map<String, dynamic> get post => widget.post;
+  @override
+  void initState() {
+    super.initState();
+    unawaited(countView());
+  }
+
+  Future<void> countView() async {
+    try {
+      final count = await state.db.rpc(
+        'increment_view',
+        params: {'post_id': post['id']},
+      );
+      if (mounted && count is num) setState(() => post['view_count'] = count);
+    } on Object {
+      /* Reading a post must still work when counting is unavailable. */
+    }
+  }
+
   bool get ownsMedia =>
       state.status['is_admin'] == true || post['created_by'] == state.userId;
   Future<void> play(
@@ -45,6 +71,8 @@ class PostPage extends StatelessWidget {
           context,
           MaterialPageRoute<void>(builder: (_) => Plans(state: state)),
         );
+        await state.refreshStatus();
+        if (context.mounted && state.premium) await play(context, item);
       }
       return;
     }
@@ -52,7 +80,9 @@ class PostPage extends StatelessWidget {
       final key =
           (trailer ? item['trailer_key'] : item['media_key']) as String?;
       if (key == null) throw StateError('Trailer unavailable');
-      final url = await state.db.storage.from('media').createSignedUrl(key, 60);
+      final url = await state.db.storage
+          .from('media')
+          .createSignedUrl(key, 3600);
       if (!context.mounted) return;
       if (!trailer && (item['mime'] as String).startsWith('image/')) {
         await Navigator.push(
@@ -65,12 +95,14 @@ class PostPage extends StatelessWidget {
           ),
         );
       } else {
-        await Navigator.push(
+        final wantsFull = await Navigator.push<bool>(
           context,
-          MaterialPageRoute<void>(
+          MaterialPageRoute<bool>(
             builder: (_) => Watch(
               title: post['title'] as String,
               url: url,
+              refreshUrl: () =>
+                  state.db.storage.from('media').createSignedUrl(key, 3600),
               trailer: trailer,
               isPremium: item['is_premium'] == true,
               state: state,
@@ -81,6 +113,9 @@ class PostPage extends StatelessWidget {
             ),
           ),
         );
+        if (wantsFull == true && trailer && context.mounted) {
+          await play(context, item);
+        }
       }
     });
   }
@@ -89,6 +124,17 @@ class PostPage extends StatelessWidget {
     await runAction(context, () async {
       if (!await loginGate(context, state) || !context.mounted) return;
       if (!state.premium && !ownsMedia) {
+        final proceed = await confirmAction(
+          context,
+          title: state.paidEnabled
+              ? 'Download is a Premium feature'
+              : 'Download needs full access',
+          message: state.paidEnabled
+              ? 'Choose a plan to download this video.'
+              : 'Get full access to download this video.',
+          action: state.paidEnabled ? 'Plans' : 'Get full access',
+        );
+        if (!proceed || !context.mounted) return;
         await Navigator.push(
           context,
           MaterialPageRoute<void>(builder: (_) => Plans(state: state)),
@@ -97,10 +143,10 @@ class PostPage extends StatelessWidget {
       }
       final url = await state.db.storage
           .from('media')
-          .createSignedUrl(item['media_key'] as String, 60);
+          .createSignedUrl(item['media_key'] as String, 3600);
       await const MethodChannel('app/download').invokeMethod<void>('download', {
         'url': url,
-        'name': 'vayora-${item['id']}.mp4',
+        'name': 'vayora-${item['id']}${mediaExtension(item['mime'] as String)}',
       });
       if (context.mounted) showFeedback(context, 'Download started.');
     });
@@ -148,6 +194,32 @@ class PostPage extends StatelessWidget {
       return AppPage(
         title: AppBrand.name,
         actions: [
+          if (post['created_by'] == state.userId ||
+              state.status['is_admin'] == true)
+            IconButton(
+              tooltip: 'Delete post',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () async {
+                if (!await confirmAction(
+                      context,
+                      title: 'Delete this post?',
+                      message:
+                          'This permanently deletes the post and its media.',
+                      action: 'Delete',
+                      destructive: true,
+                    ) ||
+                    !context.mounted) {
+                  return;
+                }
+                await runAction(context, () async {
+                  await state.db.functions.invoke(
+                    'post-delete',
+                    body: {'post_id': post['id']},
+                  );
+                  if (context.mounted) Navigator.pop(context);
+                });
+              },
+            ),
           IconButton(
             tooltip: state.blocked.contains(post['channel_id'])
                 ? 'Unblock channel'
@@ -159,10 +231,10 @@ class PostPage extends StatelessWidget {
                     context,
                     title: blocked
                         ? 'Unblock this channel?'
-                        : 'Block this channel?',
+                        : 'Block ${(post['channels'] as Map?)?['name'] ?? 'this channel'}?',
                     message: blocked
                         ? 'Its posts can appear again.'
-                        : 'Its posts will be hidden while browsing.',
+                        : "You won't see posts from this channel in Explore, Feed or the channel list. You can unblock it any time from the channel page.",
                     action: blocked ? 'Unblock' : 'Block',
                     icon: Icons.block,
                   ) ||
@@ -279,7 +351,8 @@ class PostPage extends StatelessWidget {
                         await const MethodChannel(
                           'app/share',
                         ).invokeMethod<void>('share', {
-                          'text': 'Watch ${post['title']} on Vayora',
+                          'text':
+                              'Watch ${post['title']} on Vayora\nhttps://vayora-eta.vercel.app/p/${post['id']}',
                         });
                       }),
                     ),
@@ -329,3 +402,15 @@ class PostPage extends StatelessWidget {
     },
   );
 }
+
+String mediaExtension(String mime) => switch (mime.toLowerCase()) {
+  'image/jpeg' => '.jpg',
+  'image/png' => '.png',
+  'image/webp' => '.webp',
+  'image/gif' => '.gif',
+  'video/quicktime' => '.mov',
+  'video/webm' => '.webm',
+  'video/x-matroska' => '.mkv',
+  'video/mp4' => '.mp4',
+  _ => '.bin',
+};

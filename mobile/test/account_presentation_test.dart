@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,27 @@ import 'package:vayora/widgets/common.dart';
 import 'account_test.dart' show Fixture, existingId;
 
 void main() {
+  testWidgets('Profile handles the signed-out phase of logout', (tester) async {
+    final f = Fixture();
+    await tester.runAsync(f.start);
+    await tester.runAsync(
+      () => f.state.login('member@example.test', 'password123'),
+    );
+    await tester.runAsync(() => f.db.auth.signOut());
+    f.state.status = {'is_guest': true};
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildTheme(),
+        home: Scaffold(body: Profile(state: f.state)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text("You're using the app as a guest."), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.runAsync(f.close);
+  });
+
   test(
     'Plan action labels cover selection, guest, member and launch states',
     () {
@@ -66,7 +88,10 @@ void main() {
         'Payment cancelled. You can try again.',
       );
       expect(paymentMessage('revoked'), contains('reversed after review'));
-      expect(paymentMessage('created'), 'Checking your payment…');
+      expect(
+        paymentMessage('initiated'),
+        'Payment not completed. You can try again.',
+      );
       expect(paymentLabel('revoked'), 'Reversed');
       expect(paymentTone('revoked'), NoticeTone.danger);
       expect(paymentTone('failed'), NoticeTone.neutral);
@@ -301,13 +326,28 @@ void main() {
       await tester.runAsync(
         () => f.state.login('test@example.test', 'password123'),
       );
-      final pixel = base64Decode(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
-      );
+      late Directory temp;
+      late File photo;
+      await tester.runAsync(() async {
+        temp = await Directory.systemTemp.createTemp('vayora-test-');
+        photo = File('${temp.path}/poster.jpg');
+        await photo.writeAsBytes(
+          base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+          ),
+        );
+      });
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-            const MethodChannel('app/photo'),
-            (_) async => pixel,
+            const MethodChannel('app/media'),
+            (_) async => {
+              'path': photo.path,
+              'name': 'story.mp4',
+              'mime': 'video/mp4',
+              'size': await photo.length(),
+              'thumbnail_path': photo.path,
+              'duration_s': 12,
+            },
           );
       await tester.pumpWidget(
         MaterialApp(
@@ -322,14 +362,20 @@ void main() {
       await tester.tap(find.text('Publish post'));
       await tester.pumpAndSettle();
       expect(find.text('Enter a title'), findsOneWidget);
-      await tester.tap(find.text('Choose photo'));
+      await tester.runAsync(() async {
+        await tester.tap(find.text('Choose video or photo'));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField).first, 'A new story');
       FocusManager.instance.primaryFocus?.unfocus();
       tester.testTextInput.hide();
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Publish post'));
-      await tester.tap(find.text('Publish post'));
+      await tester.runAsync(() async {
+        await tester.tap(find.text('Publish post'));
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      });
       await tester.pumpAndSettle();
       final draft = f.calls.singleWhere(
         (r) => r.method == 'POST' && r.url.path.endsWith('/posts'),
@@ -353,7 +399,8 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.runAsync(f.close);
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(const MethodChannel('app/photo'), null);
+          .setMockMethodCallHandler(const MethodChannel('app/media'), null);
+      await tester.runAsync(() => temp.delete(recursive: true));
     },
   );
 }

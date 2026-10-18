@@ -14,13 +14,14 @@ String paymentLabel(String status) => switch (status) {
   'failed' => 'Failed',
   'cancelled' => 'Cancelled',
   'revoked' => 'Reversed',
+  'initiated' => 'Not completed',
   'expired' => 'Expired',
   _ => 'Pending',
 };
 NoticeTone paymentTone(String status) => switch (status) {
   'success' => NoticeTone.success,
   'revoked' => NoticeTone.danger,
-  'failed' || 'cancelled' || 'expired' => NoticeTone.neutral,
+  'initiated' || 'failed' || 'cancelled' || 'expired' => NoticeTone.neutral,
   _ => NoticeTone.warning,
 };
 String paymentMessage(String status) => switch (status) {
@@ -29,11 +30,11 @@ String paymentMessage(String status) => switch (status) {
   'cancelled' => 'Payment cancelled. You can try again.',
   'revoked' =>
     'This payment was reversed after review. Contact support if you think this is wrong.',
+  'initiated' => 'Payment not completed. You can try again.',
   'expired' => 'This payment has expired. You can try again.',
   _ => 'Checking your payment…',
 };
-bool paymentPending(String status) =>
-    status == 'created' || status == 'pending';
+bool paymentPending(String status) => status == 'pending';
 String orderAmount(Map<String, dynamic> order) {
   final value = (order['amount_paise'] as num? ?? 0) / 100;
   return '₹ ${value.toStringAsFixed(value == value.roundToDouble() ? 0 : 2)}';
@@ -479,7 +480,12 @@ class PaymentStatusView extends StatelessWidget {
             ),
             const SizedBox(height: 12),
           ],
-          if (['failed', 'cancelled', 'expired'].contains(status) &&
+          if ([
+                'initiated',
+                'failed',
+                'cancelled',
+                'expired',
+              ].contains(status) &&
               onPayAgain != null) ...[
             GradientButton(
               label: busy ? 'Opening…' : 'Pay again',

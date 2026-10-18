@@ -13,6 +13,11 @@ Deno.serve(async (req: Request) => {
     });
     const {data:{user},error} = await admin.auth.getUser(token);
     if (error || !user || user.is_anonymous) return new Response('{"error":"Member account required"}',{status:401,headers});
+    const caller = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:"Bearer "+token}}
+    });
+    const prepared = await caller.rpc("prepare_account_deletion");
+    if (prepared.error) return new Response(JSON.stringify({error:prepared.error.message}),{status:409,headers});
     // Revoke refresh sessions first. Every call revalidates the access token with Auth.
     const signedOut = await admin.auth.admin.signOut(token,"global");
     if(signedOut.error)throw signedOut.error;

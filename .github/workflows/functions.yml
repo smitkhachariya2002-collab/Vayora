@@ -16,7 +16,5 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.5.4
-      - run: deno check supabase/functions/delete-account/index.ts
-
-      - run: deno check supabase/functions/admin-delete-account/index.ts
-      - run: deno check supabase/functions/admin-invite/index.ts
+      - name: Type-check every deployed Edge Function
+        run: deno check supabase/functions/*/index.ts

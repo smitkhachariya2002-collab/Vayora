@@ -111,6 +111,9 @@ class _ChannelListState extends State<ChannelList> {
     });
     try {
       var query = widget.state.db.from('channels').select();
+      if (search.trim().isNotEmpty) {
+        query = query.ilike('name', '%${search.trim()}%');
+      }
       if (mine) {
         query = query.eq('created_by', widget.state.userId);
       } else {
@@ -213,6 +216,7 @@ class _ChannelListState extends State<ChannelList> {
           'channel_id': id,
         }, ignoreDuplicates: true);
       }
+      widget.state.membershipChanged();
       if (mounted) {
         setState(() {
           if (leaving) {
@@ -255,11 +259,7 @@ class _ChannelListState extends State<ChannelList> {
         .where(
           (row) =>
               !widget.state.blocked.contains(row['id']) &&
-              (tab != ChannelTab.joined || joined.contains(row['id'])) &&
-              (term.isEmpty ||
-                  '${row['name']} ${row['description']} ${row['category']} ${row['tags']}'
-                      .toLowerCase()
-                      .contains(term)),
+              (tab != ChannelTab.joined || joined.contains(row['id'])),
         )
         .toList();
     return Material(
@@ -276,7 +276,10 @@ class _ChannelListState extends State<ChannelList> {
                       hintText: 'Search channels',
                       suffixIcon: Icon(Icons.search),
                     ),
-                    onChanged: (value) => setState(() => search = value),
+                    onChanged: (value) {
+                      setState(() => search = value);
+                      load(refresh: true);
+                    },
                   ),
                   const SizedBox(height: Gap.s),
                   Row(

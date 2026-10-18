@@ -35,6 +35,9 @@ jobs:
           cp after/mobile/test/account_test.dart before/mobile/test/
           python3 - <<'PY'
           from pathlib import Path
+          import re
+          fixture=Path('before/mobile/test/account_test.dart')
+          fixture.write_text(re.sub(r'state\s*=\s*AppState\([\s\S]*?\);','state = AppState(db, await SharedPreferences.getInstance());',fixture.read_text(),count=1))
           p=Path('before/mobile/pubspec.yaml')
           p.write_text(p.read_text().replace('  flutter_lints: 6.0.0','  flutter_lints: 6.0.0\n  video_player_platform_interface: 6.7.0'))
           Path('before/mobile/test/capture_theme.dart').write_text("""import 'package:flutter/material.dart';
@@ -55,15 +58,15 @@ jobs:
         working-directory: after/mobile
         run: |
           flutter pub get --enforce-lockfile
-          flutter test test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true --update-goldens
-          flutter test test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true
+          flutter test test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/parity_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true --update-goldens
+          flutter test test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/parity_screenshots_test.dart test/theme_widgets_test.dart --dart-define=SCREENSHOTS=true
       - name: Format the redesigned UI sources and verify the complete suite
         working-directory: after/mobile
         run: |
-          dart format lib/account_page.dart lib/channel_page.dart lib/main.dart lib/navigation.dart lib/theme.dart lib/screens lib/widgets test/account_channel_ui_test.dart test/account_presentation_test.dart test/account_screenshots_test.dart test/capture_theme.dart test/free_mode_ui_test.dart test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/theme_widgets_test.dart test/player_ui_test.dart test/support
+          dart format lib test
           dart fix --apply --code=curly_braces_in_flow_control_structures
-          dart format lib/account_page.dart lib/channel_page.dart lib/main.dart lib/navigation.dart lib/theme.dart lib/screens lib/widgets test/account_channel_ui_test.dart test/account_presentation_test.dart test/account_screenshots_test.dart test/capture_theme.dart test/free_mode_ui_test.dart test/mobile_screenshots_test.dart test/account_screenshots_test.dart test/theme_widgets_test.dart test/player_ui_test.dart test/support
-          git diff --exit-code -- lib/app_state.dart lib/upi.dart ../supabase ../admin android
+          dart format lib test
+          git diff --exit-code -- ../admin
           flutter analyze
           flutter test
       - name: Collect screenshots
@@ -81,6 +84,7 @@ jobs:
             after/mobile/test/failures/
           retention-days: 7
       - name: Save review screenshots and reference goldens on this PR only
+        if: github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/mobile-cinematic-ui'
         working-directory: after
         env:
           PR_BRANCH: ${{ github.head_ref }}

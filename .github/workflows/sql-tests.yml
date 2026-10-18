@@ -21,6 +21,10 @@ jobs:
           supabase start --help > /dev/null
           supabase test db --help > /dev/null
       - run: supabase start
+      - name: Run database advisors against the disposable database
+        run: |
+          supabase db advisors --help > /dev/null
+          supabase db advisors --local
       - run: supabase test db
       - name: Verify real guest conversion and email callbacks
         run: |
