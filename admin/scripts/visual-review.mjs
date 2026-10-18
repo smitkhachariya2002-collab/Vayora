@@ -151,8 +151,12 @@ try{
  const request=await admin.from("support_requests").insert({user_id:member.data.user.id,email:"creator@example.test",kind:"deletion",reason:"Delete my fixture account"}).select("id").single();if(request.error)throw request.error;
  const contentClient=createClient(api,anon);await contentClient.auth.signInWithPassword({email:"editor@example.test",password});const {data:{session:contentSession}}=await contentClient.auth.getSession();
  const denied=await fetch(api+"/functions/v1/admin-delete-account",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+contentSession.access_token},body:JSON.stringify({request_id:request.data.id,confirm:true})});if(denied.status!==403)throw new Error("Content admin deletion must be denied");
+ const iconPath=member.data.user.id+"/channel-photos/deletion-fixture.png";
+ const {error:iconError}=await admin.storage.from("channel-icons").upload(iconPath,Buffer.from(image,"base64"),{contentType:"image/png"});if(iconError)throw iconError;
  const {data:{session:ownerSession}}=await client.auth.getSession();
  const removed=await fetch(api+"/functions/v1/admin-delete-account",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+ownerSession.access_token},body:JSON.stringify({request_id:request.data.id,confirm:true})});if(!removed.ok)throw new Error("Owner requested deletion failed: "+removed.status);
+ const {data:remainingIcons,error:iconListError}=await admin.storage.from("channel-icons").list(member.data.user.id+"/channel-photos");
+ if(iconListError||remainingIcons?.length)throw new Error("Account deletion left channel pictures behind");
  const deleted=await admin.auth.admin.getUserById(member.data.user.id);if(deleted.data.user)throw new Error("Requested account was not deleted");
  const {data:closed}=await admin.from("support_requests").select("status").eq("id",request.data.id).single();if(closed?.status!=="closed")throw new Error("Deletion request not closed");
  report.push({check:"owner-requested-deletion-and-content-denial",passed:true});
