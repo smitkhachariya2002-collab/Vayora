@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
         }
       }
     }
-    for(const bucket of ["cloud","media","public"])await clearPrefix(bucket,user.id);
+    for(const bucket of ["cloud","media","public","channel-icons"])await clearPrefix(bucket,user.id);
     const removedPosts=await admin.from("posts").delete().eq("created_by",user.id);
     if(removedPosts.error)throw removedPosts.error;
     const removedChannels=await admin.from("channels").delete().eq("created_by",user.id);

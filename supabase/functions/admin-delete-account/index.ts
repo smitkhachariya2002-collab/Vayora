@@ -27,7 +27,7 @@ Deno.serve(async(req:Request)=>{
  while(true){const {data,error}=await client.storage.from(bucket).list(prefix,{limit:100});if(error)throw error;if(!data?.length)return;
  for(const item of data){const path=prefix+"/"+item.name;if(item.id){const {error}=await client.storage.from(bucket).remove([path]);if(error)throw error}else await clear(bucket,path)}}
  }
- for(const bucket of ["cloud","media","public"])await clear(bucket,target);
+ for(const bucket of ["cloud","media","public","channel-icons"])await clear(bucket,target);
  const removedPosts=await client.from("posts").delete().eq("created_by",target);if(removedPosts.error)throw removedPosts.error;
  const removedChannels=await client.from("channels").delete().eq("created_by",target);if(removedChannels.error)throw removedChannels.error;
  const deleted=await client.auth.admin.deleteUser(target);if(deleted.error)throw deleted.error;

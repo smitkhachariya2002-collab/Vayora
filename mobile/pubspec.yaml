@@ -1,7 +1,7 @@
 name: vayora
 description: Cloud storage and creator channels for India.
 publish_to: none
-version: 0.3.4+7
+version: 0.3.5+8
 environment:
   sdk: '>=3.9.0 <4.0.0'
 dependencies:

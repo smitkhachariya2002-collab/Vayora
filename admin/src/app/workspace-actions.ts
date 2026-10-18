@@ -20,7 +20,7 @@ export async function workspaceAction(f:FormData){
   else if(op==="deletePost")result=await client.functions.invoke("post-delete",{body:{post_id:value(f,"id")}});
   else if(op==="removeItem")result=await client.from("post_items").delete().eq("id",value(f,"id"));
   else if(op==="saveItem")result=await client.from("post_items").update({is_premium:f.has("is_premium"),duration_s:value(f,"duration_s")?Number(value(f,"duration_s")):null,position:Number(value(f,"position"))||0}).eq("id",value(f,"id"));
-  else if(op==="reviewChannel")result=await client.from("channels").update({review_status:value(f,"review_status")}).eq("id",value(f,"id"));
+  else if(op==="reviewChannel")result=await client.rpc("review_channel",{channel_id:value(f,"id"),approve:value(f,"review_status")==="approved",audience:value(f,"audience")||"all"});
   else if(op==="closeRequest")result=await client.from("support_requests").update({status:"closed"}).eq("id",value(f,"id"));
   else if(op==="deleteRequestedAccount"){const {data:{session}}=await client.auth.getSession();if(!session)throw new Error("Sign in again");const response=await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL+"/functions/v1/admin-delete-account",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({request_id:value(f,"id"),confirm:true})});if(!response.ok){const data=await response.json();throw new Error(data.error||"Deletion failed");}}
   else if(op==="saveAdmin"){
@@ -38,5 +38,6 @@ if(!response.ok){const d=await response.json();throw new Error(d.error||"Invitat
  }
  }catch(e){unstable_rethrow(e);error=e instanceof Error?e.message:"Could not save changes";}
  revalidatePath("/dashboard","layout");
+ revalidatePath("/","layout");
  redirect(back+"?"+(error?"error="+encodeURIComponent(error):"ok=Changes+saved+successfully"));
 }

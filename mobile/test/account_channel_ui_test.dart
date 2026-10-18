@@ -90,7 +90,7 @@ void main() {
           }, status: 400);
         }
         final row = Map<String, dynamic>.from(jsonDecode(request.body) as Map);
-        channels.add({...row, 'review_status': 'pending', 'status': 'active'});
+        channels.add({...row, 'review_status': 'pending', 'status': 'draft'});
         return reply(request, null);
       }
       if (request.method == 'PATCH') {
@@ -201,6 +201,17 @@ void main() {
       expect(channels.single['description'], '');
       expect(channels.single['tags'], ['music', 'india']);
       expect(channels.single['created_by'], existingId);
+      expect(channels.single['category'], 'Entertainment');
+      expect(find.text('Request sent'), findsOneWidget);
+      expect(
+        find.text(
+          "Your channel has been sent for approval. You'll find it under Profile → My Channels. Once it's approved, you can start posting.",
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      expect(find.text('Open'), findsOneWidget);
     },
     timeout: const Timeout(Duration(seconds: 45)),
   );
@@ -214,6 +225,9 @@ void main() {
       await open(tester, ChannelEditor(state: f.state));
       await submit(tester, 'channel-submit');
       expect(find.text('Enter a channel name'), findsOneWidget);
+      await tester.enterText(find.byKey(const ValueKey('channel-name')), 'ab');
+      await submit(tester, 'channel-submit');
+      expect(find.text('Use at least 3 characters'), findsOneWidget);
       await tester.enterText(
         find.byKey(const ValueKey('channel-name')),
         'Music',
@@ -230,7 +244,7 @@ void main() {
   );
 
   testWidgets(
-    'My channels shows private submission status and edit without approval copy',
+    'My channels shows Waiting for approval and creator edit',
     (tester) async {
       await tester.runAsync(
         () => f.state.login('existing@example.test', 'password123'),
@@ -249,7 +263,7 @@ void main() {
       await tester.tap(find.byTooltip('My channels'));
       await tester.pumpAndSettle();
       expect(find.text('My channel'), findsOneWidget);
-      expect(find.text('Under review'), findsOneWidget);
+      expect(find.text('Waiting for approval'), findsOneWidget);
       expect(find.text('Edit channel'), findsOneWidget);
       expect(find.textContaining('owner approval'), findsNothing);
     },
@@ -418,4 +432,39 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 45)),
   );
+  testWidgets(
+    'Guest channel creation asks for login instead of showing the form',
+    (tester) async {
+      await open(tester, ChannelEditor(state: f.state));
+      expect(find.text('Please log in'), findsOneWidget);
+      expect(find.text('Log in to create a channel'), findsOneWidget);
+      expect(find.byKey(const ValueKey('channel-submit')), findsNothing);
+    },
+  );
+  testWidgets('Channel picture must be smaller than 5 MiB', (tester) async {
+    await tester.runAsync(
+      () => f.state.login('existing@example.test', 'password123'),
+    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('app/photo'),
+          (_) async => Uint8List(5 * 1024 * 1024),
+        );
+    await open(tester, ChannelEditor(state: f.state));
+    await tester.tap(find.byKey(const ValueKey('channel-photo')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Choose a picture smaller than 5 MB.'),
+      150,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView).last,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Choose a picture smaller than 5 MB.'), findsOneWidget);
+    expect(channels, isEmpty);
+  });
 }

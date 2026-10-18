@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   prepare:
-    if: (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/live-plan-management' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-order-window') && github.event.pull_request.head.repo.full_name == github.repository
+    if: (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/live-plan-management' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-order-window' || github.head_ref == 'build/channel-approval') && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       contents: write
