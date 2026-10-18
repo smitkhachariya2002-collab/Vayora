@@ -130,7 +130,7 @@ void main() {
       await tester.runAsync(f.close);
     },
   );
-  testWidgets('Profile upload is limited to owned approved active channels', (
+  testWidgets('Profile upload is limited to owned approved published channels', (
     tester,
   ) async {
     final f = Fixture();
@@ -141,7 +141,7 @@ void main() {
               'name': 'My India',
               'created_by': existingId,
               'review_status': 'approved',
-              'status': 'active',
+              'status': 'published',
             },
           ])
         : r.url.path.endsWith('/channel_members')

@@ -82,7 +82,7 @@ class _ContentListState extends State<ContentList> {
       .from('channels')
       .select()
       .eq('review_status', 'approved')
-      .eq('status', 'active')
+      .inFilter('status', ['published', 'active'])
       .order('created_at', ascending: false)
       .limit(AppSizes.pageSize);
   Future<void> load({bool refresh = false}) async {

@@ -107,7 +107,7 @@ class _NewPostState extends State<NewPost> {
           .single();
       if (state.guest ||
           channel['review_status'] != 'approved' ||
-          channel['status'] != 'active') {
+          !['published', 'active'].contains(channel['status'])) {
         throw StateError('Channel unavailable');
       }
       await state.db.from('posts').insert({

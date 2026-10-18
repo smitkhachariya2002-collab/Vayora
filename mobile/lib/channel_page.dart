@@ -707,11 +707,6 @@ class _ChannelEditorState extends State<ChannelEditor> {
         );
       }
       if (mounted) Navigator.pop(context, true);
-    } on Object {
-          /* A saved channel must not fail because old-photo cleanup was unavailable. */
-        }
-      }
-      if (mounted) Navigator.pop(context, true);
     } on Object catch (e) {
       if (uploaded != null && !committed) {
         try {
