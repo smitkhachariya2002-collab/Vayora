@@ -58,7 +58,7 @@ try{
  await requestCard.getByText("creator@example.test",{exact:false}).waitFor();
  const pendingRequestId=(await requestCard.getAttribute("data-testid")).replace("channel-request-","");
  await ownerPage.goto("http://localhost:3000/channels/"+pendingRequestId);
- const pendingStatus=ownerPage.getByLabel("Status",{exact:true});
+ const pendingStatus=ownerPage.getByLabel("Status");
  if(await pendingStatus.inputValue()!=="Draft"||!await pendingStatus.evaluate(el=>el.readOnly))throw new Error("Pending editor must show read-only Draft");
  await ownerPage.goto("http://localhost:3000/channels");
  await requestCard.locator('select[name="audience"]').selectOption("organic");
