@@ -58,7 +58,7 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
               .from('payment_orders')
               .select('*,plans(name)')
               .eq('user_id', widget.state.userId)
-              .inFilter('status', ['initiated', 'pending'])
+              .inFilter('status', ['pending', 'submitted', 'review'])
               .order('created_at', ascending: false);
   }
 

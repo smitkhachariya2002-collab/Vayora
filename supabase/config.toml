@@ -45,3 +45,6 @@ verify_jwt = false
 
 [functions.play-report]
 verify_jwt = false
+
+[functions.provider-payment]
+verify_jwt = false

@@ -15,6 +15,7 @@ export async function workspaceAction(f:FormData){
   const {client}=await requireAdmin(!["deletePost","removeItem","saveItem","reorderItems"].includes(op));
   let result:{error:{message:string}|null}={error:null};
   if(op==="testMeta")result=await client.rpc("admin_meta_test");
+  else if(op==="rejectPayment")result=await client.rpc("admin_reject_payment",{order_id:value(f,"order_id"),reason:value(f,"reason")});
   else if(op==="confirmBankPayment")result=await client.rpc("admin_confirm_bank_payment",{order_id:value(f,"order_id")});
   else if(op==="deletePost")result=await client.functions.invoke("post-delete",{body:{post_id:value(f,"id")}});
   else if(op==="removeItem")result=await client.from("post_items").delete().eq("id",value(f,"id"));
