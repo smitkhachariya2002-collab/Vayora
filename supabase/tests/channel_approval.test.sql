@@ -48,6 +48,8 @@ select set_config('request.jwt.claim.sub','ca000000-0000-4000-8000-000000000005'
 insert into public.channels(id,name,created_by,audience) values
 ('cb000000-0000-4000-8000-000000000005','Editor app request',auth.uid(),'ads');
 select is((select review_status from public.channels where id='cb000000-0000-4000-8000-000000000005'),'pending','Content admin app insert still pending');
+select lives_ok($$select public.admin_save_channel('cb000000-0000-4000-8000-000000000005','Editor renamed')$$,'Content admin may save descriptive edits without publishing pending channel');
+select is((select review_status||'/'||status from public.channels where id='cb000000-0000-4000-8000-000000000005'),'pending/draft','Panel metadata edits cannot approve a request');
 select throws_ok($$select public.review_channel('cb000000-0000-4000-8000-000000000001',true,'all')$$,'P0001','Owner required','Content admin cannot review');
 select throws_ok($$insert into public.posts(channel_id,title,created_by) values('cb000000-0000-4000-8000-000000000005','Too early',auth.uid())$$,'42501',null,'Admin app creator also waits before posting');
 

@@ -138,7 +138,7 @@ begin
    select * into existing from public.channels where id=target for update;
    if not found or not private.manage_channel(target) then raise exception 'Channel access required'; end if;
    if not private.is_owner() and (p_audience<>existing.audience or
-       p_status<>case when existing.status='active' then 'published' else existing.status end) then
+       (existing.review_status='approved' and p_status<>case when existing.status='active' then 'published' else existing.status end)) then
      raise exception 'Owner required';
    end if;
  end if;
