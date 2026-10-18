@@ -354,6 +354,9 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  String? paymentUpiId(String orderId) =>
+      prefs.getString('payment_upi_id:$orderId');
+
   Future<String> pay(
     String planId, {
     String? externalToken,
@@ -379,6 +382,7 @@ class AppState extends ChangeNotifier {
     );
     await prefs.setString('open_payment_order:$userId', order['id'] as String);
     await prefs.setString('payment_owner:${order['id']}', userId);
+    await prefs.setString('payment_upi_id:${order['id']}', order['upi_id'] as String);
     await beforeLaunch?.call((order['amount_paise'] as num).toInt());
     const channel = MethodChannel('app/upi');
     final raw = await channel.invokeMethod<String>('pay', {

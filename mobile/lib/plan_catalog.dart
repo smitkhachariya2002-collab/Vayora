@@ -58,8 +58,8 @@ class PlanCatalog extends ChangeNotifier {
           .from('plans')
           .select()
           .eq('active', true)
-          .order('position')
-          .order('created_at');
+          .order('position', ascending: true)
+          .order('created_at', ascending: true);
       if (_disposed || request != _request) return;
       rows = data.where((p) => p['active'] != false).toList();
       if (!rows.any((p) => p['id'] == selected)) selected = null;

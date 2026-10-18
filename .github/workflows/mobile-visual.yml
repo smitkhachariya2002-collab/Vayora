@@ -84,7 +84,7 @@ jobs:
             after/mobile/test/failures/
           retention-days: 7
       - name: Save review screenshots and reference goldens on this PR only
-        if: github.head_ref == 'build/reliable-upi' || github.head_ref == 'build/live-plan-management' || github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/mobile-cinematic-ui'
+        if: github.head_ref == 'fix/upi-app-discovery' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'build/live-plan-management' || github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/mobile-cinematic-ui'
         working-directory: after
         env:
           PR_BRANCH: ${{ github.head_ref }}

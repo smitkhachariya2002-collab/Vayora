@@ -39,9 +39,21 @@ jobs:
       - name: Verify native Android compilation
         working-directory: mobile
         run: flutter build apk --debug --flavor direct --target-platform android-arm64 --dart-define-from-file=config/public.json
+      - name: Verify installed-app visibility in the compiled Android manifest
+        working-directory: mobile
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print build/app/outputs/flutter-apk/app-direct-debug.apk > /tmp/vayora-manifest.xml
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          root=ET.parse('/tmp/vayora-manifest.xml').getroot()
+          name='{http://schemas.android.com/apk/res/android}name'
+          packages={node.get(name) for node in root.findall('./queries/package')}
+          assert {'com.google.android.apps.nbu.paisa.user','com.phonepe.app','net.one97.paytm','in.org.npci.upiapp'} <= packages
+          print('PASS: all supported UPI packages visible in final Android manifest')
+          PY
   release:
     needs: verify
-    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi'))
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-app-discovery'))
     runs-on: ubuntu-latest
     environment: production
     env:
