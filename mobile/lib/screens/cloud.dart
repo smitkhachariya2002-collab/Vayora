@@ -246,13 +246,19 @@ class CloudViewState extends State<CloudView> implements CloudController {
     await state.refreshStatus();
     if (!mounted) return;
     if ((state.status['quota_bytes'] as num? ?? 0) <= 0) {
-      await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Plans(state: state)));
+      await Navigator.push(
+        context,
+        MaterialPageRoute<void>(builder: (_) => Plans(state: state)),
+      );
       return;
     }
     final name = await askName('New folder');
     if (name == null || !mounted) return;
     await runAction(context, () async {
-      await state.db.rpc('cloud_reserve', params: {'name': name, 'parent_id': parent, 'is_folder': true});
+      await state.db.rpc(
+        'cloud_reserve',
+        params: {'name': name, 'parent_id': parent, 'is_folder': true},
+      );
       await refresh();
     });
   }
