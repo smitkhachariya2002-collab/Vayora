@@ -2,6 +2,7 @@ package com.vayora.app
 
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageInfo
 import android.content.pm.ApplicationInfo
 import android.content.pm.ResolveInfo
 import android.net.Uri
@@ -47,6 +48,37 @@ class UpiAppsTest {
     @Test fun excludesDisabledAndUnexportedHandlers() {
         shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, uri), handler("bank.disabled", enabled=false))
         shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, uri), handler("bank.private", exported=false))
+        assertTrue(UpiApps.discover(pm, uri).isEmpty())
+    }
+
+    @Test fun installedWalletsRemainVisibleWhenGenericQueryReturnsOnlyGPay() {
+        shadowOf(pm).addResolveInfoForIntent(Intent(Intent.ACTION_VIEW, uri), handler("com.google.android.apps.nbu.paisa.user"))
+        val installed = listOf("com.phonepe.app", "net.one97.paytm", "in.org.npci.upiapp",
+            "com.dreamplug.androidapp", "in.amazon.mShop.android.shopping", "com.naviapp",
+            "money.super.payments", "com.mobikwik_new", "com.freecharge.android")
+        installed.forEach { pkg ->
+            shadowOf(pm).installPackage(PackageInfo().apply {
+                packageName = pkg
+                applicationInfo = ApplicationInfo().apply {
+                    packageName = pkg; enabled = true
+                    flags = ApplicationInfo.FLAG_INSTALLED
+                    nonLocalizedLabel = pkg
+                }
+            })
+        }
+        val found = UpiApps.discover(pm, uri).map { it.packageName }.toSet()
+        assertTrue(found.containsAll(installed))
+        assertTrue(found.contains("com.google.android.apps.nbu.paisa.user"))
+        assertEquals(installed.size + 1, found.size)
+    }
+
+    @Test fun uninstalledWalletsAreNeverInventedAndDisabledWalletsAreHidden() {
+        shadowOf(pm).installPackage(PackageInfo().apply {
+            packageName = "com.phonepe.app"
+            applicationInfo = ApplicationInfo().apply {
+                packageName = "com.phonepe.app"; enabled = false; flags = ApplicationInfo.FLAG_INSTALLED
+            }
+        })
         assertTrue(UpiApps.discover(pm, uri).isEmpty())
     }
 

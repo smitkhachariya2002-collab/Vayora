@@ -51,12 +51,19 @@ jobs:
           root=ET.parse('/tmp/vayora-manifest.xml').getroot()
           name='{http://schemas.android.com/apk/res/android}name'
           packages={node.get(name) for node in root.findall('./queries/package')}
-          assert {'com.google.android.apps.nbu.paisa.user','com.phonepe.app','net.one97.paytm','in.org.npci.upiapp'} <= packages
+          import re
+          source=open('android/app/src/main/kotlin/com/vayora/app/UpiApps.kt').read()
+          hints=source.split('val packageHints = listOf(',1)[1].split(')',1)[0]
+          expected=set(re.findall(r'"([^"]+)"',hints))
+          assert len(expected)>=10 and expected <= packages, f'Missing UPI visibility entries: {expected-packages}'
+          scheme='{http://schemas.android.com/apk/res/android}scheme'
+          assert any(node.get(scheme)=='upi' for node in root.findall('./queries/intent/data'))
+          assert not any(node.get(name)=='android.permission.QUERY_ALL_PACKAGES' for node in root.findall('./uses-permission'))
           print('PASS: all supported UPI packages visible in final Android manifest')
           PY
   release:
     needs: verify
-    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-app-discovery' || github.head_ref == 'fix/upi-order-window' || github.head_ref == 'ui/profile-plans-first'))
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-app-discovery' || github.head_ref == 'fix/upi-order-window' || github.head_ref == 'ui/profile-plans-first' || github.head_ref == 'fix/cloud-upi-options'))
     runs-on: ubuntu-latest
     environment: production
     env:

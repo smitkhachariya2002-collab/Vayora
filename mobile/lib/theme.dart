@@ -4,7 +4,7 @@ abstract final class AppBrand {
   static const name = 'Vayora';
   static const support = 'help.vayora@gmail.com';
   static const font = 'Poppins';
-  static const version = '0.3.3';
+  static const version = '0.3.4';
 }
 
 abstract final class AppColors {

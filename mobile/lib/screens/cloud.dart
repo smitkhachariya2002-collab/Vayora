@@ -563,7 +563,7 @@ class CloudViewState extends State<CloudView> implements CloudController {
                   const EmptyState(
                     icon: Icons.folder_open_outlined,
                     title: 'No files yet',
-                    message: 'Tap + to upload a file or create a folder.',
+                    message: 'Tap Add to Cloud to upload a file or create a folder.',
                   )
                 else
                   for (final row in rows)
@@ -589,7 +589,7 @@ class CloudViewState extends State<CloudView> implements CloudController {
                     ),
                 const SizedBox(height: 16),
                 GradientButton(
-                  label: 'Add files or folder',
+                  label: 'Add to Cloud',
                   icon: Icons.add,
                   onPressed: busy ? null : actions,
                 ),
