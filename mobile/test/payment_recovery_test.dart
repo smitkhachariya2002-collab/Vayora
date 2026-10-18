@@ -73,9 +73,8 @@ void main() {
       final f = Fixture();
       var recover = false;
       var accepted = 0;
-      f.intercept = (r) => r.url.path.endsWith('/report_result')
-          ? json(r, 'paid')
-          : null;
+      f.intercept = (r) =>
+          r.url.path.endsWith('/report_result') ? json(r, 'paid') : null;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
             if (call.method == 'pending') {
@@ -93,9 +92,7 @@ void main() {
       await restarted.initialize(watchRemoteChanges: false);
       expect(accepted, 1);
       expect(
-        f.calls
-            .lastWhere((r) => r.url.path.endsWith('/report_result'))
-            .body,
+        f.calls.lastWhere((r) => r.url.path.endsWith('/report_result')).body,
         contains('restored-order'),
       );
       restarted.dispose();
