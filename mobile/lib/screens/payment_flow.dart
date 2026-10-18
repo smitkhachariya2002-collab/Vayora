@@ -61,27 +61,23 @@ Future<Map<String, dynamic>?> launchPlanPayment(
         .single();
     if ((order['raw_response'] as String? ?? '').contains('no_upi_app') &&
         context.mounted) {
-      final settings = await state.db
-          .from('payment_settings')
-          .select('upi_id')
-          .single();
+      final upiId = state.paymentUpiId(id);
       if (context.mounted) {
         await showDialog<void>(
           context: context,
           builder: (dialog) => AlertDialog(
             title: const Text('No UPI app found'),
             content: Text(
-              'You can pay this UPI ID from another device, then enter the 12-digit UTR on the payment screen.\n\n${settings['upi_id']}',
+              'You can pay this UPI ID from another device, then enter the 12-digit UTR on the payment screen.\n\n${upiId ?? 'Return to your plan and try again to load the UPI ID.'}',
             ),
             actions: [
-              TextButton(
-                onPressed: () async {
-                  await Clipboard.setData(
-                    ClipboardData(text: settings['upi_id'] as String),
-                  );
-                },
-                child: const Text('Copy UPI ID'),
-              ),
+              if (upiId != null)
+                TextButton(
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: upiId));
+                  },
+                  child: const Text('Copy UPI ID'),
+                ),
               TextButton(
                 onPressed: () => Navigator.pop(dialog),
                 child: const Text('Continue'),
