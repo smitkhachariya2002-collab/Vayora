@@ -1,6 +1,7 @@
 -- Channel review is server-authoritative. App inserts, including admins, always wait.
 alter table public.channels add column reviewed_by uuid references auth.users(id) on delete set null;
 alter table public.channels add column reviewed_at timestamptz;
+create index channels_reviewed_by_idx on public.channels(reviewed_by);
 alter table public.channels drop constraint channels_status_check;
 -- Legacy 'active' remains readable for installed clients; new approval writes 'published'.
 alter table public.channels add constraint channels_status_check check(status in ('draft','published','hidden','active'));

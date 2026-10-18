@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 const cfg=JSON.parse(readFileSync(process.argv[2],'utf8'));
 const url=cfg.API_URL,anon=cfg.ANON_KEY,service=cfg.SERVICE_ROLE_KEY;
 async function request(path,key,method='GET',body){
- const response=await fetch(url+path,{method,headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json',Prefer:'return=representation'},body:body===undefined?undefined:JSON.stringify(body)});
+ const response=await fetch(url+path,{method,headers:{apikey:key===service?service:anon,Authorization:'Bearer '+key,'Content-Type':'application/json',Prefer:'return=representation'},body:body===undefined?undefined:JSON.stringify(body)});
  const text=await response.text();return {status:response.status,data:text?JSON.parse(text):null};
 }
 const email='channel-race-'+randomUUID()+'@example.test',password=randomUUID()+'Aa1!';
