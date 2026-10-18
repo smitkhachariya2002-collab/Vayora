@@ -563,7 +563,8 @@ class CloudViewState extends State<CloudView> implements CloudController {
                   const EmptyState(
                     icon: Icons.folder_open_outlined,
                     title: 'No files yet',
-                    message: 'Tap Add to Cloud to upload a file or create a folder.',
+                    message:
+                        'Tap Add to Cloud to upload a file or create a folder.',
                   )
                 else
                   for (final row in rows)
