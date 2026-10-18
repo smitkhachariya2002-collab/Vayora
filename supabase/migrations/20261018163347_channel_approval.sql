@@ -148,7 +148,7 @@ begin
    values(target,btrim(p_name),coalesce(p_description,''),coalesce(p_category,''),p_icon,p_audience,
      coalesce(p_tags,'{}'),auth.uid());
    insert into public.channel_members(user_id,channel_id) values(auth.uid(),target) on conflict do nothing;
-   update public.channels set members_count=1 where id=target;
+   update public.channels set members_count=1,status=p_status where id=target;
  else
    update public.channels set name=btrim(p_name),description=coalesce(p_description,''),
    category=coalesce(p_category,''),icon_url=p_icon,audience=p_audience,tags=coalesce(p_tags,'{}'),
