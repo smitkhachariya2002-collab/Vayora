@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:vayora/main.dart';
@@ -12,6 +13,13 @@ void main(){
     tester.view.devicePixelRatio=1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    final kinds=<String>[];
+    const media=MethodChannel('app/media');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(media,(call)async{
+      kinds.add((call.arguments as Map)['kind'] as String);
+      return null;
+    });
+    addTearDown(()=>tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(media,null));
     final f=Fixture();
     f.intercept=(r)=>['/cloud_files','/posts','/channel_members','/profiles'].any((p)=>r.url.path.endsWith(p))
       ? http.Response(jsonEncode(<Object>[]),200,request:r,headers:{'content-type':'application/json'}) : null;
@@ -35,6 +43,18 @@ void main(){
     await tester.pumpAndSettle();
     expect(find.text('Photos & Videos'),findsOneWidget);
     expect(find.text('Files'),findsOneWidget);
+    await tester.tap(find.text('Photos & Videos'));
+    await tester.pumpAndSettle();
+    expect(kinds,['media']);
+    await tester.runAsync(()async{
+      await tester.tap(find.text('Upload'));
+      await Future<void>.delayed(const Duration(milliseconds:100));
+    });
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Files'));
+    await tester.pumpAndSettle();
+    expect(kinds,['media','any']);
+    expect(find.byTooltip('New folder'),findsOneWidget);
     expect(tester.takeException(),isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.runAsync(f.close);
