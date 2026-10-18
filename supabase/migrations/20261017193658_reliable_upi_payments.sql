@@ -105,10 +105,14 @@ begin
  if not found then raise exception 'Order not found'; end if;
  -- Save first. The exception subtransaction below cannot roll back this evidence.
  update public.payment_orders set raw_response=coalesce(p_raw,'') where id=p_order;
- insert into public.payment_events(order_id,kind,detail) values(p_order,'client_report',coalesce(p_raw,''));
  begin
   data=private.payment_response(p_raw); st=upper(coalesce(data->>'status',''));
-  update public.payment_orders set client_status=left(st,80) where id=p_order;
+ exception when others then
+  data='{}'::jsonb;st='UNPARSEABLE';
+ end;
+ update public.payment_orders set client_status=left(st,80) where id=p_order;
+ insert into public.payment_events(order_id,kind,detail) values(p_order,'client_report',coalesce(p_raw,''));
+ begin
   if ord.status not in ('pending','submitted','review') then return ord.status; end if;
   if st in ('FAILURE','FAILED') then
    update public.payment_orders set status='failed',reason='client reported failure' where id=p_order; return 'failed';
@@ -345,3 +349,9 @@ create function public.provider_payment_update(order_id uuid,status text,amount_
 language sql set search_path='' as $$select private.provider_payment_update(order_id,status,amount_paise,utr,provider_ref)$$;
 revoke all on function private.provider_payment_update(uuid,text,bigint,text,text),public.provider_payment_update(uuid,text,bigint,text,text) from public,anon,authenticated;
 grant execute on function private.provider_payment_update(uuid,text,bigint,text,text),public.provider_payment_update(uuid,text,bigint,text,text) to service_role;
+
+-- Names from the intent integration contract, with existing app RPCs retained.
+create function public.create_order(plan_id uuid) returns jsonb language sql set search_path='' as $$select private.create_payment_order(plan_id)$$;
+create function public.report_result(order_id uuid,raw_answer text) returns text language sql set search_path='' as $$select private.report_payment_result(order_id,raw_answer)$$;
+revoke all on function public.create_order(uuid),public.report_result(uuid,text) from public,anon;
+grant execute on function public.create_order(uuid),public.report_result(uuid,text) to authenticated;

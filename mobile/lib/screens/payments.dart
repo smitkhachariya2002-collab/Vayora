@@ -24,13 +24,14 @@ String paymentLabel(String status) => switch (status) {
 };
 NoticeTone paymentTone(String status) => switch (status) {
   'paid' || 'success' => NoticeTone.success,
-  'revoked' => NoticeTone.danger,
+  'revoked' || 'rejected' => NoticeTone.danger,
   'initiated' || 'failed' || 'cancelled' || 'expired' => NoticeTone.neutral,
   _ => NoticeTone.warning,
 };
 String paymentMessage(String status) => switch (status) {
   'paid' || 'success' => 'Payment successful! Your plan is now active.',
   'failed' => 'Payment failed. Please try again.',
+  'rejected' => 'Payment rejected after bank review. Contact support if you need help.',
   'cancelled' => 'Payment cancelled. You can try again.',
   'revoked' =>
     'This payment was reversed after review. Contact support if you think this is wrong.',

@@ -74,5 +74,31 @@ select lives_ok($$select public.provider_payment_update((select id from upi_orde
 select lives_ok($$select public.provider_payment_update((select id from upi_orders where kind='third'),'SUCCESS',4900,'123456789013','bank-alert-1')$$,'Provider retry idempotent');
 reset role;
 select is((select count(*) from public.subscriptions where order_id=(select id from upi_orders where kind='third')),1::bigint,'Provider does not double grant');
+
+-- Evidence must survive activation failures, including an unrelated downstream trigger.
+set local role authenticated;
+insert into upi_orders select 'failure-test',(x->>'id')::uuid,x->>'reference' from(select public.create_payment_order((select id from public.plans where code='trial'))x)q;
+reset role;
+create function pg_temp.block_activation()returns trigger language plpgsql as $begin raise exception 'Simulated subscription write failure';end$;
+create trigger test_activation_failure before insert on public.subscriptions for each row execute function pg_temp.block_activation();
+set local role authenticated;
+select is(public.report_payment_result((select id from upi_orders where kind='failure-test'),'Status=SUCCESS&txnId=EVIDENCE01'),'pending','Activation error does not lose report');
+select is((select raw_response from public.payment_orders where id=(select id from upi_orders where kind='failure-test')),'Status=SUCCESS&txnId=EVIDENCE01','Raw result survives exception subtransaction');
+select is((select client_status from public.payment_orders where id=(select id from upi_orders where kind='failure-test')),'SUCCESS','Parsed status survives exception subtransaction');
+select is((select result_note from public.payment_orders where id=(select id from upi_orders where kind='failure-test')),'Simulated subscription write failure','Activation failure explains pending result');
+reset role;
+drop trigger test_activation_failure on public.subscriptions;
+update public.payment_settings set activation_mode='manual';
+set local role authenticated;
+select is(public.report_payment_result((select id from upi_orders where kind='failure-test'),'Status=SUCCESS&txnId=EVIDENCE01'),'review','Manual mode enters explicit review');
+reset role;
+select set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000001',true);
+select set_config('request.jwt.claims','{"sub":"91000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+set local role authenticated;
+select lives_ok($select public.admin_reject_payment((select id from upi_orders where kind='failure-test'),'No matching bank credit')$,'Owner rejects review');
+select is((select status from public.payment_orders where id=(select id from upi_orders where kind='failure-test')),'rejected','Rejected terminal status');
+select throws_ok($select public.admin_mark_payment_paid((select id from upi_orders where kind='failure-test'),'123456789014')$,'P0001','Order closed','Rejected order cannot be reactivated');
+reset role;
+select ok(exists(select 1 from private.used_payment_utrs where utr='EVIDENCE01'),'Rejected transaction remains reserved');
 select * from finish();
 rollback;
