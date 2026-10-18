@@ -612,7 +612,8 @@ class _ProfilePlanPickerState extends State<ProfilePlanPicker> {
           else if(catalog.rows.isEmpty) const Text('No plans available right now.')
           else ...[
             DropdownButtonFormField<String>(
-              value:plan?['id'] as String?,
+              key: ValueKey(catalog.selected),
+              initialValue:plan?['id'] as String?,
               isExpanded:true,
               decoration:const InputDecoration(labelText:'Premium plan'),
               hint:const Text('Select a plan'),
