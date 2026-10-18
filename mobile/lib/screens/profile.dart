@@ -423,6 +423,8 @@ class _ProfileState extends State<Profile> {
                       ),
                       if (state.paidEnabled) ...[
                         const SizedBox(height: 16),
+                        ProfilePlanPicker(state: state),
+                        const SizedBox(height: 12),
                         ProfileTile(
                           icon: Icons.workspace_premium_outlined,
                           title: hasPlan ? 'Manage Premium' : 'Explore Premium',

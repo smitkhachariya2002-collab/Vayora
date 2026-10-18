@@ -25,7 +25,7 @@ void main() {
       var accept = false;
       var acknowledgements = 0;
       final native = {'order': 'Status=SUCCESS&txnId=RECOVER01'};
-      f.intercept = (r) => r.url.path.endsWith('/report_payment_result')
+      f.intercept = (r) => r.url.path.endsWith('/report_result')
           ? (accept
                 ? json(r, 'paid')
                 : json(r, {
@@ -73,9 +73,8 @@ void main() {
       final f = Fixture();
       var recover = false;
       var accepted = 0;
-      f.intercept = (r) => r.url.path.endsWith('/report_payment_result')
-          ? json(r, 'paid')
-          : null;
+      f.intercept = (r) =>
+          r.url.path.endsWith('/report_result') ? json(r, 'paid') : null;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
             if (call.method == 'pending') {
@@ -93,9 +92,7 @@ void main() {
       await restarted.initialize(watchRemoteChanges: false);
       expect(accepted, 1);
       expect(
-        f.calls
-            .lastWhere((r) => r.url.path.endsWith('/report_payment_result'))
-            .body,
+        f.calls.lastWhere((r) => r.url.path.endsWith('/report_result')).body,
         contains('restored-order'),
       );
       restarted.dispose();
@@ -109,7 +106,7 @@ void main() {
     () async {
       final f = Fixture();
       var acks = 0;
-      f.intercept = (r) => r.url.path.endsWith('/report_payment_result')
+      f.intercept = (r) => r.url.path.endsWith('/report_result')
           ? json(r, {'code': 'P0001', 'message': 'Order not found'}, 400)
           : null;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -132,7 +129,7 @@ void main() {
       expect(readQueue(f), {'other': 'Status=SUCCESS'});
       expect(acks, 1);
       expect(
-        f.calls.where((r) => r.url.path.endsWith('/report_payment_result')),
+        f.calls.where((r) => r.url.path.endsWith('/report_result')),
         hasLength(1),
       );
       await f.close();

@@ -436,8 +436,8 @@ class AppState extends ChangeNotifier {
         if (owner != null && owner != userId) continue;
         try {
           await db.rpc(
-            'report_payment_result',
-            params: {'order_id': entry.key, 'raw': entry.value},
+            'report_result',
+            params: {'order_id': entry.key, 'raw_answer': entry.value},
           );
           queue.remove(entry.key);
           await prefs.setString('pending_payments', jsonEncode(queue));

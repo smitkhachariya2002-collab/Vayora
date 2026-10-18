@@ -505,6 +505,14 @@ class PaymentStatusView extends StatelessWidget {
               ),
             ),
           ),
+          if (!success && order['client_status'] == 'SUCCESS') ...[
+            const SizedBox(height: 16),
+            const Text(
+              'Your UPI app reported success. This payment needs verification. '
+              'Do not pay again. Enter the 12-digit bank UTR below so we can check it.',
+              textAlign: TextAlign.center,
+            ),
+          ],
           if (noAnswer && !success) ...[
             const SizedBox(height: 16),
             const Text(

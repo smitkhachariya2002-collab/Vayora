@@ -39,6 +39,9 @@ jobs:
       - name: Verify native Android compilation
         working-directory: mobile
         run: flutter build apk --debug --flavor direct --target-platform android-arm64 --dart-define-from-file=config/public.json
+      - name: Test native discovery for arbitrary UPI app packages
+        working-directory: mobile/android
+        run: ./gradlew :app:testDirectDebugUnitTest -Pandroid.enableJetifier=false
       - name: Verify installed-app visibility in the compiled Android manifest
         working-directory: mobile
         run: |
@@ -53,7 +56,7 @@ jobs:
           PY
   release:
     needs: verify
-    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-app-discovery'))
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-app-discovery' || github.head_ref == 'fix/upi-order-window'))
     runs-on: ubuntu-latest
     environment: production
     env:

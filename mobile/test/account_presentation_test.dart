@@ -119,6 +119,8 @@ void main() {
       expect(find.text('Delete Account'), findsNothing);
       expect(find.text('Payment history'), findsNothing);
       await tester.ensureVisible(find.text('Add Channel'));
+      await tester.ensureVisible(find.text('Add Channel'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Add Channel'));
       await tester.pumpAndSettle();
       expect(find.text('Log in to create a channel'), findsOneWidget);

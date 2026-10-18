@@ -40,11 +40,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     // Register unconditionally and in stable order, before the activity starts.
     private val upiLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { answer ->
-        val data = answer.data
-        val raw = data?.getStringExtra("response")
-            ?: data?.extras?.keySet()?.mapNotNull { key -> data.extras?.get(key)?.toString() }?.firstOrNull { it.contains("Status=", true) }
-            ?: "Status=NO_RESPONSE&resultCode=${answer.resultCode}"
-        finishUpi(raw)
+        finishUpi(UpiApps.rawResult(answer.data, answer.resultCode))
     }
 
     private fun finishUpi(raw: String) {
@@ -68,23 +64,12 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun pickUpi(uri: Uri) {
-        // Generic intent discovery can be filtered on Android 11+. Explicitly visible
-        // known UPI packages supplement it; launch the selected package with the full URI.
-        val discovered = (packageManager.queryIntentActivities(Intent(Intent.ACTION_VIEW, uri), 0)
-            + packageManager.queryIntentActivities(Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay")), 0))
-            .filter { it.activityInfo.exported }.map { it.activityInfo.applicationInfo }
-        val known = listOf("com.google.android.apps.nbu.paisa.user", "com.phonepe.app",
-            "net.one97.paytm", "in.org.npci.upiapp").mapNotNull { name ->
-                try { packageManager.getApplicationInfo(name, 0) }
-                catch (_: android.content.pm.PackageManager.NameNotFoundException) { null }
-            }
-        val apps = (discovered + known).filter { it.enabled }.distinctBy { it.packageName }
-            .sortedBy { it.loadLabel(packageManager).toString().lowercase() }
+        val apps = UpiApps.discover(packageManager, uri)
         if (apps.isEmpty()) {
             val intent = Intent(Intent.ACTION_VIEW, uri)
             if (intent.resolveActivity(packageManager) == null) {
                 finishUpi("Status=NO_RESPONSE&resultCode=no_upi_app")
-            } else openUpi(Intent.createChooser(intent, "Pay with UPI"))
+            } else finishUpi("Status=NO_RESPONSE&resultCode=picker_unavailable")
             return
         }
         val adapter = object : ArrayAdapter<String>(this, android.R.layout.select_dialog_item,
@@ -100,7 +85,7 @@ class MainActivity : FlutterFragmentActivity() {
             }
         }
         AlertDialog.Builder(this).setTitle("Pay with UPI").setAdapter(adapter) { _, index ->
-            openUpi(Intent(Intent.ACTION_VIEW, uri).setPackage(apps[index].packageName))
+            openUpi(UpiApps.paymentIntent(uri, apps[index].packageName))
         }.setOnCancelListener { finishUpi("Status=NO_RESPONSE&resultCode=picker_cancelled") }.show()
     }
 
