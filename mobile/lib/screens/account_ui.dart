@@ -14,13 +14,16 @@ String premiumButtonLabel({
   required bool selected,
   required bool guest,
   required bool busy,
+  num? price,
 }) => busy
     ? 'Opening UPI…'
     : !selected
     ? 'Select a plan'
     : guest
     ? 'Next'
-    : 'Continue to payment';
+    : price == null
+    ? 'Continue to payment'
+    : 'Pay ₹${price.toStringAsFixed(price == price.roundToDouble() ? 0 : 2)} via UPI';
 
 enum PremiumBannerKind { active, pending, none }
 

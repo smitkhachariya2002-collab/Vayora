@@ -73,7 +73,7 @@ class MainActivity : FlutterFragmentActivity() {
             val intent = Intent(Intent.ACTION_VIEW, uri)
             if (intent.resolveActivity(packageManager) == null) {
                 finishUpi("Status=NO_RESPONSE&resultCode=no_upi_app")
-            } else openUpi(Intent.createChooser(intent, "Pay with UPI"))
+            } else finishUpi("Status=NO_RESPONSE&resultCode=picker_unavailable")
             return
         }
         val adapter = object : ArrayAdapter<String>(this, android.R.layout.select_dialog_item,
@@ -90,8 +90,6 @@ class MainActivity : FlutterFragmentActivity() {
         }
         AlertDialog.Builder(this).setTitle("Pay with UPI").setAdapter(adapter) { _, index ->
             openUpi(UpiApps.paymentIntent(uri, apps[index].packageName))
-        }.setNeutralButton("Other UPI apps") { _, _ ->
-            openUpi(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri), "Pay with UPI"))
         }.setOnCancelListener { finishUpi("Status=NO_RESPONSE&resultCode=picker_cancelled") }.show()
     }
 

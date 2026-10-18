@@ -38,7 +38,7 @@ void main() {
         if (request.url.path.endsWith('/payment_orders')) {
           return reply(request, order);
         }
-        if (request.url.path.endsWith('/report_payment_result')) {
+        if (request.url.path.endsWith('/report_result')) {
           return reply(request, 'pending');
         }
         if (request.url.path.endsWith('/payment_settings')) {

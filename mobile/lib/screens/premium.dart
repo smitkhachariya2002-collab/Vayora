@@ -83,6 +83,8 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
 
   Future<void> pay(Map<String, dynamic> plan) async {
     if (busy) return;
+    setState(() => busy = true);
+    try {
     if (!await accountLoginDialog(
           context,
           widget.state,
@@ -94,8 +96,6 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
     if (!await loginGate(context, widget.state) || !mounted) return;
     await widget.state.refreshStatus();
     if (!mounted || !widget.state.paidEnabled) return;
-    setState(() => busy = true);
-    try {
       final order = await launchPlanPayment(
         context,
         widget.state,
@@ -272,6 +272,7 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
                       selected: plan != null,
                       guest: state.guest,
                       busy: busy,
+                      price: plan?['price_inr'] as num?,
                     ),
                     icon: Icons.arrow_forward,
                     busy: busy,

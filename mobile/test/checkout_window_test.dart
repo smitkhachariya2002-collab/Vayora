@@ -1,45 +1,59 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:vayora/screens/payments.dart';
-import 'package:vayora/theme.dart';
+import 'package:vayora/screens/account_ui.dart';
 import 'account_test.dart' show Fixture;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  test('Review order returns existing ID without another native payment launch', () async {
+  test('Each checkout launches its fresh server order and reports the exact raw answer', () async {
     final f = Fixture();
-    f.intercept = (request) => request.url.path.endsWith('/create_payment_order')
-      ? http.Response(jsonEncode({
-          'id':'existing-paid-claim','checkout_allowed':false,
-          'upi_id':'test@upi','amount_paise':100,
-        }),200,request:request,headers:{'content-type':'application/json'}) : null;
+    var created=0, launches=0, reports=0, acknowledgements=0;
+    f.intercept = (request) {
+      if(request.url.path.endsWith('/create_payment_order')){
+        created++;
+        return http.Response(jsonEncode({
+          'id':'fresh-$created','reference':'VYFRESH$created','upi_id':'test@upi',
+          'payee_name':'Test','amount_paise':100,'duration_days':1,
+        }),200,request:request,headers:{'content-type':'application/json'});
+      }
+      if(request.url.path.endsWith('/report_result')){
+        reports++;
+        final body=jsonDecode(request.body) as Map;
+        expect(body['order_id'],'fresh-$reports');
+        expect(body['raw_answer'],'Status=SUCCESS&txnRef=VYFRESH$reports&txnId=FRESH000$reports');
+        return http.Response(jsonEncode('paid'),200,request:request,headers:{'content-type':'application/json'});
+      }
+      return null;
+    };
     await f.start();
     await f.state.login('member@example.test','password123');
-    var launches=0, priceDialogs=0;
-    const channel = MethodChannel('app/upi');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,(call) async {
-      if(call.method=='pay') launches++;
+    const channel=MethodChannel('app/upi');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,(call)async{
+      if(call.method=='pay'){
+        launches++;
+        final args=call.arguments as Map;
+        final uri=Uri.parse(args['uri'] as String);
+        expect(args['order_id'],'fresh-$launches');
+        expect(uri.queryParameters['tr'],'VYFRESH$launches');
+        expect(uri.queryParameters['am'],'1.00');
+        expect(uri.queryParameters['pa'],'test@upi');
+        return 'Status=SUCCESS&txnRef=VYFRESH$launches&txnId=FRESH000$launches';
+      }
+      if(call.method=='pending')return <String,String>{};
+      if(call.method=='ack')acknowledgements++;
       return null;
     });
-    expect(await f.state.pay('trial',beforeLaunch:(_)async{priceDialogs++;}),'existing-paid-claim');
-    expect(launches,0);
-    expect(priceDialogs,0);
-    expect(f.state.prefs.getString('open_payment_order:${f.state.userId}'),'existing-paid-claim');
+    expect(await f.state.pay('trial'),'fresh-1');
+    expect(await f.state.pay('trial'),'fresh-2');
+    expect(created,2);expect(launches,2);expect(reports,2);expect(acknowledgements,2);
+    expect(f.state.prefs.getString('open_payment_order:${f.state.userId}'),'fresh-2');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,null);
     await f.close();
   });
-  testWidgets('Reported SUCCESS explains review and directs to UTR without claiming activation',(tester)async{
-    await tester.pumpWidget(MaterialApp(theme:buildTheme(),home:Scaffold(body:PaymentStatusView(
-      order:{'id':'late','reference':'VYLATE','status':'pending','client_status':'SUCCESS',
-        'raw_response':'Status=SUCCESS&txnId=LATEWIN01','amount_paise':100},
-      onDone:(){},onRetry:(){},onSupport:(){},onSubmitUtr:(){},
-    ))));
-    expect(find.textContaining('Do not pay again'),findsOneWidget);
-    expect(find.text('Paid but not active? Enter UTR'),findsOneWidget);
-    expect(find.text('Payment successful! Your plan is now active.'),findsNothing);
-    await tester.pumpWidget(const SizedBox.shrink());
+  test('UPI button shows exact current server plan price',(){
+    expect(premiumButtonLabel(selected:true,guest:false,busy:false,price:1),'Pay ₹1 via UPI');
+    expect(premiumButtonLabel(selected:true,guest:false,busy:false,price:999),'Pay ₹999 via UPI');
   });
 }

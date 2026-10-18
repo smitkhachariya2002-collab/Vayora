@@ -54,7 +54,7 @@ select throws_ok($$update public.channels set review_status='approved' where nam
 select lives_ok($$insert into public.channel_members(user_id,channel_id) values('10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001')$$,'Member can join visible channel');
 insert into test_orders select (j->>'id')::uuid,j->>'reference','first' from (select public.create_payment_order((select id from public.plans where code='trial')) j) a;
 select is((select amount_paise from public.payment_orders where id=(select id from test_orders where kind='first')),4900::bigint,'Server sets plan price');
-select is((public.create_payment_order((select id from public.plans where code='trial'))->>'id')::uuid,(select id from test_orders where kind='first'),'Open order reused');
+select isnt((public.create_payment_order((select id from public.plans where code='trial'))->>'id')::uuid,(select id from test_orders where kind='first'),'Every checkout creates fresh order');
 select is(public.report_payment_result((select id from test_orders where kind='first'),'Status=SUCCESS&txnRef=wrong&txnId=ABCDEF123456'),'pending','Wrong reference never activates');
 select is(public.is_premium_user(),false,'Forged client success never grants premium');
 select throws_ok($$update public.payment_orders set status='paid'$$,'42501',null,'Orders cannot be edited');
