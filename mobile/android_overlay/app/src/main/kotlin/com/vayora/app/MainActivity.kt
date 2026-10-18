@@ -64,12 +64,13 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun pickUpi(uri: Uri) {
-        val apps = UpiApps.discover(packageManager, uri)
+        val apps = UpiApps.discover(packageManager, uri, packageName)
+        android.util.Log.d("VayoraUpi", "Discovered UPI apps: " + apps.joinToString { it.packageName })
         if (apps.isEmpty()) {
             val intent = Intent(Intent.ACTION_VIEW, uri)
             if (intent.resolveActivity(packageManager) == null) {
                 finishUpi("Status=NO_RESPONSE&resultCode=no_upi_app")
-            } else finishUpi("Status=NO_RESPONSE&resultCode=picker_unavailable")
+            } else openUpi(Intent.createChooser(intent, "Pay with UPI"))
             return
         }
         val adapter = object : ArrayAdapter<String>(this, android.R.layout.select_dialog_item,

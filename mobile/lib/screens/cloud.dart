@@ -222,36 +222,43 @@ class CloudViewState extends State<CloudView> implements CloudController {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.upload_file_outlined),
-              title: const Text('Upload file'),
-              onTap: () => Navigator.pop(sheet, 'upload'),
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Photos & Videos'),
+              onTap: () => Navigator.pop(sheet, 'media'),
             ),
             ListTile(
-              leading: const Icon(Icons.create_new_folder_outlined),
-              title: const Text('New folder'),
-              onTap: () => Navigator.pop(sheet, 'folder'),
+              leading: const Icon(Icons.insert_drive_file_outlined),
+              title: const Text('Files'),
+              onTap: () => Navigator.pop(sheet, 'files'),
             ),
           ],
         ),
       ),
     );
-    if (action == 'folder' && mounted) {
-      final name = await askName('New folder');
-      if (name == null || !mounted) return;
-      await runAction(context, () async {
-        await state.db.rpc(
-          'cloud_reserve',
-          params: {'name': name, 'parent_id': parent, 'is_folder': true},
-        );
-        await refresh();
-      });
-    } else if (action == 'upload') {
-      await upload();
+    if (!mounted) return;
+    if (action == 'media' || action == 'files') {
+      await upload(kind: action == 'media' ? 'media' : 'any');
     }
   }
 
-  Future<void> upload() async {
-    final file = await PickedMedia.pick(kind: 'any');
+  Future<void> createFolder() async {
+    if (busy || !await loginGate(context, state) || !mounted) return;
+    await state.refreshStatus();
+    if (!mounted) return;
+    if ((state.status['quota_bytes'] as num? ?? 0) <= 0) {
+      await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => Plans(state: state)));
+      return;
+    }
+    final name = await askName('New folder');
+    if (name == null || !mounted) return;
+    await runAction(context, () async {
+      await state.db.rpc('cloud_reserve', params: {'name': name, 'parent_id': parent, 'is_folder': true});
+      await refresh();
+    });
+  }
+
+  Future<void> upload({required String kind}) async {
+    final file = await PickedMedia.pick(kind: kind);
     if (file == null || !mounted) return;
     if (file.size > 52428800) {
       showFeedback(context, '50 MB maximum per file');
@@ -531,6 +538,11 @@ class CloudViewState extends State<CloudView> implements CloudController {
                       },
                       child: const Text('Cloud'),
                     ),
+                    IconButton(
+                      tooltip: 'New folder',
+                      onPressed: busy ? null : createFolder,
+                      icon: const Icon(Icons.create_new_folder_outlined),
+                    ),
                     for (var i = 0; i < crumbs.length; i++)
                       TextButton(
                         onPressed: () {
@@ -563,8 +575,7 @@ class CloudViewState extends State<CloudView> implements CloudController {
                   const EmptyState(
                     icon: Icons.folder_open_outlined,
                     title: 'No files yet',
-                    message:
-                        'Tap Add to Cloud to upload a file or create a folder.',
+                    message: 'Tap Upload to add photos, videos or files.',
                   )
                 else
                   for (final row in rows)
@@ -590,8 +601,8 @@ class CloudViewState extends State<CloudView> implements CloudController {
                     ),
                 const SizedBox(height: 16),
                 GradientButton(
-                  label: 'Add to Cloud',
-                  icon: Icons.add,
+                  label: 'Upload',
+                  icon: Icons.cloud_upload_outlined,
                   onPressed: busy ? null : actions,
                 ),
               ],
