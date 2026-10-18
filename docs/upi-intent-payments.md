@@ -42,7 +42,7 @@ A UPI-app SUCCESS comes from the customer's phone and can be forged. Reference/f
 
 1. Install Vayora 0.3.2 (build 5) with the deployed fresh-order migration. Do not recover or repay the old ₹1 order.
 2. In admin Plans confirm the existing Trial is active, ₹1 and one day. In Payments confirm activation_mode is instant and payments are enabled. Do not change other plans.
-3. Log in on the phone. Open Profile → Explore Premium / Manage Premium, select Trial, and tap “Pay ₹1 via UPI” once.
+3. Log in on the phone. Open Profile, select Trial from the Premium plan selector, and tap “Pay ₹1 via UPI” once.
 4. In Vayora’s icon/name picker choose a UPI app. Check ₹1.00 and the authorized payee (2728412a@bandhan / AS Enterprice), then complete payment promptly, within two hours. Do not share a PIN/OTP/password. A valid returned SUCCESS with matching reference and unused transaction ID activates one full day from max(now, current expiry). Vayora shows “Payment successful! Your plan is now active.” Failure shows its failure message. Unknown/no response remains pending and polls every five seconds for ten minutes and on resume. If debited while pending, do not pay again; bank verification is needed. The existing three-auto-activations/24-hour limit can also send a test to review.
 5. Repeat status checks and report submission; expiry must not extend again. Test another order with the same identifier; it must be blocked.
 6. Revoke with a reason and confirm only that purchase's time is removed. Repeat with instant mode if you accept its client-response risk; the order must carry Verify against bank.
