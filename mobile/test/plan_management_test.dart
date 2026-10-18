@@ -53,13 +53,15 @@ void main() {
   });
   test('Catalog requests ascending owner-defined order explicitly', () async {
     final f = Fixture();
-    f.intercept = (r) => r.url.path.endsWith('/plans') ? reply(r,[]) : null;
+    f.intercept = (r) => r.url.path.endsWith('/plans') ? reply(r, []) : null;
     await f.start();
     final catalog = PlanCatalog(f.db);
     await catalog.refresh();
     final request = f.calls.lastWhere((r) => r.url.path.endsWith('/plans'));
-    expect(request.url.queryParameters['order'],
-      'position.asc.nullslast,created_at.asc.nullslast');
+    expect(
+      request.url.queryParameters['order'],
+      'position.asc.nullslast,created_at.asc.nullslast',
+    );
     catalog.dispose();
     await f.close();
   });

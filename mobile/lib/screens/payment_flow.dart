@@ -71,14 +71,13 @@ Future<Map<String, dynamic>?> launchPlanPayment(
               'You can pay this UPI ID from another device, then enter the 12-digit UTR on the payment screen.\n\n${upiId ?? 'Return to your plan and try again to load the UPI ID.'}',
             ),
             actions: [
-              if (upiId != null) TextButton(
-                onPressed: () async {
-                  await Clipboard.setData(
-                    ClipboardData(text: upiId),
-                  );
-                },
-                child: const Text('Copy UPI ID'),
-              ),
+              if (upiId != null)
+                TextButton(
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: upiId));
+                  },
+                  child: const Text('Copy UPI ID'),
+                ),
               TextButton(
                 onPressed: () => Navigator.pop(dialog),
                 child: const Text('Continue'),
