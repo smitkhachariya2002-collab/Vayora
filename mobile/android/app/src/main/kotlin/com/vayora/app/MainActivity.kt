@@ -13,7 +13,6 @@ import android.media.ExifInterface
 import java.io.File
 import java.io.ByteArrayOutputStream
 import android.app.DownloadManager
-import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -21,11 +20,6 @@ import android.net.Uri
 import android.os.Environment
 import io.flutter.embedding.android.FlutterFragmentActivity
 import androidx.activity.result.contract.ActivityResultContracts
-import android.app.AlertDialog
-import android.widget.ArrayAdapter
-import android.widget.TextView
-import android.view.View
-import android.view.ViewGroup
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
@@ -50,44 +44,23 @@ class MainActivity : FlutterFragmentActivity() {
         callback = null
     }
 
-    private fun openUpi(intent: Intent) {
-        try { upiLauncher.launch(intent) }
-        catch (_: Exception) {
-            try {
-                startActivity(intent)
-                // No activity result: persist an explicit unknown result for server/poll recovery.
-                finishUpi("Status=NO_RESPONSE&resultCode=launch_without_result")
-            } catch (_: Exception) {
-                finishUpi("Status=NO_RESPONSE&resultCode=no_upi_app")
-            }
-        }
-    }
-
     private fun pickUpi(uri: Uri) {
-        val apps = UpiApps.discover(packageManager, uri, packageName)
-        android.util.Log.d("VayoraUpi", "Discovered UPI apps: " + apps.joinToString { it.packageName })
-        if (apps.isEmpty()) {
-            val intent = Intent(Intent.ACTION_VIEW, uri)
-            if (intent.resolveActivity(packageManager) == null) {
-                finishUpi("Status=NO_RESPONSE&resultCode=no_upi_app")
-            } else openUpi(Intent.createChooser(intent, "Pay with UPI"))
-            return
-        }
-        val adapter = object : ArrayAdapter<String>(this, android.R.layout.select_dialog_item,
-            apps.map { it.loadLabel(packageManager).toString() }) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val view = super.getView(position, convertView, parent) as TextView
-                val icon = apps[position].loadIcon(packageManager)
-                val size = (40 * resources.displayMetrics.density).toInt()
-                icon.setBounds(0, 0, size, size)
-                view.setCompoundDrawables(icon, null, null, null)
-                view.compoundDrawablePadding = (16 * resources.displayMetrics.density).toInt()
-                return view
+        UpiLaunch.launch(
+            uri,
+            discoverCount = {
+                val apps = UpiApps.discover(packageManager, uri, packageName)
+                android.util.Log.d("VayoraUpi", "Discovered UPI apps: " + apps.joinToString { it.packageName })
+                apps.size
+            },
+            open = { upiLauncher.launch(it) },
+            failed = { code, message ->
+                // Launch failures are not payment responses. Keep the order for the UTR fallback.
+                store.edit().remove("active_order").commit()
+                val reply = callback
+                callback = null
+                reply?.error(code, message, null)
             }
-        }
-        AlertDialog.Builder(this).setTitle("Pay with UPI").setAdapter(adapter) { _, index ->
-            openUpi(UpiApps.paymentIntent(uri, apps[index].packageName))
-        }.setOnCancelListener { finishUpi("Status=NO_RESPONSE&resultCode=picker_cancelled") }.show()
+        )
     }
 
     override fun configureFlutterEngine(engine: FlutterEngine) {

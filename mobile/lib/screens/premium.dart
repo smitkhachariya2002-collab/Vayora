@@ -76,7 +76,10 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) unawaited(refresh());
+    if (state == AppLifecycleState.resumed) {
+      if (checkoutRequested && busy && mounted) setState(() => busy = false);
+      unawaited(refresh());
+    }
   }
 
   @override
@@ -109,6 +112,9 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
         widget.state,
         plan['id'] as String,
         displayedPrice: plan['price_inr'] as num,
+        onLaunchFinished: () {
+          if (mounted) setState(() => busy = false);
+        },
       );
       if (order != null && mounted) {
         await Navigator.push(
@@ -286,7 +292,9 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
                     ),
                     icon: Icons.arrow_forward,
                     busy: busy,
-                    onPressed: busy || plan == null ? null : () => pay(plan),
+                    onPressed: checkoutRequested || plan == null
+                        ? null
+                        : () => pay(plan),
                   ),
                 ),
               ),

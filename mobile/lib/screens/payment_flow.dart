@@ -9,7 +9,15 @@ Future<Map<String, dynamic>?> launchPlanPayment(
   AppState state,
   String planId, {
   num? displayedPrice,
+  VoidCallback? onLaunchFinished,
 }) async {
+  var launchFinished = false;
+  void finishLaunch() {
+    if (launchFinished) return;
+    launchFinished = true;
+    onLaunchFinished?.call();
+  }
+
   try {
     final id = playStore
         ? await state.payPlay(
@@ -47,6 +55,7 @@ Future<Map<String, dynamic>?> launchPlanPayment(
               }
             },
           );
+    finishLaunch();
     if (id == null) {
       if (context.mounted && state.premium) {
         showFeedback(context, 'Payment successful! Your plan is now active.');
@@ -59,63 +68,49 @@ Future<Map<String, dynamic>?> launchPlanPayment(
         .eq('user_id', state.userId)
         .eq('id', id)
         .single();
-    if ((order['raw_response'] as String? ?? '').contains('no_upi_app') &&
-        context.mounted) {
-      final upiId = state.paymentUpiId(id);
-      if (context.mounted) {
-        await showDialog<void>(
-          context: context,
-          builder: (dialog) => AlertDialog(
-            title: const Text('No UPI app found'),
-            content: Text(
-              'You can pay this UPI ID from another device, then enter the 12-digit UTR on the payment screen.\n\n${upiId ?? 'Return to your plan and try again to load the UPI ID.'}',
-            ),
-            actions: [
-              if (upiId != null)
-                TextButton(
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: upiId));
-                  },
-                  child: const Text('Copy UPI ID'),
-                ),
-              TextButton(
-                onPressed: () => Navigator.pop(dialog),
-                child: const Text('Continue'),
-              ),
-            ],
-          ),
-        );
-      }
-    }
     return order;
   } on PlatformException catch (error) {
+    finishLaunch();
     if (!context.mounted) return null;
-    if (error.code == 'no_upi') {
+    if (error.code == 'NO_UPI_APP') {
+      final id = state.prefs.getString('open_payment_order:${state.userId}');
+      final upiId = id == null ? null : state.paymentUpiId(id);
       await showDialog<void>(
         context: context,
         builder: (dialog) => AlertDialog(
           title: const Text('No UPI app found'),
-          content: const Text(
-            'Install a UPI app, then return to choose your plan.',
+          content: Text(
+            'You can pay this UPI ID from another device, then enter the 12-digit UTR on the payment screen.\n\n${upiId ?? 'Return to your plan and try again to load the UPI ID.'}',
           ),
           actions: [
+            if (upiId != null)
+              TextButton(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: upiId));
+                },
+                child: const Text('Copy UPI ID'),
+              ),
             TextButton(
               onPressed: () => Navigator.pop(dialog),
-              child: const Text('OK'),
+              child: const Text('Continue'),
             ),
           ],
         ),
       );
+      return id == null ? null : {'id': id};
     } else {
       showFeedback(context, 'Could not open payment. Please try again.');
     }
   } on Object {
+    finishLaunch();
     if (context.mounted) {
       showFeedback(
         context,
         'Could not start payment. Check your payment history before trying again.',
       );
     }
+  } finally {
+    finishLaunch();
   }
   return null;
 }
