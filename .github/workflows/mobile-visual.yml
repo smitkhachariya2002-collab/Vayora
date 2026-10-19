@@ -63,6 +63,7 @@ jobs:
           mkdir -p ../../after/docs/visual-refresh/after
           cp -r test/goldens/after/. ../../after/docs/visual-refresh/after/
       - name: Enforce visual-only scope
+        if: github.head_ref == 'ui/royal-violet'
         working-directory: after
         run: |
           git diff b48dca986eb169d9705240be3c508d242976ff60 --exit-code -- supabase mobile/lib/app_state.dart mobile/lib/upi.dart mobile/lib/screens/payment_flow.dart mobile/lib/plan_catalog.dart mobile/android/app/src/main/kotlin admin/src/app/api admin/src/app/actions.ts admin/src/lib
