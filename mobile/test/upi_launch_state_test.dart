@@ -32,9 +32,15 @@ void main() {
         headers: {'content-type': 'application/json'},
       );
       f.intercept = (r) {
-        if (r.url.path.endsWith('/plans')) return reply(r, [plan]);
-        if (r.url.path.endsWith('/create_payment_order')) return reply(r, order);
-        if (r.url.path.endsWith('/report_result')) return reply(r, 'pending');
+        if (r.url.path.endsWith('/plans')) {
+          return reply(r, [plan]);
+        }
+        if (r.url.path.endsWith('/create_payment_order')) {
+          return reply(r, order);
+        }
+        if (r.url.path.endsWith('/report_result')) {
+          return reply(r, 'pending');
+        }
         if (r.url.path.endsWith('/payment_orders')) {
           return reply(r, r.url.queryParameters.containsKey('id') ? order : []);
         }
@@ -47,7 +53,9 @@ void main() {
       const channel = MethodChannel('app/upi');
       final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
       messenger.setMockMethodCallHandler(channel, (call) async {
-        if (call.method == 'pending') return <String, String>{};
+        if (call.method == 'pending') {
+          return <String, String>{};
+        }
         if (call.method == 'pay') {
           launches++;
           expect((call.arguments as Map)['uri'],
