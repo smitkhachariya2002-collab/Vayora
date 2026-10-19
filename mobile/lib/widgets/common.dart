@@ -88,13 +88,9 @@ class BrandMark extends StatelessWidget {
         borderRadius: Radii.chipRadius,
       ),
       alignment: Alignment.center,
-      child: const Text(
-        'V',
-        style: TextStyle(
-          fontSize: AppSizes.logoLetter,
-          fontWeight: FontWeight.w700,
-          color: AppColors.ink,
-        ),
+      child: Image.asset(
+        'assets/branding/icon_foreground.png',
+        fit: BoxFit.contain,
       ),
     ),
   );
@@ -693,7 +689,7 @@ Future<bool> confirmAction(
             FilledButton(
               style: destructive
                   ? FilledButton.styleFrom(
-                      backgroundColor: AppColors.danger,
+                      backgroundColor: AppColors.controlDanger,
                       foregroundColor: AppColors.white,
                     )
                   : null,

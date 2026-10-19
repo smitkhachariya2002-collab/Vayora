@@ -1,0 +1,1 @@
+Actual API 35 AOSP emulator screenshots. launcher-home.png uses the installed debug APK; native-splash.png is the earliest matching launch frame. All raw launch frames are retained. Adaptive circle/squircle and monochrome previews are in ../branding/adaptive-masks.png.

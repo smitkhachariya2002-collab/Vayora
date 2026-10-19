@@ -495,7 +495,9 @@ class PlanCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? AppColors.selectedPlan : AppColors.surface,
           boxShadow: selected
-              ? const [BoxShadow(color: AppColors.selectedShadow, blurRadius: 16)]
+              ? const [
+                  BoxShadow(color: AppColors.selectedShadow, blurRadius: 16),
+                ]
               : null,
           borderRadius: Radii.cardRadius,
           border: Border.all(

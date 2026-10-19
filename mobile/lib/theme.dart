@@ -5,7 +5,7 @@ abstract final class AppBrand {
   static const name = 'Vayora';
   static const support = 'help.vayora@gmail.com';
   static const font = 'Poppins';
-  static const version = '0.3.5';
+  static const version = '0.3.6';
 }
 
 abstract final class AppColors {
@@ -19,46 +19,57 @@ abstract final class AppColors {
   static const success = Color(0xFF34D399), successBg = Color(0xFF10261D);
   static const warning = Color(0xFFFBBF24), warningBg = Color(0xFF2A1F10);
   static const danger = Color(0xFFFF5A5F), dangerBg = Color(0xFF2B1414);
+  static const controlDanger = Color(0xFFB52F3B);
   static const navigation = Color(0xFF10101E), black = Color(0xFF000000);
   static const white = Color(0xFFFFFFFF), transparent = Color(0x00000000);
   static const pill = Color(0xD9141424), veil = Color(0x88000000);
   static const shimmer = surfaceHigh, softPrimary = Color(0x337C5CFF);
   static const selectedPlan = Color(0xFF1E1838);
-  static const heroShadow = Color(0x337C5CFF), selectedShadow = Color(0x227C5CFF);
+  static const heroShadow = Color(0x337C5CFF),
+      selectedShadow = Color(0x227C5CFF);
   // Owner-approved contrast adjustment for small white control labels.
   static const controlPrimary = Color(0xFF6D51E0), onAction = white;
   static const gradient = LinearGradient(
-    begin: Alignment.topLeft, end: Alignment.bottomRight,
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
     colors: [Color(0xFF6A5CFF), Color(0xFF9B5CFF), accent],
   );
   // The same gradient under a 25% dark scrim: white text exceeds 4.5:1.
   static const actionGradient = LinearGradient(
-    begin: Alignment.topLeft, end: Alignment.bottomRight,
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
     colors: [Color(0xFF5045BF), Color(0xFF7445BF), Color(0xFFBF457E)],
   );
   static const barGradient = RadialGradient(
-    center: Alignment(1.1, -2.2), radius: 2.4,
+    center: Alignment(1.1, -2.2),
+    radius: 2.4,
     colors: [Color(0xFF241A4A), background],
   );
   static const profileGradient = LinearGradient(
-    begin: Alignment.topLeft, end: Alignment.bottomRight,
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
     colors: [Color(0xFF7C5CFF), Color(0xFF3B1F8A), Color(0xFF160E2E)],
   );
   static const profileFade = LinearGradient(
-    begin: Alignment.topCenter, end: Alignment.bottomCenter,
-    colors: [Color(0x22000000), background], stops: [.45, 1],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0x22000000), background],
+    stops: [.45, 1],
   );
   static const softGradient = LinearGradient(
-    begin: Alignment.topLeft, end: Alignment.bottomRight,
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
     colors: [Color(0xFF1C1830), surface],
   );
   static const glow = RadialGradient(colors: [Color(0x557C5CFF), transparent]);
   static const scrim = LinearGradient(
-    begin: Alignment.topCenter, end: Alignment.bottomCenter,
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
     colors: [transparent, Color(0xB3000000)],
   );
   static const googleBlue = Color(0xFF4285F4), googleRed = Color(0xFFEA4335);
-  static const googleYellow = Color(0xFFFBBC05), googleGreen = Color(0xFF34A853);
+  static const googleYellow = Color(0xFFFBBC05),
+      googleGreen = Color(0xFF34A853);
 }
 
 abstract final class Gap {
@@ -380,18 +391,43 @@ ThemeData buildTheme() {
           fontSize: AppSizes.bodySmall,
           fontWeight: FontWeight.w500,
           color: states.contains(WidgetState.selected)
-              ? AppColors.primary
+              ? AppColors.primaryText
               : AppColors.muted,
         ),
       ),
     ),
     textSelectionTheme: const TextSelectionThemeData(
-      cursorColor: AppColors.primary, selectionColor: AppColors.softPrimary,
+      cursorColor: AppColors.primary,
+      selectionColor: AppColors.softPrimary,
       selectionHandleColor: AppColors.primary,
     ),
-    radioTheme: RadioThemeData(fillColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? AppColors.primary : AppColors.muted)),
-    checkboxTheme: CheckboxThemeData(fillColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? AppColors.primary : AppColors.transparent), checkColor: const WidgetStatePropertyAll(AppColors.ink)),
-    switchTheme: SwitchThemeData(thumbColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? AppColors.primary : AppColors.muted), trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? AppColors.softPrimary : AppColors.surfaceHigh)),
+    radioTheme: RadioThemeData(
+      fillColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected)
+            ? AppColors.primary
+            : AppColors.muted,
+      ),
+    ),
+    checkboxTheme: CheckboxThemeData(
+      fillColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected)
+            ? AppColors.primary
+            : AppColors.transparent,
+      ),
+      checkColor: const WidgetStatePropertyAll(AppColors.ink),
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected)
+            ? AppColors.primary
+            : AppColors.muted,
+      ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected)
+            ? AppColors.softPrimary
+            : AppColors.surfaceHigh,
+      ),
+    ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(
       color: AppColors.primary,
       linearTrackColor: AppColors.border,

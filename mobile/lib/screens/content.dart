@@ -240,10 +240,10 @@ class _ContentListState extends State<ContentList> {
             return Padding(
               padding: const EdgeInsets.only(top: Gap.l),
               child: SkeletonBlock(
-              height:
-                  AppSizes.avatarRail *
-                  MediaQuery.textScalerOf(context).scale(AppSizes.body) /
-                  AppSizes.body,
+                height:
+                    AppSizes.avatarRail *
+                    MediaQuery.textScalerOf(context).scale(AppSizes.body) /
+                    AppSizes.body,
               ),
             );
           }
@@ -262,43 +262,43 @@ class _ContentListState extends State<ContentList> {
           return Padding(
             padding: const EdgeInsets.only(top: Gap.l),
             child: SizedBox(
-            height:
-                AppSizes.avatarRail *
-                MediaQuery.textScalerOf(context).scale(AppSizes.body) /
-                AppSizes.body,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: rows.length,
-              separatorBuilder: (_, _) => const SizedBox(width: Gap.l),
-              itemBuilder: (context, index) {
-                final row = rows[index];
-                return SizedBox(
-                  width: AppSizes.logoLarge,
-                  child: PressScale(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            ChannelDetail(state: widget.state, channel: row),
+              height:
+                  AppSizes.avatarRail *
+                  MediaQuery.textScalerOf(context).scale(AppSizes.body) /
+                  AppSizes.body,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: rows.length,
+                separatorBuilder: (_, _) => const SizedBox(width: Gap.l),
+                itemBuilder: (context, index) {
+                  final row = rows[index];
+                  return SizedBox(
+                    width: AppSizes.logoLarge,
+                    child: PressScale(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              ChannelDetail(state: widget.state, channel: row),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          ChannelAvatar(channel: row),
+                          const SizedBox(height: Gap.s),
+                          Text(
+                            row['name'] as String,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        ChannelAvatar(channel: row),
-                        const SizedBox(height: Gap.s),
-                        Text(
-                          row['name'] as String,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
             ),
           );
         },

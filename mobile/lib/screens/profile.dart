@@ -670,7 +670,7 @@ class AccountControls extends StatelessWidget {
               ),
               FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.danger,
+                  backgroundColor: AppColors.controlDanger,
                   foregroundColor: AppColors.white,
                 ),
                 onPressed: () => Navigator.pop(dialog, true),

@@ -1,7 +1,7 @@
 name: vayora
 description: Cloud storage and creator channels for India.
 publish_to: none
-version: 0.3.5+8
+version: 0.3.6+9
 environment:
   sdk: '>=3.9.0 <4.0.0'
 dependencies:
@@ -18,9 +18,13 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: 6.0.0
+  flutter_launcher_icons: 0.14.4
+  flutter_native_splash: 2.4.7
   video_player_platform_interface: 6.7.0
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/
   fonts:
     - family: Poppins
       fonts:
