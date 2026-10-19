@@ -420,11 +420,11 @@ class PremiumHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
-      gradient: AppColors.gradient,
+      gradient: AppColors.actionGradient,
       borderRadius: BorderRadius.circular(24),
       boxShadow: const [
         BoxShadow(
-          color: Color(0x33FF7A1A),
+          color: AppColors.heroShadow,
           blurRadius: 24,
           offset: Offset(0, 8),
         ),
@@ -451,7 +451,7 @@ class PremiumHero extends StatelessWidget {
                 children: [
                   const Icon(
                     Icons.check_circle_outline,
-                    color: Colors.white,
+                    color: AppColors.white,
                     size: AppSizes.iconSmall,
                   ),
                   const SizedBox(width: Gap.s),
@@ -459,7 +459,7 @@ class PremiumHero extends StatelessWidget {
                     child: Text(
                       perk,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
+                        color: AppColors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -493,9 +493,9 @@ class PlanCard extends StatelessWidget {
         duration: AppMotion.fade,
         padding: const EdgeInsets.all(Gap.l),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF261A10) : AppColors.surface,
+          color: selected ? AppColors.selectedPlan : AppColors.surface,
           boxShadow: selected
-              ? const [BoxShadow(color: Color(0x22FF7A1A), blurRadius: 16)]
+              ? const [BoxShadow(color: AppColors.selectedShadow, blurRadius: 16)]
               : null,
           borderRadius: Radii.cardRadius,
           border: Border.all(
@@ -534,7 +534,7 @@ class PlanCard extends StatelessWidget {
                       child: Text(
                         plan['badge'] as String,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.primary,
+                          color: AppColors.primaryText,
                         ),
                       ),
                     ),

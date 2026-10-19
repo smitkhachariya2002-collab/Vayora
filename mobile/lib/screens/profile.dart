@@ -302,12 +302,7 @@ class _AccountProfileState extends State<AccountProfile> {
                     ),
                     const DecoratedBox(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, AppColors.background],
-                          stops: [.45, 1],
-                        ),
+                        gradient: AppColors.profileFade,
                       ),
                     ),
                     SafeArea(
@@ -330,7 +325,7 @@ class _AccountProfileState extends State<AccountProfile> {
                                   style: const TextStyle(
                                     fontSize: 28,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: AppColors.white,
                                   ),
                                 ),
                               ),
@@ -348,7 +343,7 @@ class _AccountProfileState extends State<AccountProfile> {
                                     style: const TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                      color: AppColors.white,
                                     ),
                                   ),
                                   if (hasPlan) ...[
@@ -676,7 +671,7 @@ class AccountControls extends StatelessWidget {
               FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.danger,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.white,
                 ),
                 onPressed: () => Navigator.pop(dialog, true),
                 child: const Text('Delete'),

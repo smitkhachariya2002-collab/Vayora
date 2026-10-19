@@ -220,9 +220,9 @@ class _ContentListState extends State<ContentList> {
                   label: Text(label),
                   selected: category == label,
                   showCheckmark: false,
-                  selectedColor: AppColors.primary,
+                  selectedColor: AppColors.controlPrimary,
                   labelStyle: TextStyle(
-                    color: category == label ? AppColors.ink : AppColors.text,
+                    color: category == label ? AppColors.white : AppColors.text,
                   ),
                   onSelected: (_) {
                     setState(() => category = label);

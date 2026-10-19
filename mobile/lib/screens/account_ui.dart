@@ -36,11 +36,7 @@ PremiumBannerKind premiumBanner(
     ? PremiumBannerKind.pending
     : PremiumBannerKind.none;
 
-const warmProfileGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: [Color(0xFFFF7A1A), Color(0xFF8A2D05), Color(0xFF2A1408)],
-);
+const warmProfileGradient = AppColors.profileGradient;
 
 Future<bool> accountLoginDialog(
   BuildContext context,
