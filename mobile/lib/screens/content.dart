@@ -202,20 +202,49 @@ class _ContentListState extends State<ContentList> {
   Widget header() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      SectionTitle(
-        'Find your next favourite',
-        onSeeAll: widget.onExploreChannels,
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (final label in const [
+              'All',
+              'Entertainment',
+              'Music',
+              'Learning',
+              'Travel',
+              'Lifestyle',
+            ])
+              Padding(
+                padding: const EdgeInsets.only(right: Gap.s),
+                child: ChoiceChip(
+                  label: Text(label),
+                  selected: category == label,
+                  showCheckmark: false,
+                  selectedColor: AppColors.primary,
+                  labelStyle: TextStyle(
+                    color: category == label ? AppColors.ink : AppColors.text,
+                  ),
+                  onSelected: (_) {
+                    setState(() => category = label);
+                    load(refresh: true);
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
-      const SizedBox(height: Gap.l),
       FutureBuilder(
         future: channels,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return SkeletonBlock(
+            return Padding(
+              padding: const EdgeInsets.only(top: Gap.l),
+              child: SkeletonBlock(
               height:
                   AppSizes.avatarRail *
                   MediaQuery.textScalerOf(context).scale(AppSizes.body) /
                   AppSizes.body,
+              ),
             );
           }
           if (snapshot.hasError) {
@@ -228,12 +257,11 @@ class _ContentListState extends State<ContentList> {
               .where((row) => !widget.state.blocked.contains(row['id']))
               .toList();
           if (rows.isEmpty) {
-            return const NoticeCard(
-              title: 'Fresh stories are on the way',
-              message: 'Create a channel and share what you love.',
-            );
+            return const SizedBox.shrink();
           }
-          return SizedBox(
+          return Padding(
+            padding: const EdgeInsets.only(top: Gap.l),
+            child: SizedBox(
             height:
                 AppSizes.avatarRail *
                 MediaQuery.textScalerOf(context).scale(AppSizes.body) /
@@ -271,40 +299,9 @@ class _ContentListState extends State<ContentList> {
                 );
               },
             ),
+            ),
           );
         },
-      ),
-      const SizedBox(height: Gap.l),
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            for (final label in const [
-              'All',
-              'Entertainment',
-              'Music',
-              'Learning',
-              'Travel',
-              'Lifestyle',
-            ])
-              Padding(
-                padding: const EdgeInsets.only(right: Gap.s),
-                child: ChoiceChip(
-                  label: Text(label),
-                  selected: category == label,
-                  showCheckmark: false,
-                  selectedColor: AppColors.primary,
-                  labelStyle: TextStyle(
-                    color: category == label ? AppColors.ink : AppColors.text,
-                  ),
-                  onSelected: (_) {
-                    setState(() => category = label);
-                    load(refresh: true);
-                  },
-                ),
-              ),
-          ],
-        ),
       ),
       const SizedBox(height: Gap.xl),
       const SectionTitle('Latest'),
@@ -355,7 +352,9 @@ class _ContentListState extends State<ContentList> {
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverPadding(
-                padding: Gap.page,
+                padding: explore
+                    ? const EdgeInsets.fromLTRB(Gap.xl, Gap.l, Gap.xl, Gap.xl)
+                    : Gap.page,
                 sliver: SliverList.list(
                   children: [
                     if (widget.intro != null) widget.intro!,
