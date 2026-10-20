@@ -61,12 +61,13 @@ void main() {
                 (call.arguments as Map)['uri'],
                 contains('pa=merchant@upi'),
               );
-              return 'Status=NO_RESPONSE&resultCode=no_upi_app';
+              throw PlatformException(code: 'NO_UPI_APP');
             }
             if (call.method == 'pending') return <String, String>{};
             return null;
           });
       Map<String, dynamic>? result;
+      var launchFinished = false;
       await tester.pumpWidget(
         MaterialApp(
           theme: buildTheme(),
@@ -79,6 +80,7 @@ void main() {
                     f.state,
                     'trial',
                     displayedPrice: 1,
+                    onLaunchFinished: () => launchFinished = true,
                   );
                 },
                 child: const Text('Pay'),
@@ -92,6 +94,7 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 100));
       });
       await tester.pumpAndSettle();
+      expect(launchFinished, isTrue);
       expect(find.text('No UPI app found'), findsOneWidget);
       expect(find.textContaining('merchant@upi'), findsOneWidget);
       expect(find.text('Copy UPI ID'), findsOneWidget);
