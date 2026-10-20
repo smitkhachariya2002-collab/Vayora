@@ -8,5 +8,5 @@ const policies:Record<string,{title:string;body:string}>={
 };
 export default async function Policy({params}:{params:Promise<{policy:string}>}){
  const {policy}=await params,p=policies[policy];if(!p)notFound();
- return <main><Link href="/">Vayora</Link><h1>{p.title}</h1><p>{p.body}</p><p>Policy version v1 · Support: help.vayora@gmail.com</p></main>;
+ return <main><Link href="/">Vayora</Link><h1>{p.title}</h1><p>{p.body}</p><p><Link href="/delete-account">Request account and data deletion</Link></p><p>Policy version v1 · Support: help.vayora@gmail.com</p></main>;
 }

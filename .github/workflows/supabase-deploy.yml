@@ -41,4 +41,5 @@ jobs:
           supabase functions deploy post-delete --project-ref "$SUPABASE_PROJECT_REF"
           supabase functions deploy play-verify --project-ref "$SUPABASE_PROJECT_REF"
           supabase functions deploy play-report --project-ref "$SUPABASE_PROJECT_REF"
+      - run: supabase functions deploy deletion-request --project-ref "$SUPABASE_PROJECT_REF"
       - run: supabase migration list

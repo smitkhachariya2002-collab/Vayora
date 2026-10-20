@@ -21,3 +21,6 @@ jobs:
 
       - name: Verify provider HMAC boundary
         run: deno test supabase/functions/provider-payment/handler_test.ts
+
+      - name: Verify public deletion request boundary
+        run: deno test supabase/functions/deletion-request/handler_test.ts
