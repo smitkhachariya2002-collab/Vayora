@@ -12,7 +12,7 @@ enabled = false
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["com.vayora.app://login-callback", "http://localhost:3000/invite", "https://vayora-eta.vercel.app/invite"]
+additional_redirect_urls = ["com.vayora.app://login-callback", "com.vayora.play://login-callback", "http://localhost:3000/invite", "https://vayora-eta.vercel.app/invite"]
 enable_anonymous_sign_ins = true
 enable_manual_linking = true
 [auth.email]

@@ -15,7 +15,9 @@ const backendUrl = String.fromEnvironment(
 const backendKey = String.fromEnvironment('SUPABASE_KEY');
 const androidAppId = String.fromEnvironment(
   'ANDROID_APP_ID',
-  defaultValue: 'com.vayora.app',
+  defaultValue: bool.fromEnvironment('PLAY_STORE')
+      ? 'com.vayora.play'
+      : 'com.vayora.app',
 );
 const authCallback = '$androidAppId://login-callback';
 const playStore = bool.fromEnvironment('PLAY_STORE');
