@@ -36,8 +36,14 @@ android {
     buildFeatures { buildConfig = true }
     flavorDimensions += "distribution"
     productFlavors {
-        create("direct") { dimension = "distribution" }
-        create("play") { dimension = "distribution" }
+        create("direct") {
+            dimension = "distribution"
+            applicationId = "com.vayora.app"
+        }
+        create("play") {
+            dimension = "distribution"
+            applicationId = "com.vayora.play"
+        }
     }
     signingConfigs {
         if (System.getenv("ANDROID_KEYSTORE_PASSWORD") != null) {
