@@ -33,10 +33,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+      - name: Install portable Java 17 without administrator access
+        run: |
+          $archive = [IO.Path]::GetFullPath("$env:RUNNER_TOOL_CACHE/../../java17.zip")
+          if (!(Test-Path -LiteralPath $archive)) {
+            Invoke-WebRequest 'https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20.1%2B1/OpenJDK17U-jdk_x64_windows_hotspot_17.0.20.1_1.zip' -OutFile $archive -TimeoutSec 900
+          }
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne 'e53a79c3c3d86865bd7e787903884331068e71321714ffd44f145785affc7cb0') { throw "Java checksum mismatch" }
+          $dest = "$env:RUNNER_TOOL_CACHE/portable-java17"
+          if (!(Test-Path -LiteralPath $dest)) { Expand-Archive -LiteralPath $archive -DestinationPath $dest }
+          $jdk = (Get-ChildItem -LiteralPath $dest -Directory | Select-Object -First 1).FullName
+          "JAVA_HOME=$jdk" | Add-Content $env:GITHUB_ENV
+          "$jdk/bin" | Add-Content $env:GITHUB_PATH
       - uses: android-actions/setup-android@v3
       - name: Install required Android packages
         run: |
