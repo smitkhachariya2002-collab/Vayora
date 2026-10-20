@@ -1,0 +1,146 @@
+[
+  {
+    "file": "icon-512.png",
+    "width": 512,
+    "height": 512,
+    "bytes": 14112,
+    "mode": "RGBA",
+    "upload": "App icon",
+    "sha256": "e2c27c8f215e606b511ff32e721bc2db48c46b8f8f10b2bf5bc849521baec7a3"
+  },
+  {
+    "file": "feature-graphic-1024x500.png",
+    "width": 1024,
+    "height": 500,
+    "bytes": 84198,
+    "mode": "RGB",
+    "upload": "Feature graphic",
+    "sha256": "c1956611a2b752fe753c9030868474f6cb9230389c34159d7bd81c5f57c42485"
+  },
+  {
+    "file": "phone/01.png",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 248802,
+    "mode": "RGB",
+    "upload": "Phone screenshots",
+    "sha256": "8ce362025faa3a5445e3731679421e0fd75f4d95f52bb683e9afe07c4e23d79c"
+  },
+  {
+    "file": "phone/02.png",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 237432,
+    "mode": "RGB",
+    "upload": "Phone screenshots",
+    "sha256": "1b6c41df2410e232edf192ac36f7b4db643bc2e3f7a2c34f3bb59a6683fe5e8a"
+  },
+  {
+    "file": "phone/03.png",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 106061,
+    "mode": "RGB",
+    "upload": "Phone screenshots",
+    "sha256": "55c63fc544f75007b0ed242739e822a6b9c3be7c50172b00b82e8778f83bbb8a"
+  },
+  {
+    "file": "phone/04.png",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 245474,
+    "mode": "RGB",
+    "upload": "Phone screenshots",
+    "sha256": "d202cfb903ba839184a03860a5c1f238ace78520f15fe06dbcd1250787272650"
+  },
+  {
+    "file": "phone/05.png",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 178766,
+    "mode": "RGB",
+    "upload": "Phone screenshots",
+    "sha256": "37fb30922f1281d4058d8c13046ae68c09e4a0a4aee934767783dd607f90979c"
+  },
+  {
+    "file": "phone/06.png",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 363595,
+    "mode": "RGB",
+    "upload": "Phone screenshots",
+    "sha256": "b534c6174bd3287a21759efb8834397a68cc4c552f70fbaebfab482cf82cf10a"
+  },
+  {
+    "file": "tablet7/01.png",
+    "width": 1200,
+    "height": 1920,
+    "bytes": 250780,
+    "mode": "RGB",
+    "upload": "7-inch tablet screenshots",
+    "sha256": "4b9e7db2816994db69c4bad536e8c176c8c9dc0042d5fcb77f099acd427f8dfa"
+  },
+  {
+    "file": "tablet7/02.png",
+    "width": 1200,
+    "height": 1920,
+    "bytes": 310226,
+    "mode": "RGB",
+    "upload": "7-inch tablet screenshots",
+    "sha256": "0265a7b675b96174d11121f8b84471f5461edaab8ebf0da91c65506ca1fd8bbc"
+  },
+  {
+    "file": "tablet7/03.png",
+    "width": 1200,
+    "height": 1920,
+    "bytes": 154503,
+    "mode": "RGB",
+    "upload": "7-inch tablet screenshots",
+    "sha256": "7c0934c083dfc99c54bb434faadee404317aab287067e47328baeb3ba4f4f749"
+  },
+  {
+    "file": "tablet7/04.png",
+    "width": 1200,
+    "height": 1920,
+    "bytes": 172333,
+    "mode": "RGB",
+    "upload": "7-inch tablet screenshots",
+    "sha256": "613048b56c5a0ff526bcd82bc6494d2802b315284e5d234b3b5579f73b2d8ca1"
+  },
+  {
+    "file": "tablet10/01.png",
+    "width": 1600,
+    "height": 2560,
+    "bytes": 435076,
+    "mode": "RGB",
+    "upload": "10-inch tablet screenshots",
+    "sha256": "0a1cc2f4b2b8d360e2b49cfe57e53d8221ad4bef8f5b1270e71c1b1b9ef2b619"
+  },
+  {
+    "file": "tablet10/02.png",
+    "width": 1600,
+    "height": 2560,
+    "bytes": 392634,
+    "mode": "RGB",
+    "upload": "10-inch tablet screenshots",
+    "sha256": "00b94a293535619859fc68272805b7227099e7696bde450f3583bfcdd7f5d453"
+  },
+  {
+    "file": "tablet10/03.png",
+    "width": 1600,
+    "height": 2560,
+    "bytes": 176950,
+    "mode": "RGB",
+    "upload": "10-inch tablet screenshots",
+    "sha256": "3e14880872bf8c90618fba1db87ebb4cbe95a876143d13b72fec14f44e0febc6"
+  },
+  {
+    "file": "tablet10/04.png",
+    "width": 1600,
+    "height": 2560,
+    "bytes": 193925,
+    "mode": "RGB",
+    "upload": "10-inch tablet screenshots",
+    "sha256": "3f7265aca80ec6787a4ccd3c5ca6ff1eb732bea27a408ec9a184af4f61530a54"
+  }
+]
