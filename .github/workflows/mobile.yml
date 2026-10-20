@@ -39,7 +39,7 @@ jobs:
         working-directory: mobile
       - name: Verify Play UI hides purchases while disabled
         working-directory: mobile
-        run: flutter test test/play_distribution_test.dart --dart-define=PLAY_STORE=true
+        run: flutter test test/play_distribution_test.dart test/auth_callback_test.dart --dart-define=PLAY_STORE=true --dart-define=ANDROID_APP_ID=com.vayora.play
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -136,7 +136,7 @@ jobs:
 
   release:
     needs: verify
-    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-app-discovery' || github.head_ref == 'fix/upi-order-window' || github.head_ref == 'ui/profile-plans-first' || github.head_ref == 'fix/cloud-upi-options' || github.head_ref == 'ui/royal-violet' || github.head_ref == 'fix/upi-launch-fallback'))
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-app-discovery' || github.head_ref == 'fix/upi-order-window' || github.head_ref == 'ui/profile-plans-first' || github.head_ref == 'fix/cloud-upi-options' || github.head_ref == 'ui/royal-violet' || github.head_ref == 'fix/upi-launch-fallback' || github.head_ref == 'fix/play-package-id'))
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -194,11 +194,11 @@ jobs:
         working-directory: mobile
         run: |
           mkdir -p artifacts
-          flutter build apk --release --flavor direct --target-platform android-arm,android-arm64 --dart-define-from-file=/tmp/vayora-defines.json
+          flutter build apk --release --flavor direct --target-platform android-arm,android-arm64 --dart-define-from-file=/tmp/vayora-defines.json --dart-define=ANDROID_APP_ID=com.vayora.app
           cp build/app/outputs/flutter-apk/app-direct-release.apk artifacts/Vayora.apk
-          flutter build apk --release --flavor direct --target-platform android-arm,android-arm64 --dart-define-from-file=/tmp/vayora-defines.json --dart-define='APK_REFERRER=utm_source=meta&utm_medium=paid_social&utm_campaign=apk_download'
+          flutter build apk --release --flavor direct --target-platform android-arm,android-arm64 --dart-define-from-file=/tmp/vayora-defines.json --dart-define=ANDROID_APP_ID=com.vayora.app --dart-define='APK_REFERRER=utm_source=meta&utm_medium=paid_social&utm_campaign=apk_download'
           cp build/app/outputs/flutter-apk/app-direct-release.apk artifacts/Vayora-ads.apk
-          flutter build appbundle --release --flavor play --dart-define-from-file=/tmp/vayora-defines.json --dart-define=PLAY_STORE=true
+          flutter build appbundle --release --flavor play --dart-define-from-file=/tmp/vayora-defines.json --dart-define=PLAY_STORE=true --dart-define=ANDROID_APP_ID=com.vayora.play
           cp build/app/outputs/bundle/playRelease/app-play-release.aab artifacts/Vayora-play.aab
       - name: Verify UPI visibility in every release flavor
         working-directory: mobile
@@ -215,6 +215,25 @@ jobs:
               assert paths, f'No merged release manifest found for {flavor}'
               subprocess.run(['python3','tool/verify_upi_manifest.py',*paths],check=True)
           PY
+      - name: Prove package IDs from the actual signed AAB and APKs
+        working-directory: mobile
+        run: |
+          curl --fail --location --silent --show-error https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar --output /tmp/vayora-bundletool.jar
+          echo "a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29  /tmp/vayora-bundletool.jar" | sha256sum --check
+          java -jar /tmp/vayora-bundletool.jar dump manifest --bundle=artifacts/Vayora-play.aab --module=base > artifacts/Play-AndroidManifest.xml
+          PLAY_PACKAGE=$(java -jar /tmp/vayora-bundletool.jar dump manifest --bundle=artifacts/Vayora-play.aab --xpath='/manifest/@package')
+          PLAY_CODE=$(java -jar /tmp/vayora-bundletool.jar dump manifest --bundle=artifacts/Vayora-play.aab --xpath='/manifest/@android:versionCode')
+          echo "bundletool: package=$PLAY_PACKAGE versionCode=$PLAY_CODE" | tee artifacts/PACKAGE-IDENTITY.txt
+          test "$PLAY_PACKAGE" = "com.vayora.play"
+          VERSION_CODE=$(sed -n 's/^version: .*+//p' pubspec.yaml)
+          test "$PLAY_CODE" = "$VERSION_CODE"
+          python3 tool/verify_app_identity.py artifacts/Play-AndroidManifest.xml com.vayora.play "$VERSION_CODE" | tee -a artifacts/PACKAGE-IDENTITY.txt
+          for name in Vayora Vayora-ads; do
+            "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "artifacts/$name.apk" > "artifacts/$name-AndroidManifest.xml"
+            python3 tool/verify_app_identity.py "artifacts/$name-AndroidManifest.xml" com.vayora.app "$VERSION_CODE" | tee -a artifacts/PACKAGE-IDENTITY.txt
+          done
+          cat artifacts/PACKAGE-IDENTITY.txt
+          cat artifacts/PACKAGE-IDENTITY.txt >> "$GITHUB_STEP_SUMMARY"
       - name: Verify all release signatures and checksums
         working-directory: mobile
         run: |
@@ -226,6 +245,34 @@ jobs:
           sha256sum artifacts/*.apk artifacts/*.aab > artifacts/SHA256SUMS.txt
           cat artifacts/SIGNING-CERT.txt
           cat artifacts/SHA256SUMS.txt
+      - name: Preserve Auth settings and enable exact callbacks for both app IDs
+        if: github.head_ref == 'fix/play-package-id' || github.ref == 'refs/heads/main'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: python3 scripts/configure_android_callbacks.py
+      - uses: supabase/setup-cli@v1
+        if: github.head_ref == 'fix/play-package-id' || github.ref == 'refs/heads/main'
+        with:
+          version: 2.81.3
+      - name: Deploy the corrected Play package check and reporting endpoint
+        if: github.head_ref == 'fix/play-package-id' || github.ref == 'refs/heads/main'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy play-verify --project-ref fzloulsjhkdxwagonsgt
+          supabase functions deploy play-report --project-ref fzloulsjhkdxwagonsgt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Vayora-Play-AAB
+          path: |
+            mobile/artifacts/Vayora-play.aab
+            mobile/artifacts/PACKAGE-IDENTITY.txt
+            mobile/artifacts/Play-AndroidManifest.xml
+            mobile/artifacts/AUTH-CALLBACKS.json
+            mobile/artifacts/SIGNING-CERT.txt
+            mobile/artifacts/SHA256SUMS.txt
+          retention-days: 14
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: Vayora-apks
@@ -234,7 +281,9 @@ jobs:
             mobile/artifacts/*.aab
             mobile/artifacts/SHA256SUMS.txt
             mobile/artifacts/SIGNING-CERT.txt
+            mobile/artifacts/PACKAGE-IDENTITY.txt
+            mobile/artifacts/AUTH-CALLBACKS.json
           retention-days: 7
           if-no-files-found: error
       - if: always()
-        run: rm -f mobile/android/app/release.jks /tmp/vayora-defines.json
+        run: rm -f mobile/android/app/release.jks /tmp/vayora-defines.json /tmp/vayora-bundletool.jar

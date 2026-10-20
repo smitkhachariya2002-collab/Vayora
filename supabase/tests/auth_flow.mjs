@@ -5,6 +5,8 @@ import { readFile } from 'node:fs/promises';
 import { randomUUID, randomBytes } from 'node:crypto';
 const config = JSON.parse(await readFile(process.argv[2], 'utf8'));
 const api = config.API_URL;
+const callback = process.env.ANDROID_AUTH_CALLBACK || 'com.vayora.app://login-callback';
+assert(['com.vayora.app://login-callback','com.vayora.play://login-callback'].includes(callback));
 const mailbox = config.INBUCKET_URL || 'http://127.0.0.1:54324';
 for (const url of [api, mailbox]) assert(['127.0.0.1','localhost'].includes(new URL(url).hostname), 'Local runner only');
 const key = config.ANON_KEY;
@@ -46,7 +48,7 @@ async function confirmation(email, type) {
           const verified = await fetch(link, {redirect:'manual'});
           const location = verified.headers.get('location') || '';
           assert([302,303].includes(verified.status), 'Confirmation redirects');
-          assert(location.startsWith('com.vayora.app://login-callback'), 'Android callback preserved');
+          assert(location.startsWith(callback), 'Android callback preserved');
           assert(!location.includes('error='), 'Confirmation succeeded');
           return;
         }
@@ -63,7 +65,7 @@ assert.equal(guest.user.is_anonymous, true);
 const token = guest.access_token, id = guest.user.id;
 await rpc('record_install',token,{install_id:install,install_secret:secret,referrer_status:'none',raw_referrer:''});
 await request('/rest/v1/consents',{method:'POST',token,body:{user_id:id,policy_version:'v1'}});
-await request('/auth/v1/user?redirect_to='+encodeURIComponent('com.vayora.app://login-callback'),{
+await request('/auth/v1/user?redirect_to='+encodeURIComponent(callback),{
   method:'PUT',token,body:{email,password}});
 await confirmation(email,'email_change');
 const member = await request('/auth/v1/token?grant_type=password',{method:'POST',body:{email,password}});
@@ -88,7 +90,7 @@ const fresh = await request('/auth/v1/signup',{method:'POST',body:{}});
 assert.notEqual(fresh.user.id,id);
 assert.equal(fresh.user.is_anonymous,true);
 console.log('PASS: existing-account login keeps first source; logout creates a new guest');
-await request('/auth/v1/recover?redirect_to='+encodeURIComponent('com.vayora.app://login-callback'),
+await request('/auth/v1/recover?redirect_to='+encodeURIComponent(callback),
   {method:'POST',body:{email}});
 await confirmation(email,'recovery');
 console.log('PASS: real recovery email uses Android callback');
