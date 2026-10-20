@@ -36,7 +36,7 @@ deploys delete-account, and lists migration history. It never resets production.
 ## 3. Configure Supabase Auth
 
 In Authentication settings enable anonymous sign-ins and manual identity linking.
-Register the redirect URL: com.vayora.app://login-callback.
+Register both redirect URLs: com.vayora.app://login-callback (website/ads APK) and com.vayora.play://login-callback (Google Play build).
 Enable Google and configure its OAuth credentials in Supabase and Google Cloud.
 Use the callback URL Supabase supplies. Set the production site URL after Vercel
 deployment. The repository config enables these features only on test runners;

@@ -36,8 +36,18 @@ android {
     buildFeatures { buildConfig = true }
     flavorDimensions += "distribution"
     productFlavors {
-        create("direct") { dimension = "distribution" }
-        create("play") { dimension = "distribution" }
+        create("direct") {
+            dimension = "distribution"
+            manifestPlaceholders["authScheme"] = "com.vayora.app"
+        }
+        // Google Play listing uses its own application ID so the website/ads
+        // APK (signed with our key) and the Play app (signed by Google) never
+        // clash on the same phone.
+        create("play") {
+            dimension = "distribution"
+            applicationId = "com.vayora.play"
+            manifestPlaceholders["authScheme"] = "com.vayora.play"
+        }
     }
     signingConfigs {
         if (System.getenv("ANDROID_KEYSTORE_PASSWORD") != null) {

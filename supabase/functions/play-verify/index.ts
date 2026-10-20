@@ -1,6 +1,6 @@
 import {createClient} from "npm:@supabase/supabase-js@2.118.0";
 import {googleToken,sha256,base64url} from "../_shared/google.ts";
-const headers={"Content-Type":"application/json"},app="com.vayora.app";
+const headers={"Content-Type":"application/json"},app="com.vayora.play";
 const response=(status:number,message:string,data?:unknown)=>new Response(JSON.stringify({message,data}),{status,headers});
 Deno.serve(async(req:Request)=>{
  if(req.method!=="POST")return response(405,"POST required");
