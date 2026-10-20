@@ -183,12 +183,12 @@ void main(){
           }
           expect(tester.takeException(),isNull);
           final boundary=tester.renderObject<RenderRepaintBoundary>(find.byKey(const ValueKey('store-screen')));
-          final image=await tester.runAsync(()=>boundary.toImage(pixelRatio:device.value.$2));
-          expect(image!.width,device.value.$1.width.toInt());
-          expect(image!.height,device.value.$1.height.toInt());
-          final bytes=await tester.runAsync(()=>image!.toByteData(format:ui.ImageByteFormat.png));
+          final image=(await tester.runAsync(()=>boundary.toImage(pixelRatio:device.value.$2)))!;
+          expect(image.width,device.value.$1.width.toInt());
+          expect(image.height,device.value.$1.height.toInt());
+          final bytes=await tester.runAsync(()=>image.toByteData(format:ui.ImageByteFormat.png));
           await tester.runAsync(()=>File('${rawRoot.path}/${device.key}-$name.png').writeAsBytes(bytes!.buffer.asUint8List()));
-          image!.dispose();
+          image.dispose();
           debugPrint('Store capture: '+device.key+' '+name+' saved');
           await tester.pumpWidget(const SizedBox.shrink());
           await tester.pump();
