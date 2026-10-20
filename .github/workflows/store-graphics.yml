@@ -1,0 +1,72 @@
+name: Play Store graphics
+on:
+  pull_request:
+    paths:
+      - 'mobile/test/store_screenshots_test.dart'
+      - 'docs/store/export_assets.py'
+      - '.github/workflows/store-graphics.yml'
+permissions:
+  contents: read
+concurrency:
+  group: store-graphics-${{ github.head_ref }}
+  cancel-in-progress: true
+jobs:
+  graphics:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned image exporters and OCR
+        run: |
+          pip install Pillow==11.1.0 CairoSVG==2.7.1
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tesseract-ocr
+      - name: Draw original generic demo artwork
+        run: python docs/store/export_assets.py --art
+      - name: Render real Play-mode Flutter screens at every device size
+        working-directory: mobile
+        run: |
+          flutter pub get --enforce-lockfile
+          dart format test/store_screenshots_test.dart
+          flutter analyze test/store_screenshots_test.dart
+          flutter test test/store_screenshots_test.dart --dart-define=STORE_SCREENSHOTS=true --dart-define=PLAY_STORE=true
+      - name: Compose, verify and zip the store graphics
+        run: |
+          python docs/store/export_assets.py --build
+          python docs/store/export_assets.py --verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Vayora-Play-Store-Graphics
+          path: |
+            docs/store/
+            mobile/test/failures/
+          retention-days: 30
+      - name: Save all generated deliverables in this one pull request
+        if: github.head_ref == 'docs/play-store-graphics'
+        env:
+          PR_BRANCH: ${{ github.head_ref }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git fetch origin "$PR_BRANCH"
+          test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_SHA"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/store mobile/test/store_screenshots_test.dart
+          if ! git diff --cached --quiet; then
+            git commit -m "Export and verify complete Play Store graphics"
+            git push origin "HEAD:$PR_BRANCH"
+          fi
