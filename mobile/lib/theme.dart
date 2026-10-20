@@ -1,56 +1,75 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 abstract final class AppBrand {
   static const name = 'Vayora';
   static const support = 'help.vayora@gmail.com';
   static const font = 'Poppins';
-  static const version = '0.3.5';
+  static const version = '0.3.6';
 }
 
 abstract final class AppColors {
-  static const primary = Color(0xFFFF7A1A), primaryDark = Color(0xFFE25A00);
-  static const accent = Color(0xFFFFB347), gold = Color(0xFFFFC24D);
-  static const background = Color(0xFF0B0B0D), surface = Color(0xFF16161A);
-  static const surfaceHigh = Color(0xFF1F1F25),
-      bubble = surfaceHigh,
-      border = Color(0xFF2A2A31);
-  static const text = Color(0xFFF5F5F7),
-      muted = Color(0xFF9B9BA5),
-      ink = Color(0xFF1A1005);
+  static const primary = Color(0xFF7C5CFF), primaryDark = Color(0xFF5B3FE0);
+  static const primaryText = Color(0xFFA18AFF);
+  static const accent = Color(0xFFFF5CA8), gold = Color(0xFFFFC94D);
+  static const background = Color(0xFF0A0A14), surface = Color(0xFF141424);
+  static const surfaceHigh = Color(0xFF1D1D33), bubble = surfaceHigh;
+  static const border = Color(0xFF2A2A45), text = Color(0xFFF4F4FA);
+  static const muted = Color(0xFF9C9CB8), ink = Color(0xFF120A24);
   static const success = Color(0xFF34D399), successBg = Color(0xFF10261D);
-  static const warning = accent, warningBg = Color(0xFF2A1F10);
+  static const warning = Color(0xFFFBBF24), warningBg = Color(0xFF2A1F10);
   static const danger = Color(0xFFFF5A5F), dangerBg = Color(0xFF2B1414);
-  static const navigation = Color(0xFF111114),
-      black = Color(0xFF000000),
-      white = Color(0xFFFFFFFF);
-  static const transparent = Color(0x00000000),
-      pill = Color(0xD91B1B20),
-      veil = Color(0x88000000);
-  static const shimmer = Color(0xFF34343D), softOrange = Color(0x332A1F10);
-  static const googleBlue = Color(0xFF4285F4), googleRed = Color(0xFFEA4335);
-  static const googleYellow = Color(0xFFFBBC05),
-      googleGreen = Color(0xFF34A853);
+  static const controlDanger = Color(0xFFB52F3B);
+  static const navigation = Color(0xFF10101E), black = Color(0xFF000000);
+  static const white = Color(0xFFFFFFFF), transparent = Color(0x00000000);
+  static const pill = Color(0xD9141424), veil = Color(0x88000000);
+  static const shimmer = surfaceHigh, softPrimary = Color(0x337C5CFF);
+  static const selectedPlan = Color(0xFF1E1838);
+  static const heroShadow = Color(0x337C5CFF),
+      selectedShadow = Color(0x227C5CFF);
+  // Owner-approved contrast adjustment for small white control labels.
+  static const controlPrimary = Color(0xFF6D51E0), onAction = white;
   static const gradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFFF5F1F), Color(0xFFFF8A00), accent],
+    colors: [Color(0xFF6A5CFF), Color(0xFF9B5CFF), accent],
+  );
+  // The same gradient under a 25% dark scrim: white text exceeds 4.5:1.
+  static const actionGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF5045BF), Color(0xFF7445BF), Color(0xFFBF457E)],
   );
   static const barGradient = RadialGradient(
     center: Alignment(1.1, -2.2),
     radius: 2.4,
-    colors: [Color(0xFF3A1B08), background],
+    colors: [Color(0xFF241A4A), background],
+  );
+  static const profileGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF7C5CFF), Color(0xFF3B1F8A), Color(0xFF160E2E)],
+  );
+  static const profileFade = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0x22000000), background],
+    stops: [.45, 1],
   );
   static const softGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF221A14), surface],
+    colors: [Color(0xFF1C1830), surface],
   );
-  static const glow = RadialGradient(colors: [Color(0x55FF6A00), transparent]);
+  static const glow = RadialGradient(colors: [Color(0x557C5CFF), transparent]);
   static const scrim = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [transparent, Color(0xB3000000)],
   );
+  static const googleBlue = Color(0xFF4285F4), googleRed = Color(0xFFEA4335);
+  static const googleYellow = Color(0xFFFBBC05),
+      googleGreen = Color(0xFF34A853);
 }
 
 abstract final class Gap {
@@ -166,8 +185,8 @@ ThemeData buildTheme() {
         brightness: Brightness.dark,
       ).copyWith(
         primary: AppColors.primary,
-        onPrimary: AppColors.ink,
-        secondary: AppColors.gold,
+        onPrimary: AppColors.white,
+        secondary: AppColors.accent,
         onSecondary: AppColors.ink,
         surface: AppColors.surface,
         onSurface: AppColors.text,
@@ -191,6 +210,14 @@ ThemeData buildTheme() {
       surfaceTintColor: AppColors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarColor: AppColors.background,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: AppColors.background,
+        systemNavigationBarDividerColor: AppColors.background,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
       centerTitle: false,
       toolbarHeight: AppSizes.toolbar,
       titleTextStyle: TextStyle(
@@ -202,8 +229,8 @@ ThemeData buildTheme() {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.ink,
+        backgroundColor: AppColors.controlPrimary,
+        foregroundColor: AppColors.white,
         minimumSize: const Size(0, AppSizes.button),
         shape: shape,
         elevation: 0,
@@ -224,7 +251,7 @@ ThemeData buildTheme() {
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: AppColors.primary,
+        foregroundColor: AppColors.primaryText,
         textStyle: const TextStyle(
           fontFamily: AppBrand.font,
           fontSize: AppSizes.label,
@@ -277,7 +304,7 @@ ThemeData buildTheme() {
     ),
     chipTheme: ChipThemeData(
       backgroundColor: AppColors.surfaceHigh,
-      selectedColor: AppColors.primary,
+      selectedColor: AppColors.controlPrimary,
       labelStyle: const TextStyle(
         fontFamily: AppBrand.font,
         fontSize: AppSizes.bodySmall,
@@ -290,12 +317,12 @@ ThemeData buildTheme() {
       style: ButtonStyle(
         backgroundColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? AppColors.primary
+              ? AppColors.controlPrimary
               : AppColors.surfaceHigh,
         ),
         foregroundColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? AppColors.ink
+              ? AppColors.white
               : AppColors.text,
         ),
         side: const WidgetStatePropertyAll(BorderSide(color: AppColors.border)),
@@ -364,9 +391,41 @@ ThemeData buildTheme() {
           fontSize: AppSizes.bodySmall,
           fontWeight: FontWeight.w500,
           color: states.contains(WidgetState.selected)
-              ? AppColors.primary
+              ? AppColors.primaryText
               : AppColors.muted,
         ),
+      ),
+    ),
+    textSelectionTheme: const TextSelectionThemeData(
+      cursorColor: AppColors.primary,
+      selectionColor: AppColors.softPrimary,
+      selectionHandleColor: AppColors.primary,
+    ),
+    radioTheme: RadioThemeData(
+      fillColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected)
+            ? AppColors.primary
+            : AppColors.muted,
+      ),
+    ),
+    checkboxTheme: CheckboxThemeData(
+      fillColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected)
+            ? AppColors.primary
+            : AppColors.transparent,
+      ),
+      checkColor: const WidgetStatePropertyAll(AppColors.ink),
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected)
+            ? AppColors.primary
+            : AppColors.muted,
+      ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected)
+            ? AppColors.softPrimary
+            : AppColors.surfaceHigh,
       ),
     ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(
@@ -377,12 +436,12 @@ ThemeData buildTheme() {
       activeTrackColor: AppColors.primary,
       inactiveTrackColor: AppColors.border,
       thumbColor: AppColors.primary,
-      overlayColor: AppColors.softOrange,
+      overlayColor: AppColors.softPrimary,
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       elevation: 0,
       backgroundColor: AppColors.primary,
-      foregroundColor: AppColors.ink,
+      foregroundColor: AppColors.white,
     ),
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {TargetPlatform.android: CinematicPageTransition()},

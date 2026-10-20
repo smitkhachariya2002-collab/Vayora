@@ -202,79 +202,6 @@ class _ContentListState extends State<ContentList> {
   Widget header() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      SectionTitle(
-        'Find your next favourite',
-        onSeeAll: widget.onExploreChannels,
-      ),
-      const SizedBox(height: Gap.l),
-      FutureBuilder(
-        future: channels,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return SkeletonBlock(
-              height:
-                  AppSizes.avatarRail *
-                  MediaQuery.textScalerOf(context).scale(AppSizes.body) /
-                  AppSizes.body,
-            );
-          }
-          if (snapshot.hasError) {
-            return TextButton(
-              onPressed: () => setState(() => channels = loadChannels()),
-              child: const Text('Try channels again'),
-            );
-          }
-          final rows = (snapshot.data ?? [])
-              .where((row) => !widget.state.blocked.contains(row['id']))
-              .toList();
-          if (rows.isEmpty) {
-            return const NoticeCard(
-              title: 'Fresh stories are on the way',
-              message: 'Create a channel and share what you love.',
-            );
-          }
-          return SizedBox(
-            height:
-                AppSizes.avatarRail *
-                MediaQuery.textScalerOf(context).scale(AppSizes.body) /
-                AppSizes.body,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: rows.length,
-              separatorBuilder: (_, _) => const SizedBox(width: Gap.l),
-              itemBuilder: (context, index) {
-                final row = rows[index];
-                return SizedBox(
-                  width: AppSizes.logoLarge,
-                  child: PressScale(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            ChannelDetail(state: widget.state, channel: row),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        ChannelAvatar(channel: row),
-                        const SizedBox(height: Gap.s),
-                        Text(
-                          row['name'] as String,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          );
-        },
-      ),
-      const SizedBox(height: Gap.l),
       SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -293,9 +220,9 @@ class _ContentListState extends State<ContentList> {
                   label: Text(label),
                   selected: category == label,
                   showCheckmark: false,
-                  selectedColor: AppColors.primary,
+                  selectedColor: AppColors.controlPrimary,
                   labelStyle: TextStyle(
-                    color: category == label ? AppColors.ink : AppColors.text,
+                    color: category == label ? AppColors.white : AppColors.text,
                   ),
                   onSelected: (_) {
                     setState(() => category = label);
@@ -305,6 +232,76 @@ class _ContentListState extends State<ContentList> {
               ),
           ],
         ),
+      ),
+      FutureBuilder(
+        future: channels,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return Padding(
+              padding: const EdgeInsets.only(top: Gap.l),
+              child: SkeletonBlock(
+                height:
+                    AppSizes.avatarRail *
+                    MediaQuery.textScalerOf(context).scale(AppSizes.body) /
+                    AppSizes.body,
+              ),
+            );
+          }
+          if (snapshot.hasError) {
+            return TextButton(
+              onPressed: () => setState(() => channels = loadChannels()),
+              child: const Text('Try channels again'),
+            );
+          }
+          final rows = (snapshot.data ?? [])
+              .where((row) => !widget.state.blocked.contains(row['id']))
+              .toList();
+          if (rows.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          return Padding(
+            padding: const EdgeInsets.only(top: Gap.l),
+            child: SizedBox(
+              height:
+                  AppSizes.avatarRail *
+                  MediaQuery.textScalerOf(context).scale(AppSizes.body) /
+                  AppSizes.body,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: rows.length,
+                separatorBuilder: (_, _) => const SizedBox(width: Gap.l),
+                itemBuilder: (context, index) {
+                  final row = rows[index];
+                  return SizedBox(
+                    width: AppSizes.logoLarge,
+                    child: PressScale(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              ChannelDetail(state: widget.state, channel: row),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          ChannelAvatar(channel: row),
+                          const SizedBox(height: Gap.s),
+                          Text(
+                            row['name'] as String,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        },
       ),
       const SizedBox(height: Gap.xl),
       const SectionTitle('Latest'),
@@ -355,7 +352,9 @@ class _ContentListState extends State<ContentList> {
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverPadding(
-                padding: Gap.page,
+                padding: explore
+                    ? const EdgeInsets.fromLTRB(Gap.xl, Gap.l, Gap.xl, Gap.xl)
+                    : Gap.page,
                 sliver: SliverList.list(
                   children: [
                     if (widget.intro != null) widget.intro!,

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -69,31 +68,18 @@ void main() {
     await (FontLoader(
       'MaterialIcons',
     )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
-    if (before) {
-      final root = Platform.environment['FLUTTER_ROOT'];
-      if (root != null) {
-        final file = File(
-          '$root/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf',
-        );
-        if (file.existsSync()) {
-          await (FontLoader('Roboto')..addFont(
-                Future.value(ByteData.sublistView(file.readAsBytesSync())),
-              ))
-              .load();
-        }
-      }
-    } else {
-      final fonts = FontLoader('Poppins');
-      for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold']) {
-        fonts.addFont(rootBundle.load('assets/fonts/Poppins-$weight.ttf'));
-      }
-      await fonts.load();
+    final fonts = FontLoader('Poppins');
+    for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold']) {
+      fonts.addFont(rootBundle.load('assets/fonts/Poppins-$weight.ttf'));
     }
+    await fonts.load();
   });
   for (final width in [360.0, 430.0]) {
     for (final scale in [1.0, 1.6]) {
       for (final name in [
         'explore',
+        'explore-empty',
+        'feed',
         'post',
         'player',
         'premium',
@@ -114,11 +100,15 @@ void main() {
             f.intercept = (request) {
               Object? value;
               if (request.url.path.endsWith('/posts')) {
-                value = [post];
+                value = name == 'explore-empty' ? <Object>[] : [post];
               } else if (request.url.path.endsWith('/channels')) {
-                value = [channel];
+                value = name == 'explore-empty' ? <Object>[] : [channel];
               } else if (request.url.path.endsWith('/channel_members')) {
-                value = <Object>[];
+                value = name == 'feed'
+                    ? [
+                        {'channel_id': channelId},
+                      ]
+                    : <Object>[];
               } else if (request.url.path.endsWith('/cloud_files')) {
                 value = [
                   {
@@ -261,10 +251,18 @@ void main() {
                 ),
               ),
             );
+            if (!before) {
+              await tester.runAsync(
+                () => precacheImage(
+                  const AssetImage('assets/branding/icon_foreground.png'),
+                  tester.element(find.byType(MaterialApp)),
+                ),
+              );
+            }
             for (var i = 0; i < 8; i++) {
               await tester.pump(const Duration(milliseconds: 100));
             }
-            if (['cloud', 'channels', 'profile'].contains(name)) {
+            if (['cloud', 'channels', 'profile', 'feed'].contains(name)) {
               await tester.tap(
                 find
                     .descendant(
@@ -272,6 +270,7 @@ void main() {
                       matching: find.text(
                         {
                           'cloud': 'Cloud',
+                          'feed': 'Feed',
                           'channels': 'Channels',
                           'profile': 'Profile',
                         }[name]!,

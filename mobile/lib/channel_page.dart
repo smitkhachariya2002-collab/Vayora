@@ -389,7 +389,7 @@ class _ChannelListState extends State<ChannelList> {
                                 showCheckmark: false,
                                 labelStyle: TextStyle(
                                   color: sort == option
-                                      ? AppColors.ink
+                                      ? AppColors.white
                                       : AppColors.text,
                                 ),
                                 onSelected: (_) {
@@ -793,7 +793,7 @@ class _ChannelEditorState extends State<ChannelEditor> {
                         height: AppSizes.logoLarge,
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: AppColors.gradient,
+                          gradient: AppColors.actionGradient,
                         ),
                         child: ClipOval(
                           child: preview != null
@@ -810,7 +810,7 @@ class _ChannelEditorState extends State<ChannelEditor> {
                               : const Icon(
                                   Icons.live_tv_rounded,
                                   size: AppSizes.dialogIcon,
-                                  color: AppColors.ink,
+                                  color: AppColors.onAction,
                                 ),
                         ),
                       ),

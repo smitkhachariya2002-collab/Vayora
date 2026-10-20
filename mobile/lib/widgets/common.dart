@@ -88,13 +88,9 @@ class BrandMark extends StatelessWidget {
         borderRadius: Radii.chipRadius,
       ),
       alignment: Alignment.center,
-      child: const Text(
-        'V',
-        style: TextStyle(
-          fontSize: AppSizes.logoLetter,
-          fontWeight: FontWeight.w700,
-          color: AppColors.ink,
-        ),
+      child: Image.asset(
+        'assets/branding/icon_foreground.png',
+        fit: BoxFit.contain,
       ),
     ),
   );
@@ -331,7 +327,7 @@ class ChannelAvatar extends StatelessWidget {
         letter,
         style: Theme.of(
           context,
-        ).textTheme.titleLarge?.copyWith(color: AppColors.ink),
+        ).textTheme.titleLarge?.copyWith(color: AppColors.onAction),
       ),
     );
     return Container(
@@ -339,7 +335,7 @@ class ChannelAvatar extends StatelessWidget {
       height: radius * 2,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        gradient: AppColors.gradient,
+        gradient: AppColors.actionGradient,
       ),
       child: ClipOval(
         child: url != null && url.isNotEmpty
@@ -480,15 +476,15 @@ class GradientButton extends StatelessWidget {
     opacity: onPressed == null && !busy ? AppSizes.disabledOpacity : 1,
     child: DecoratedBox(
       decoration: const BoxDecoration(
-        gradient: AppColors.gradient,
+        gradient: AppColors.actionGradient,
         borderRadius: Radii.buttonRadius,
       ),
       child: FilledButton(
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.transparent,
           disabledBackgroundColor: AppColors.transparent,
-          disabledForegroundColor: AppColors.ink,
-          foregroundColor: AppColors.ink,
+          disabledForegroundColor: AppColors.onAction,
+          foregroundColor: AppColors.onAction,
         ),
         onPressed: busy ? null : onPressed,
         child: Row(
@@ -500,7 +496,7 @@ class GradientButton extends StatelessWidget {
                 dimension: AppSizes.spinner,
                 child: CircularProgressIndicator(
                   strokeWidth: AppSizes.focusStroke,
-                  color: AppColors.ink,
+                  color: AppColors.onAction,
                 ),
               )
             else if (icon != null)
@@ -693,7 +689,7 @@ Future<bool> confirmAction(
             FilledButton(
               style: destructive
                   ? FilledButton.styleFrom(
-                      backgroundColor: AppColors.danger,
+                      backgroundColor: AppColors.controlDanger,
                       foregroundColor: AppColors.white,
                     )
                   : null,
