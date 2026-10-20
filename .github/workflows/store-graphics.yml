@@ -42,7 +42,7 @@ jobs:
           flutter pub get --enforce-lockfile
           dart format test/store_screenshots_test.dart
           flutter analyze test/store_screenshots_test.dart
-          flutter test test/store_screenshots_test.dart --dart-define=STORE_SCREENSHOTS=true --dart-define=PLAY_STORE=true
+          flutter test test/store_screenshots_test.dart --dart-define=STORE_SCREENSHOTS=true --dart-define=PLAY_STORE=true --fail-fast
       - name: Compose, verify and zip the store graphics
         run: |
           python docs/store/export_assets.py --build
