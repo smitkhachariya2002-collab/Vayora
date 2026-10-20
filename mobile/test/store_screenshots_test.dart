@@ -193,6 +193,7 @@ void main(){
           await tester.pumpWidget(const SizedBox.shrink());
           await tester.pump();
           await tester.runAsync(f.close);
+          debugNetworkImageHttpClientProvider=null;
         }
       },skip:!storeCapture,timeout:const Timeout(Duration(minutes:2)));
     }
