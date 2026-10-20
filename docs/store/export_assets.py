@@ -96,6 +96,7 @@ def feature():
  framed(im,Image.open(ROOT/'raw'/'phone-explore.png'),(715,88,184,328))
  im.save(ROOT/'feature-graphic-1024x500.png',optimize=True)
 def build():
+ (ROOT/'feature-1024x500.png').unlink(missing_ok=True)
  import cairosvg
  cairosvg.svg2png(url=str(REPO/'mobile/assets/branding/icon.svg'),write_to=str(ROOT/'icon-512.png'),output_width=512,output_height=512)
  icon=Image.open(ROOT/'icon-512.png').convert('RGBA');icon.save(ROOT/'icon-512.png',optimize=True)
@@ -169,6 +170,12 @@ Official specifications: https://support.google.com/googleplay/android-developer
   thumb=Image.open(ROOT/f'phone/{i+1:02}.png');thumb.thumbnail((190,570));sheet.paste(thumb,(i*200+5,70))
   ImageDraw.Draw(sheet).text((i*200+85,20),f'{i+1:02}',font=font(24),fill=WHITE)
  sheet.save(ROOT/'contact-sheet.png',optimize=True)
+ for device in ['tablet7','tablet10']:
+  tablet_sheet=Image.new('RGB',(1000,620),BG)
+  for i in range(4):
+   thumb=Image.open(ROOT/f'{device}/{i+1:02}.png');thumb.thumbnail((240,560));tablet_sheet.paste(thumb,(i*250+5,45))
+   ImageDraw.Draw(tablet_sheet).text((i*250+110,10),f'{i+1:02}',font=font(20),fill=WHITE)
+  tablet_sheet.save(ROOT/f'{device}-contact-sheet.png',optimize=True)
  print(json.dumps(manifest,indent=2))
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--art',action='store_true');p.add_argument('--build',action='store_true');p.add_argument('--verify',action='store_true');a=p.parse_args()

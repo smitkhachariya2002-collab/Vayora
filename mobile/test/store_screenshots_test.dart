@@ -114,7 +114,7 @@ void main(){
         addTearDown(tester.view.resetDevicePixelRatio);
         {
           debugNetworkImageHttpClientProvider=()=>ArtClient();
-          debugPrint('Store capture: '+device.key+' '+name+' starting');
+          debugPrint('Store capture: ${device.key} $name starting');
           final f=Fixture();
           f.intercept=(request){
             Object? data;
@@ -189,7 +189,7 @@ void main(){
           final bytes=await tester.runAsync(()=>image.toByteData(format:ui.ImageByteFormat.png));
           await tester.runAsync(()=>File('${rawRoot.path}/${device.key}-$name.png').writeAsBytes(bytes!.buffer.asUint8List()));
           image.dispose();
-          debugPrint('Store capture: '+device.key+' '+name+' saved');
+          debugPrint('Store capture: ${device.key} $name saved');
           await tester.pumpWidget(const SizedBox.shrink());
           await tester.pump();
           await tester.runAsync(f.close);
