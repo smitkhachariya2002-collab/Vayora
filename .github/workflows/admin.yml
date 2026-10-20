@@ -27,3 +27,6 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
+
+      - name: Verify public deletion page and request forwarding
+        run: node scripts/deletion-page-check.mjs
