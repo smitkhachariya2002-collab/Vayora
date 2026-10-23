@@ -136,6 +136,9 @@ select is(jsonb_array_length(public.plan_offers()->'free_plan_ids'),0,'Free plan
 select is((select count(*) from public.free_plan_claims),0::bigint,'Claims hidden from non-owners');
 select throws_ok($$select public.admin_free_plan_claims()$$,'42501','Owner required','Claim counts owner only');
 reset role;
+select is((public.my_status()->>'web_plans')::boolean,false,'Website plans off by default');
+update public.app_mode set web_plans=true;
+select is((public.my_status()->>'web_plans')::boolean,true,'Status reports website plans switch');
 select ok(not has_function_privilege('anon','public.claim_free_plan(uuid)','execute'),'Anonymous role cannot claim');
 select * from finish();
 rollback;

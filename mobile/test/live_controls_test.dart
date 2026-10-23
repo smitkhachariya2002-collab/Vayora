@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vayora/plan_catalog.dart';
 import 'package:vayora/screens/account_ui.dart';
 import 'package:vayora/screens/premium.dart';
+import 'package:vayora/screens/web_plans.dart';
 import 'package:vayora/theme.dart';
 import 'account_test.dart' show Fixture;
 import 'plan_management_test.dart' show plan, reply;
@@ -42,6 +43,46 @@ void main() {
     expect(
       premiumButtonLabel(selected: true, guest: false, busy: true, free: true),
       'Activating…',
+    );
+  });
+
+  test('Website plans page URL carries free plans and paused state', () {
+    expect(
+      webPlansUri().toString(),
+      'https://vayora-eta.vercel.app/subscribe?app=1',
+    );
+    expect(webPlansUri(free: {'b', 'a'}, paused: true).queryParameters, {
+      'app': '1',
+      'free': 'a,b',
+      'paused': '1',
+    });
+  });
+
+  test('Only buy messages with a plan ID start checkout', () {
+    expect(webPlansPurchase('{"type":"buy","plan_id":"gold"}'), 'gold');
+    expect(webPlansPurchase('{"type":"buy","plan_id":"  "}'), isNull);
+    expect(webPlansPurchase('{"type":"other","plan_id":"gold"}'), isNull);
+    expect(webPlansPurchase('not json'), isNull);
+    expect(webPlansPurchase('[1,2]'), isNull);
+  });
+
+  test('WebView only loads our plans page', () {
+    expect(webPlansAllowed(webPlansUri()), isTrue);
+    expect(
+      webPlansAllowed(Uri.parse('https://vayora-eta.vercel.app/d')),
+      isTrue,
+    );
+    expect(
+      webPlansAllowed(Uri.parse('https://vayora-eta.vercel.app/payments')),
+      isFalse,
+    );
+    expect(
+      webPlansAllowed(Uri.parse('https://example.com/subscribe')),
+      isFalse,
+    );
+    expect(
+      webPlansAllowed(Uri.parse('http://vayora-eta.vercel.app/subscribe')),
+      isFalse,
     );
   });
 

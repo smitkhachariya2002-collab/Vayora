@@ -6,6 +6,8 @@ alter table public.app_mode add column free_plans_for text not null default 'non
  check(free_plans_for in ('none','organic','ads','everyone'));
 alter table public.app_mode add column promo_id uuid not null default gen_random_uuid();
 alter table public.plans add column free_eligible boolean not null default true;
+-- Website plans page inside the direct/ads app (never used by the Play build).
+alter table public.app_mode add column web_plans boolean not null default false;
 
 -- Each time free plans are switched on, a new promotion starts (one claim per plan per promotion).
 create function private.app_mode_promo() returns trigger language plpgsql set search_path='' as $$
@@ -185,7 +187,8 @@ create or replace function private.my_status() returns jsonb language sql stable
  'used_bytes',p.used_bytes,'quota_bytes',private.quota_bytes(p.id),'free_mode',private.client_free_mode(),
  'paid_enabled',not private.client_free_mode(),'access_status',p.ads_access_status,'play_verified',private.play_session(),'play_billing_enabled',private.play_billing_ready(),
  'payments_available',private.payments_available() and not private.client_free_mode(),
- 'free_plans_for',(select free_plans_for from public.app_mode where id))
+ 'free_plans_for',(select free_plans_for from public.app_mode where id),
+ 'web_plans',coalesce((select web_plans from public.app_mode where id),false))
  from public.profiles p where p.id=auth.uid()
 $$;
 

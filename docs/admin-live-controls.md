@@ -25,3 +25,11 @@ Everything below is changed in the admin panel and reaches the app within second
 - The Play build is unchanged: it stays on the free account card and never shows UPI or free plan claims.
 
 Tests: `supabase/tests/admin_live_controls.test.sql`, `mobile/test/live_controls_test.dart`.
+
+## Website plans page inside the app
+
+Plans → **Plans page in the app** switches the Premium tab of the website/ads APK between the in-app list and the website page `https://vayora-eta.vercel.app/subscribe` shown inside the app (WebView). The page only displays plans. When the user taps Pay, the page sends the chosen plan to the app, and the app runs its normal checkout: the UPI app chooser, the result returned to the app, and automatic activation for the plan's duration (or the free claim when the plan is free for that user). The WebView can only load `/subscribe` and `/d` on the website.
+
+The Google Play build never shows this page, because selling digital content through a web page inside a Play app breaks Google Play's Payments policy.
+
+The WebView plugin needs Android 7.0 or newer, so the app's minimum Android version is now 7.0 (minSdk 24).

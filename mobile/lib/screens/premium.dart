@@ -11,6 +11,7 @@ import 'cloud.dart';
 import 'payment_flow.dart';
 import 'payments.dart';
 import 'profile.dart';
+import 'web_plans.dart';
 
 class Plans extends StatefulWidget {
   const Plans({
@@ -291,6 +292,30 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
     }
   }
 
+  /// A plan chosen on the website page runs through the same checkout as the list.
+  Future<void> buyFromWeb(String id) async {
+    Map<String, dynamic>? find() {
+      final matches = catalog.rows.where((p) => p['id'] == id);
+      return matches.isEmpty ? null : matches.first;
+    }
+
+    var plan = find();
+    if (plan == null) {
+      await catalog.refresh();
+      plan = find();
+    }
+    if (!mounted) return;
+    if (plan == null) {
+      showFeedback(context, 'This plan is no longer available.');
+    } else if (catalog.isFree(id)) {
+      await claim(plan);
+    } else if (!catalog.paymentsAvailable) {
+      showFeedback(context, 'Payments are paused. Please try again later.');
+    } else {
+      await pay(plan);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.state,
@@ -318,6 +343,21 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
       return ListenableBuilder(
         listenable: catalog,
         builder: (context, _) {
+          if (!playStore && state.status['web_plans'] == true) {
+            return AppPage(
+              title: 'Premium',
+              actions: actions,
+              body: catalog.loaded
+                  ? WebPlans(
+                      uri: webPlansUri(
+                        free: catalog.freeIds,
+                        paused: !catalog.paymentsAvailable,
+                      ),
+                      onBuy: buyFromWeb,
+                    )
+                  : const SkeletonList(),
+            );
+          }
           if (catalog.loaded && catalog.error == null && catalog.rows.isEmpty) {
             return AppPage(
               title: 'Premium',
