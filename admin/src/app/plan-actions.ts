@@ -11,7 +11,7 @@ export async function saveManagedPlan(_previous:PlanSaveResult,form:FormData):Pr
   const name=text("name");if(!name)throw new Error("Plan name is required.");
   const values={name,price_inr:integer("price_inr",1),duration_days:integer("duration_days",1),
    perks:text("perks").split(/\r?\n/).map(p=>p.trim()).filter(Boolean),badge:text("badge")||null,
-   position:integer("position",-2147483648),active:form.has("active")};
+   position:integer("position",-2147483648),active:form.has("active"),free_eligible:form.has("free_eligible")};
   const id=text("id");
   let result;
   if(id)result=await client.from("plans").update(values).eq("id",id).select("id").single();

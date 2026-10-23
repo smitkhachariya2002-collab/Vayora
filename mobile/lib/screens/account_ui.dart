@@ -15,10 +15,16 @@ String premiumButtonLabel({
   required bool guest,
   required bool busy,
   num? price,
+  bool free = false,
+  bool paymentsAvailable = true,
 }) => busy
-    ? 'Opening UPI…'
+    ? (free ? 'Activating…' : 'Opening UPI…')
     : !selected
     ? 'Select a plan'
+    : free
+    ? (guest ? 'Next' : 'Activate for free')
+    : !paymentsAvailable
+    ? 'Payments unavailable'
     : guest
     ? 'Next'
     : price == null
