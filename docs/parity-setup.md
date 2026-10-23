@@ -16,7 +16,7 @@ UPI live row was separately verified as 2728412a@bandhan / AS Enterprice / enabl
 
 Optional provider alerts remain off: set UPI_WEBHOOK_ENABLED=true and UPI_WEBHOOK_SECRET only after connecting your provider. Sign timestamp.raw-body with HMAC-SHA256 and send the matching headers defined in upi-webhook.
 
-Email remains available. Keep email confirmation on, SMTP configured, production site https://vayora-eta.vercel.app and callback com.vayora.app://login-callback allowed. Google remains visible with a friendly coming-soon message when disabled. To enable later, configure the Google provider and its exact Supabase callback in Google Cloud, then test on a device.
+Email remains available. Keep email confirmation on, SMTP configured, production site https://vayora-eta.vercel.app and callbacks com.vayora.app://login-callback and com.vayora.play://login-callback allowed. Google remains visible with a friendly coming-soon message when disabled. To enable later, configure the Google provider and its exact Supabase callback in Google Cloud, then test on a device.
 
 ## Meta and download links
 

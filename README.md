@@ -4,7 +4,7 @@ Android cloud storage and creator channels for users across India.
 
 - GitHub: private repository `smitkhachariya2002-collab/Vayora`
 - Supabase: `fzloulsjhkdxwagonsgt` (Mumbai server region; nationwide access)
-- Android application ID: `com.vayora.app`
+- Android application ID: `com.vayora.app` (website/ads APKs) and `com.vayora.play` (Google Play AAB)
 - Owner: `Perfumwala@gmail.com`
 - Support: `help.vayora@gmail.com`
 

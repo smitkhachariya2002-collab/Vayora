@@ -4,7 +4,7 @@ The `play` flavor must also use `--dart-define=PLAY_STORE=true`. It hides all pr
 
 ## Free Play cloud
 
-Enable Google Play Integrity for com.vayora.app, link the Cloud project and install through a Play internal test track. Set Supabase Edge secrets GOOGLE_PLAY_SERVICE_ACCOUNT (JSON), PLAY_CLOUD_PROJECT_NUMBER and PLAY_CERTIFICATE_SHA256 (Play app-signing certificate, colon SHA256 or base64url digest). Do not use the upload certificate if Play re-signs the app.
+Enable Google Play Integrity for com.vayora.play, link the Cloud project and install through a Play internal test track. Set Supabase Edge secrets GOOGLE_PLAY_SERVICE_ACCOUNT (JSON), PLAY_CLOUD_PROJECT_NUMBER and PLAY_CERTIFICATE_SHA256 (Play app-signing certificate, colon SHA256 or base64url digest). Do not use the upload certificate if Play re-signs the app.
 
 Cloud enrollment uses a one-time server challenge, verified package/certificate/licensing/device verdict and the current Auth session. A client flag cannot grant itself 15 GB. Until Play Console is configured, enrollment remains unavailable; the app still opens, but no unverified cloud quota is granted. Pull down or resume to retry after setup. Direct-download users retain the paid/free server mode.
 

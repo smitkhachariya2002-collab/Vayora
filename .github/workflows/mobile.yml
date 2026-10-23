@@ -136,7 +136,7 @@ jobs:
 
   release:
     needs: verify
-    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-app-discovery' || github.head_ref == 'fix/upi-order-window' || github.head_ref == 'ui/profile-plans-first' || github.head_ref == 'fix/cloud-upi-options' || github.head_ref == 'ui/royal-violet' || github.head_ref == 'fix/upi-launch-fallback'))
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-app-discovery' || github.head_ref == 'fix/upi-order-window' || github.head_ref == 'ui/profile-plans-first' || github.head_ref == 'fix/cloud-upi-options' || github.head_ref == 'ui/royal-violet' || github.head_ref == 'fix/upi-launch-fallback' || github.head_ref == 'fix/play-package-name'))
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -198,7 +198,7 @@ jobs:
           cp build/app/outputs/flutter-apk/app-direct-release.apk artifacts/Vayora.apk
           flutter build apk --release --flavor direct --target-platform android-arm,android-arm64 --dart-define-from-file=/tmp/vayora-defines.json --dart-define='APK_REFERRER=utm_source=meta&utm_medium=paid_social&utm_campaign=apk_download'
           cp build/app/outputs/flutter-apk/app-direct-release.apk artifacts/Vayora-ads.apk
-          flutter build appbundle --release --flavor play --dart-define-from-file=/tmp/vayora-defines.json --dart-define=PLAY_STORE=true
+          flutter build appbundle --release --flavor play --dart-define-from-file=/tmp/vayora-defines.json --dart-define=PLAY_STORE=true --dart-define=ANDROID_APP_ID=com.vayora.play
           cp build/app/outputs/bundle/playRelease/app-play-release.aab artifacts/Vayora-play.aab
       - name: Verify UPI visibility in every release flavor
         working-directory: mobile
@@ -214,6 +214,12 @@ jobs:
               paths+=glob.glob(f'build/app/intermediates/merged_manifest/{flavor}/**/AndroidManifest.xml',recursive=True)
               assert paths, f'No merged release manifest found for {flavor}'
               subprocess.run(['python3','tool/verify_upi_manifest.py',*paths],check=True)
+              expected={'directRelease':'com.vayora.app','playRelease':'com.vayora.play'}[flavor]
+              for path in paths:
+                  text=open(path).read()
+                  assert f'package="{expected}"' in text, f'{flavor} must use package {expected}: {path}'
+                  assert f'android:scheme="{expected}"' in text, f'{flavor} login callback must use {expected}: {path}'
+              print(flavor, 'package', expected)
           PY
       - name: Verify all release signatures and checksums
         working-directory: mobile
