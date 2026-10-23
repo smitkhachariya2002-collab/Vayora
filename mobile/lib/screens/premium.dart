@@ -1,6 +1,7 @@
 import 'dart:async';
 import '../plan_catalog.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../app_state.dart';
 import '../navigation.dart';
 import '../theme.dart';
@@ -10,6 +11,7 @@ import 'cloud.dart';
 import 'payment_flow.dart';
 import 'payments.dart';
 import 'profile.dart';
+import 'web_plans.dart';
 
 class Plans extends StatefulWidget {
   const Plans({
@@ -232,6 +234,88 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
     );
   }
 
+  Future<void> claim(Map<String, dynamic> plan) async {
+    if (checkoutRequested) return;
+    checkoutRequested = true;
+    try {
+      if (!await accountLoginDialog(
+            context,
+            widget.state,
+            plan: plan['name'] as String,
+          ) ||
+          !mounted) {
+        return;
+      }
+      if (!await loginGate(context, widget.state) || !mounted) return;
+      setState(() => busy = true);
+      final result = Map<String, dynamic>.from(
+        await widget.state.db.rpc(
+              'claim_free_plan',
+              params: {'plan_id': plan['id']},
+            )
+            as Map,
+      );
+      await widget.state.refreshStatus();
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          icon: const Icon(
+            Icons.workspace_premium_outlined,
+            size: AppSizes.dialogIcon,
+            color: AppColors.gold,
+          ),
+          title: const Text('Plan activated', textAlign: TextAlign.center),
+          content: Text(
+            'Your ${result['plan_name'] ?? plan['name']} is active until ${shortDate(result['ends_at'] as String?)}.',
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(dialog),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      if (mounted) await refresh();
+    } on PostgrestException catch (e) {
+      if (mounted) showFeedback(context, e.message);
+      if (mounted) await refresh();
+    } catch (_) {
+      if (mounted) {
+        showFeedback(context, 'Could not activate the plan. Please try again.');
+      }
+    } finally {
+      checkoutRequested = false;
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  /// A plan chosen on the website page runs through the same checkout as the list.
+  Future<void> buyFromWeb(String id) async {
+    Map<String, dynamic>? find() {
+      final matches = catalog.rows.where((p) => p['id'] == id);
+      return matches.isEmpty ? null : matches.first;
+    }
+
+    var plan = find();
+    if (plan == null) {
+      await catalog.refresh();
+      plan = find();
+    }
+    if (!mounted) return;
+    if (plan == null) {
+      showFeedback(context, 'This plan is no longer available.');
+    } else if (catalog.isFree(id)) {
+      await claim(plan);
+    } else if (!catalog.paymentsAvailable) {
+      showFeedback(context, 'Payments are paused. Please try again later.');
+    } else {
+      await pay(plan);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.state,
@@ -259,6 +343,21 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
       return ListenableBuilder(
         listenable: catalog,
         builder: (context, _) {
+          if (!playStore && state.status['web_plans'] == true) {
+            return AppPage(
+              title: 'Premium',
+              actions: actions,
+              body: catalog.loaded
+                  ? WebPlans(
+                      uri: webPlansUri(
+                        free: catalog.freeIds,
+                        paused: !catalog.paymentsAvailable,
+                      ),
+                      onBuy: buyFromWeb,
+                    )
+                  : const SkeletonList(),
+            );
+          }
           if (catalog.loaded && catalog.error == null && catalog.rows.isEmpty) {
             return AppPage(
               title: 'Premium',
@@ -270,6 +369,8 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
           final matches = rows.where((p) => p['id'] == catalog.selected);
           final plan = matches.isEmpty ? null : matches.first;
           final perks = planPerks(plan, rows);
+          final free = catalog.isFree(plan?['id'] as String?);
+          final anyFree = rows.any((p) => catalog.isFree(p['id'] as String?));
           return AppPage(
             title: 'Premium',
             actions: actions,
@@ -289,12 +390,19 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
                       guest: state.guest,
                       busy: busy,
                       price: plan?['price_inr'] as num?,
+                      free: free,
+                      paymentsAvailable: catalog.paymentsAvailable,
                     ),
-                    icon: Icons.arrow_forward,
+                    icon: free
+                        ? Icons.workspace_premium_outlined
+                        : Icons.arrow_forward,
                     busy: busy,
-                    onPressed: checkoutRequested || plan == null
+                    onPressed:
+                        checkoutRequested ||
+                            plan == null ||
+                            (!free && !catalog.paymentsAvailable)
                         ? null
-                        : () => pay(plan),
+                        : () => free ? claim(plan) : pay(plan),
                   ),
                 ),
               ),
@@ -347,6 +455,23 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
                       },
                     ),
                     PremiumHero(perks: perks),
+                    if (anyFree) ...[
+                      const SizedBox(height: 16),
+                      const NoticeCard(
+                        title: 'Free for you',
+                        message:
+                            'Plans marked FREE are free for you for a limited time.',
+                        tone: NoticeTone.success,
+                      ),
+                    ] else if (catalog.loaded &&
+                        !catalog.paymentsAvailable) ...[
+                      const SizedBox(height: 16),
+                      const NoticeCard(
+                        title: 'Payments paused',
+                        message: 'Payments are paused. Please try again later.',
+                        tone: NoticeTone.warning,
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     const SectionTitle('Choose your plan'),
                     const SizedBox(height: 16),
@@ -360,6 +485,7 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
                           padding: const EdgeInsets.only(bottom: 12),
                           child: PlanCard(
                             plan: row,
+                            free: catalog.isFree(row['id'] as String?),
                             selected: row['id'] == catalog.selected,
                             onTap: busy
                                 ? null
@@ -487,9 +613,10 @@ class PlanCard extends StatelessWidget {
     required this.plan,
     required this.selected,
     required this.onTap,
+    this.free = false,
   });
   final Map<String, dynamic> plan;
-  final bool selected;
+  final bool selected, free;
   final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) => Semantics(
@@ -558,10 +685,41 @@ class PlanCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: Gap.s),
-            Text(
-              planPrice(plan['price_inr'] as num),
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            if (free)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    planPrice(plan['price_inr'] as num),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      decoration: TextDecoration.lineThrough,
+                    ),
+                  ),
+                  const SizedBox(height: Gap.xs),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'FREE',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text(
+                planPrice(plan['price_inr'] as num),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
           ],
         ),
       ),

@@ -52,6 +52,25 @@ export async function saveMode(form: FormData) {
   }).eq("id",true)).error);
   revalidatePath("/dashboard","layout");
 }
+export async function saveFreePlans(form: FormData) {
+  const { client } = await requireAdmin(true);
+  const target = text(form,"free_plans_for");
+  if (!["none","organic","ads","everyone"].includes(target)) throw new Error("Invalid free plans setting");
+  checked((await client.from("app_mode").update({ free_plans_for: target }).eq("id",true)).error);
+  revalidatePath("/dashboard","layout");
+}
+export async function saveWebPlans(form: FormData) {
+  const { client } = await requireAdmin(true);
+  const mode = text(form,"web_plans");
+  if (!["true","false"].includes(mode)) throw new Error("Invalid plans page setting");
+  checked((await client.from("app_mode").update({ web_plans: mode === "true" }).eq("id",true)).error);
+  revalidatePath("/dashboard","layout");
+}
+export async function clearUpi() {
+  const { client } = await requireAdmin(true);
+  checked((await client.from("payment_settings").update({ upi_id: null, enabled: false }).eq("id",true)).error);
+  revalidatePath("/dashboard/payments");
+}
 export async function saveUpi(form: FormData) {
   const { client } = await requireAdmin(true);
   checked((await client.from("payment_settings").update({

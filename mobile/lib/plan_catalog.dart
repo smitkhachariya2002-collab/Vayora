@@ -10,6 +10,13 @@ class PlanCatalog extends ChangeNotifier {
   List<Map<String, dynamic>> rows = [];
   String? selected;
   Object? error;
+
+  /// Plans the server says are free for this user right now.
+  Set<String> freeIds = {};
+
+  /// False when the owner cleared the UPI ID or turned payments off.
+  bool paymentsAvailable = true;
+  bool isFree(String? id) => id != null && freeIds.contains(id);
   bool loaded = false, enabled = true, _disposed = false;
   int _request = 0;
   RealtimeChannel? _channel;
@@ -60,8 +67,14 @@ class PlanCatalog extends ChangeNotifier {
           .eq('active', true)
           .order('position', ascending: true)
           .order('created_at', ascending: true);
+      final offers = await _offers();
       if (_disposed || request != _request) return;
       rows = data.where((p) => p['active'] != false).toList();
+      freeIds = {
+        for (final id in offers?['free_plan_ids'] as List? ?? const [])
+          if (id is String) id,
+      };
+      paymentsAvailable = offers?['payments_available'] != false;
       if (!rows.any((p) => p['id'] == selected)) selected = null;
       error = null;
       loaded = true;
@@ -71,6 +84,16 @@ class PlanCatalog extends ChangeNotifier {
       error = e;
       loaded = true;
       notifyListeners();
+    }
+  }
+
+  // Older servers without plan_offers keep the normal paid behaviour.
+  Future<Map?> _offers() async {
+    try {
+      final value = await db.rpc('plan_offers');
+      return value is Map ? value : null;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -84,6 +107,8 @@ class PlanCatalog extends ChangeNotifier {
   void clear() {
     ++_request;
     rows = [];
+    freeIds = {};
+    paymentsAvailable = true;
     selected = null;
     loaded = false;
     error = null;
