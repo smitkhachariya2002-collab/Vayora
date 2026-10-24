@@ -141,7 +141,7 @@ void main() {
     });
   }
 
-  testWidgets('Free plan shows FREE badge and free notice', (tester) async {
+  testWidgets('Website page gets free plans from the server', (tester) async {
     await pumpPlans(
       tester,
       {
@@ -152,17 +152,18 @@ void main() {
       (catalog) async {
         expect(catalog.isFree('trial'), isTrue);
         expect(catalog.isFree('gold'), isFalse);
-        expect(find.text('FREE'), findsOneWidget);
-        expect(find.text('Free for you'), findsOneWidget);
-        expect(find.text('₹ 259'), findsOneWidget);
-        await tester.tap(find.text('Trial'));
-        await tester.pumpAndSettle();
-        expect(find.text('Next'), findsOneWidget);
+        expect(find.byKey(const ValueKey('web-plans')), findsOneWidget);
+        expect(
+          find.text('https://vayora-eta.vercel.app/subscribe?app=1&free=trial'),
+          findsOneWidget,
+        );
       },
     );
   });
 
-  testWidgets('Cleared UPI ID disables paid plans', (tester) async {
+  testWidgets('Cleared UPI ID tells the website page payments are paused', (
+    tester,
+  ) async {
     await pumpPlans(
       tester,
       {
@@ -172,12 +173,62 @@ void main() {
       },
       (catalog) async {
         expect(catalog.paymentsAvailable, isFalse);
-        expect(find.text('Payments paused'), findsOneWidget);
-        await tester.tap(find.text('Gold'));
-        await tester.pumpAndSettle();
-        expect(find.text('Payments unavailable'), findsOneWidget);
-        expect(find.text('FREE'), findsNothing);
+        expect(
+          find.text('https://vayora-eta.vercel.app/subscribe?app=1&paused=1'),
+          findsOneWidget,
+        );
       },
     );
   });
+
+  for (final subscribed in [false, true]) {
+    testWidgets(
+      'Hidden plans show no subscribe page${subscribed ? '; the active plan stays visible' : ''}',
+      (tester) async {
+        final f = Fixture();
+        f.intercept = (r) => r.url.path.endsWith('/plans')
+            ? reply(r, [plan('gold', 'Gold', 259, 30, 0)])
+            : r.url.path.endsWith('/payment_orders')
+            ? reply(r, [])
+            : null;
+        f.currentStatus = {
+          'plans_visible': false,
+          if (subscribed) ...{
+            'is_premium': true,
+            'plan_name': 'Gold',
+            'plan_ends_at': '2026-12-01T00:00:00Z',
+          },
+        };
+        await tester.runAsync(f.start);
+        await tester.runAsync(
+          () => f.state.login('member@example.test', 'password123'),
+        );
+        expect(f.state.plansVisible, isFalse);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: buildTheme(),
+            home: Plans(state: f.state),
+          ),
+        );
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 60)),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('web-plans')), findsNothing);
+        expect(find.textContaining('₹'), findsNothing);
+        expect(find.text('Get 2 TB with Premium'), findsNothing);
+        expect(
+          find.text('Gold active'),
+          subscribed ? findsOneWidget : findsNothing,
+        );
+        expect(find.text('Payment history'), findsOneWidget);
+        expect(
+          f.calls.where((r) => r.url.path.endsWith('/create_payment_order')),
+          isEmpty,
+        );
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.runAsync(f.close);
+      },
+    );
+  }
 }

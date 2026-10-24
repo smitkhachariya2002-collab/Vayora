@@ -10,8 +10,11 @@ import 'package:vayora/screens/new_post.dart';
 import 'package:vayora/theme.dart';
 import 'package:vayora/widgets/common.dart';
 import 'account_test.dart' show Fixture, existingId;
+import 'flutter_test_config.dart' show fakeWebPlanIds;
 
 void main() {
+  setUp(() => fakeWebPlanIds = ['gold']);
+  tearDown(() => fakeWebPlanIds = []);
   testWidgets('Profile handles the signed-out phase of logout', (tester) async {
     final f = Fixture();
     await tester.runAsync(f.start);
@@ -170,7 +173,7 @@ void main() {
     },
   );
   testWidgets(
-    'Selected plan survives login navigation and does not create an order early',
+    'Guest choosing a plan on the website page must log in first; no order is created early',
     (tester) async {
       final f = Fixture();
       f.intercept = (r) => r.url.path.endsWith('/plans')
@@ -193,13 +196,12 @@ void main() {
           home: Plans(state: f.state),
         ),
       );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 60)),
+      );
       await tester.pumpAndSettle();
-      expect(find.text('Select a plan'), findsOneWidget);
-      await tester.ensureVisible(find.text('Gold'));
-      await tester.tap(find.text('Gold'));
-      await tester.pumpAndSettle();
-      expect(find.text('Next'), findsOneWidget);
-      await tester.tap(find.text('Next'));
+      expect(find.byKey(const ValueKey('web-plans')), findsOneWidget);
+      await tester.tap(find.text('Buy gold'));
       await tester.pumpAndSettle();
       expect(find.text('Please log in to buy Gold.'), findsOneWidget);
       await tester.tap(find.text('Log in').last);
@@ -207,8 +209,7 @@ void main() {
       expect(find.byType(Login), findsOneWidget);
       await tester.pageBack();
       await tester.pumpAndSettle();
-      expect(find.text('Next'), findsOneWidget);
-      expect(find.byIcon(Icons.radio_button_checked), findsOneWidget);
+      expect(find.byKey(const ValueKey('web-plans')), findsOneWidget);
       expect(
         f.calls.where((r) => r.url.path.endsWith('/create_payment_order')),
         isEmpty,

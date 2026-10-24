@@ -280,7 +280,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               }),
             ),
           CrownButton(
-            visible: selected != 4 && state.paidEnabled,
+            visible: selected != 4 && state.plansVisible,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute<void>(builder: (_) => Plans(state: state)),

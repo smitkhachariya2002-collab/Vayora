@@ -66,6 +66,10 @@ class _PostPageState extends State<PostPage> {
         !state.premium) {
       if (state.adsAccess && item['trailer_key'] != null) {
         await play(context, item, trailer: true);
+      } else if (state.paidEnabled && !state.plansVisible) {
+        if (context.mounted) {
+          showFeedback(context, 'This video is for Premium members.');
+        }
       } else {
         await Navigator.push(
           context,
@@ -123,6 +127,13 @@ class _PostPageState extends State<PostPage> {
   Future<void> download(BuildContext context, Map<String, dynamic> item) async {
     await runAction(context, () async {
       if (!await loginGate(context, state) || !context.mounted) return;
+      if (!state.premium &&
+          !ownsMedia &&
+          state.paidEnabled &&
+          !state.plansVisible) {
+        showFeedback(context, 'Downloads are for Premium members.');
+        return;
+      }
       if (!state.premium && !ownsMedia) {
         final proceed = await confirmAction(
           context,

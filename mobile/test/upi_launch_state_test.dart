@@ -8,8 +8,11 @@ import 'package:vayora/plan_catalog.dart';
 import 'package:vayora/screens/premium.dart';
 import 'package:vayora/theme.dart';
 import 'account_test.dart' show Fixture;
+import 'flutter_test_config.dart' show fakeWebPlanIds;
 
 void main() {
+  setUp(() => fakeWebPlanIds = ['trial']);
+  tearDown(() => fakeWebPlanIds = []);
   TestWidgetsFlutterBinding.ensureInitialized();
   for (final outcome in ['NO_UPI_APP', 'LAUNCH_FAILED', 'no_upi', 'cancelled', 'legacy_raw']) {
     testWidgets('Checkout clears opening state for $outcome', (tester) async {
@@ -69,14 +72,12 @@ void main() {
         home: Scaffold(body: Plans(state: f.state, catalog: catalog)),
       ));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Trial'));
-      await tester.pumpAndSettle();
       await tester.runAsync(() async {
-        await tester.tap(find.text('Pay ₹1 via UPI'));
+        await tester.tap(find.text('Buy trial'));
         await Future<void>.delayed(const Duration(milliseconds: 100));
       });
       await tester.pump();
-      expect(find.text('Opening UPI…'), findsOneWidget);
+      expect(launches, 1);
       if (outcome == 'cancelled') {
         tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
         tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
@@ -102,8 +103,8 @@ void main() {
         outcome == 'NO_UPI_APP' ? findsOneWidget : findsNothing);
       if (outcome == 'NO_UPI_APP') {
         expect(find.text('Copy UPI ID'), findsOneWidget);
-        // The button is reset even while the fallback is still open.
-        expect(find.text('Pay ₹1 via UPI'), findsOneWidget);
+        // The plans page stays usable while the fallback is open.
+        expect(find.text('Buy trial'), findsOneWidget);
         await tester.tapAt(const Offset(2, 2));
         await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
         await tester.pumpAndSettle();

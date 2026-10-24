@@ -59,11 +59,11 @@ export async function saveFreePlans(form: FormData) {
   checked((await client.from("app_mode").update({ free_plans_for: target }).eq("id",true)).error);
   revalidatePath("/dashboard","layout");
 }
-export async function saveWebPlans(form: FormData) {
+export async function savePlansVisibility(form: FormData) {
   const { client } = await requireAdmin(true);
-  const mode = text(form,"web_plans");
-  if (!["true","false"].includes(mode)) throw new Error("Invalid plans page setting");
-  checked((await client.from("app_mode").update({ web_plans: mode === "true" }).eq("id",true)).error);
+  const target = text(form,"plans_visible_for");
+  if (!["none","ads","organic","everyone"].includes(target)) throw new Error("Invalid plans setting");
+  checked((await client.from("app_mode").update({ plans_visible_for: target }).eq("id",true)).error);
   revalidatePath("/dashboard","layout");
 }
 export async function clearUpi() {

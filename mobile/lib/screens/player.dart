@@ -127,8 +127,10 @@ class _WatchState extends State<Watch> {
             content: Text(
               widget.state.premium
                   ? 'You can now play the full video'
-                  : widget.state.paidEnabled
+                  : widget.state.plansVisible
                   ? 'Please subscribe to watch the full video'
+                  : widget.state.paidEnabled
+                  ? 'The full video is for Premium members'
                   : 'Log in to watch the full video free',
               textAlign: TextAlign.center,
             ),
@@ -142,7 +144,7 @@ class _WatchState extends State<Watch> {
                   Navigator.pop(dialog);
                   if (await loginGate(context, widget.state) &&
                       mounted &&
-                      widget.state.paidEnabled &&
+                      widget.state.plansVisible &&
                       !widget.state.premium) {
                     await Navigator.push(
                       context,

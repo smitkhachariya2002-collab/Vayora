@@ -32,7 +32,7 @@ class _ProfileState extends State<Profile> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.state,
     builder: (context, _) =>
-        widget.state.paidEnabled && (!widget.state.premium || checkoutOpen)
+        widget.state.plansVisible && (!widget.state.premium || checkoutOpen)
         ? Plans(
             state: widget.state,
             catalog: widget.catalog,
@@ -450,7 +450,7 @@ class _AccountProfileState extends State<AccountProfile> {
                           ),
                         ),
                       ),
-                      if (state.paidEnabled) ...[
+                      if (state.plansVisible) ...[
                         const SizedBox(height: 16),
                         ProfileTile(
                           icon: Icons.workspace_premium_outlined,
