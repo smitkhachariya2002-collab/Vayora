@@ -136,7 +136,7 @@ jobs:
 
   release:
     needs: verify
-    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-app-discovery' || github.head_ref == 'fix/upi-order-window' || github.head_ref == 'ui/profile-plans-first' || github.head_ref == 'fix/cloud-upi-options' || github.head_ref == 'ui/royal-violet' || github.head_ref == 'fix/upi-launch-fallback' || github.head_ref == 'fix/play-package-name' || github.head_ref == 'feature/admin-live-controls-v12'))
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'build/flixvault-parity' || github.head_ref == 'build/reliable-upi' || github.head_ref == 'fix/upi-app-discovery' || github.head_ref == 'fix/upi-order-window' || github.head_ref == 'ui/profile-plans-first' || github.head_ref == 'fix/cloud-upi-options' || github.head_ref == 'ui/royal-violet' || github.head_ref == 'fix/upi-launch-fallback' || github.head_ref == 'fix/play-package-name' || github.head_ref == 'feature/admin-live-controls-v12' || github.head_ref == 'fix/version-label'))
     runs-on: ubuntu-latest
     environment: production
     env:
