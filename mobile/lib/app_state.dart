@@ -71,6 +71,9 @@ class AppState extends ChangeNotifier {
       (!playStore ||
           (status['play_verified'] == true &&
               status['play_billing_enabled'] == true));
+
+  /// Owner decides who sees plans (none/ads/organic/everyone); admins always do.
+  bool get plansVisible => paidEnabled && status['plans_visible'] != false;
   bool _playCheckout = false;
   bool canSee(String audience) =>
       status['is_admin'] == true ||

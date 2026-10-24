@@ -26,10 +26,22 @@ Everything below is changed in the admin panel and reaches the app within second
 
 Tests: `supabase/tests/admin_live_controls.test.sql`, `mobile/test/live_controls_test.dart`.
 
-## Website plans page inside the app
+## Plans in the app (website page) and who can see them
 
-Plans → **Plans page in the app** switches the Premium tab of the website/ads APK between the in-app list and the website page `https://vayora-eta.vercel.app/subscribe` shown inside the app (WebView). The page only displays plans. When the user taps Pay, the page sends the chosen plan to the app, and the app runs its normal checkout: the UPI app chooser, the result returned to the app, and automatic activation for the plan's duration (or the free claim when the plan is free for that user). The WebView can only load `/subscribe` and `/d` on the website.
+The website/ads app has no built-in plans list. Premium always opens the website page `https://vayora-eta.vercel.app/subscribe` inside the app (WebView). The page shows the plans; when the user taps Pay, the app runs its normal checkout: the UPI app chooser, the result returned to the app, and automatic activation for the plan's duration on success (nothing on failure). Free plans are claimed the same way. The WebView can only load `/subscribe` and `/d`.
 
-The Google Play build never shows this page, because selling digital content through a web page inside a Play app breaks Google Play's Payments policy.
+Plans → **Show plans in app** decides who sees plans:
 
-The WebView plugin needs Android 7.0 or newer, so the app's minimum Android version is now 7.0 (minSdk 24).
+| Setting | Ads users | Organic users |
+|---|---|---|
+| Everyone | see and can buy | see and can buy |
+| Ads users only | see and can buy | no plans, no Premium button, no subscribe prompts |
+| Organic users only | no plans | see and can buy |
+| Nobody | no plans | no plans |
+
+- The server enforces it: `create_order` and `claim_free_plan` refuse users outside the chosen group, and hidden plans are never free.
+- Users who already bought a plan keep seeing it (plan name, end date, payment history) until it ends.
+- Admins always see plans, so you can test.
+- The Google Play build never shows plans.
+
+The WebView plugin needs Android 7.0 or newer (minSdk 24).

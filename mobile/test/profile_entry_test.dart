@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:vayora/screens/profile.dart';
-import 'package:vayora/screens/premium.dart';
 import 'package:vayora/theme.dart';
 import 'account_test.dart' show Fixture;
 
@@ -43,7 +42,7 @@ void plans(Fixture f) {
 void main() {
   for (final member in [false, true]) {
     testWidgets(
-      '${member ? "Member" : "Guest"} opens full plans directly from Profile',
+      '${member ? "Member" : "Guest"} opens the website plans page directly from Profile',
       (tester) async {
         final f = Fixture();
         plans(f);
@@ -60,8 +59,7 @@ void main() {
           ),
         );
         await settle(tester);
-        expect(find.byType(PlanCard), findsNWidgets(2));
-        expect(find.byType(PremiumHero), findsOneWidget);
+        expect(find.byKey(const ValueKey('web-plans')), findsOneWidget);
         expect(find.text('Explore Premium'), findsNothing);
         expect(find.text('My Channels'), findsNothing);
         expect(find.text('Privacy Policy'), findsNothing);
@@ -76,7 +74,7 @@ void main() {
     );
   }
   testWidgets(
-    'Active subscription shows account options; expiry restores plans live',
+    'Active subscription shows account options; expiry restores the plans page live',
     (tester) async {
       final f = Fixture();
       plans(f);
@@ -93,7 +91,7 @@ void main() {
       );
       await settle(tester);
       expect(find.byType(AccountProfile), findsOneWidget);
-      expect(find.byType(PlanCard), findsNothing);
+      expect(find.byKey(const ValueKey('web-plans')), findsNothing);
       expect(find.text('Privacy Policy'), findsOneWidget);
       expect(find.text('My Channels'), findsOneWidget);
       expect(f.calls.where((r) => r.url.path.endsWith('/plans')), isEmpty);
@@ -101,14 +99,14 @@ void main() {
       await tester.runAsync(f.state.refreshStatus);
       await tester.pump();
       await settle(tester);
-      expect(find.byType(PlanCard), findsNWidgets(2));
+      expect(find.byKey(const ValueKey('web-plans')), findsOneWidget);
       expect(find.text('Privacy Policy'), findsNothing);
       f.currentStatus = {'is_premium': true, 'plan_name': 'Gold'};
       await tester.runAsync(f.state.refreshStatus);
       await tester.pump();
       await settle(tester);
       expect(find.byType(AccountProfile), findsOneWidget);
-      expect(find.byType(PlanCard), findsNothing);
+      expect(find.byKey(const ValueKey('web-plans')), findsNothing);
       expect(
         f.calls.where((r) => r.url.path.endsWith('/create_payment_order')),
         isEmpty,

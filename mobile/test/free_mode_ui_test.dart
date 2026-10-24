@@ -55,7 +55,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(AccountProfile), findsOneWidget);
-      expect(find.byType(PlanCard), findsNothing);
+      expect(find.byKey(const ValueKey('web-plans')), findsNothing);
       expect(find.textContaining('₹'), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.runAsync(f.close);

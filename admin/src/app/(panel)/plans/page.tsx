@@ -25,10 +25,10 @@ export default async function PlansPage({searchParams}:{searchParams:Promise<Rec
  <p className="text-xs text-gray-500">Free plans claimed in this promotion: organic {Number(claimed.organic??0)} · ads {Number(claimed.ads??0)}. Turning this off stops new claims; plans already claimed run until they end. Free mode (above) overrides this.</p>
  <Submit confirm="Change who gets plans for free? Users in the free group will get plans without paying.">Save free plans</Submit></form></Card>
  <Card className="mb-6"><form action={workspaceAction} className="space-y-4">
- <Hidden name="operation" value="saveWebPlans"/><Hidden name="return_to" value="/plans"/>
- <SectionTitle>Plans page in the app</SectionTitle><p className="text-sm leading-6 text-gray-500">Website page: the Premium tab of the website/ads app opens your website plans page (/subscribe) inside the app. Users pick a plan there, choose their UPI app, and the plan activates automatically after payment, the same as the in-app list. The Google Play app never shows this page.</p>
- <Field label="Show plans as"><Select name="web_plans" defaultValue={mode.data?.web_plans?"true":"false"}><option value="false">In-app list</option><option value="true">Website page inside the app</option></Select></Field>
- <Submit>Save plans page</Submit></form></Card>
+ <Hidden name="operation" value="savePlansVisibility"/><Hidden name="return_to" value="/plans"/>
+ <SectionTitle>Show plans in app</SectionTitle><p className="text-sm leading-6 text-gray-500">Who can see and buy plans in the website/ads app. Users in the chosen group open Premium and see your website plans page (/subscribe) inside the app, pick a plan, choose their UPI app and the plan activates after a successful payment. Everyone else sees no prices, no Premium button and no subscribe prompts, and the server refuses their purchases. Users who already bought a plan still see it until it ends. Admins always see plans so you can test. The Google Play app never shows plans.</p>
+ <Field label="Show plans to"><Select name="plans_visible_for" defaultValue={String(mode.data?.plans_visible_for??"everyone")}><option value="everyone">Everyone</option><option value="ads">Ads users only</option><option value="organic">Organic users only</option><option value="none">Nobody · plans hidden</option></Select></Field>
+ <Submit confirm="Change who can see and buy plans in the app?">Save</Submit></form></Card>
  {q.new&&<div id="new-plan" className="mb-6 max-w-2xl"><PlanEditor plan={{}}/></div>}
  <div className="grid gap-5 lg:grid-cols-2">{(plans.data??[]).map(plan=>{
  const count=(impact.data as {plan_id:string;active_subscribers:number;orders:number}[]|null)?.find(i=>i.plan_id===plan.id);

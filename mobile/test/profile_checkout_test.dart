@@ -5,11 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:vayora/plan_catalog.dart';
 import 'package:vayora/screens/profile.dart';
-import 'package:vayora/screens/premium.dart';
 import 'package:vayora/theme.dart';
 import 'account_test.dart' show Fixture;
+import 'flutter_test_config.dart' show fakeWebPlanIds;
 
 void main() {
+  setUp(() => fakeWebPlanIds = ['trial']);
+  tearDown(() => fakeWebPlanIds = []);
   TestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
     'Profile selection pays exact price and opens server-confirmed success',
@@ -85,14 +87,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byType(PlanCard), findsOneWidget);
+      expect(find.byKey(const ValueKey('web-plans')), findsOneWidget);
       expect(find.text('Explore Premium'), findsNothing);
       expect(find.text('My Channels'), findsNothing);
-      await tester.tap(find.text('Trial'));
-      await tester.pumpAndSettle();
-      expect(find.text('Pay ₹1 via UPI'), findsOneWidget);
       await tester.runAsync(() async {
-        await tester.tap(find.text('Pay ₹1 via UPI'));
+        await tester.tap(find.text('Buy trial'));
         await Future<void>.delayed(const Duration(milliseconds: 150));
       });
       await tester.pumpAndSettle();
@@ -116,7 +115,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(AccountProfile), findsOneWidget);
-      expect(find.byType(PlanCard), findsNothing);
+      expect(find.byKey(const ValueKey('web-plans')), findsNothing);
       expect(find.text('My Channels'), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
       catalog.dispose();

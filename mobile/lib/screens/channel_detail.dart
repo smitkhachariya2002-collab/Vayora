@@ -154,7 +154,7 @@ class _ChannelDetailState extends State<ChannelDetail> {
         title: channel['name'] as String,
         actions: [
           CrownButton(
-            visible: state.paidEnabled,
+            visible: state.plansVisible,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute<void>(builder: (_) => Plans(state: state)),

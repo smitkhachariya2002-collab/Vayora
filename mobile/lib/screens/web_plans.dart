@@ -36,6 +36,11 @@ class WebPlans extends StatefulWidget {
   const WebPlans({super.key, required this.uri, required this.onBuy});
   final Uri uri;
 
+  /// Widget tests have no platform WebView; they render this instead.
+  @visibleForTesting
+  static Widget Function(Uri uri, Future<void> Function(String) onBuy)?
+  testView;
+
   /// Runs the app's own checkout (UPI or free claim) for the chosen plan.
   final Future<void> Function(String planId) onBuy;
   @override
@@ -49,6 +54,7 @@ class _WebPlansState extends State<WebPlans> {
   @override
   void initState() {
     super.initState();
+    if (WebPlans.testView != null) return;
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(AppColors.background)
@@ -84,10 +90,11 @@ class _WebPlansState extends State<WebPlans> {
   @override
   void didUpdateWidget(WebPlans old) {
     super.didUpdateWidget(old);
-    if (old.uri != widget.uri) reload();
+    if (old.uri != widget.uri && WebPlans.testView == null) reload();
   }
 
   void reload() {
+    if (WebPlans.testView != null) return;
     setState(() {
       failed = false;
       loading = true;
@@ -108,7 +115,9 @@ class _WebPlansState extends State<WebPlans> {
   }
 
   @override
-  Widget build(BuildContext context) => failed
+  Widget build(BuildContext context) => WebPlans.testView != null
+      ? WebPlans.testView!(widget.uri, widget.onBuy)
+      : failed
       ? ErrorRetry(onRetry: reload)
       : Stack(
           children: [

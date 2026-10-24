@@ -50,8 +50,10 @@ class StorageMeter extends StatelessWidget {
             Text(
               total > 0
                   ? '${storageLabel((total - used).clamp(0, total))} available'
-                  : state.paidEnabled
+                  : state.plansVisible
                   ? 'Get 2 TB with Premium'
+                  : state.paidEnabled
+                  ? 'Cloud storage is not active'
                   : !state.guest && playStore
                   ? 'Pull down to finish setting up your cloud'
                   : 'Log in for 15 GB free',
@@ -208,6 +210,10 @@ class CloudViewState extends State<CloudView> implements CloudController {
     await state.refreshStatus();
     if (!mounted) return;
     if ((state.status['quota_bytes'] as num? ?? 0) <= 0) {
+      if (state.paidEnabled && !state.plansVisible) {
+        showFeedback(context, 'Cloud storage is not active on this account.');
+        return;
+      }
       await Navigator.push(
         context,
         MaterialPageRoute<void>(builder: (_) => Plans(state: state)),
@@ -246,6 +252,10 @@ class CloudViewState extends State<CloudView> implements CloudController {
     await state.refreshStatus();
     if (!mounted) return;
     if ((state.status['quota_bytes'] as num? ?? 0) <= 0) {
+      if (state.paidEnabled && !state.plansVisible) {
+        showFeedback(context, 'Cloud storage is not active on this account.');
+        return;
+      }
       await Navigator.push(
         context,
         MaterialPageRoute<void>(builder: (_) => Plans(state: state)),
@@ -333,6 +343,10 @@ class CloudViewState extends State<CloudView> implements CloudController {
       return;
     }
     if ((state.status['quota_bytes'] as num? ?? 0) <= 0) {
+      if (state.paidEnabled && !state.plansVisible) {
+        showFeedback(context, 'Cloud storage is not active on this account.');
+        return;
+      }
       await Navigator.push(
         context,
         MaterialPageRoute<void>(builder: (_) => Plans(state: state)),
@@ -523,7 +537,8 @@ class CloudViewState extends State<CloudView> implements CloudController {
                   onAction: () => loginGate(context, state),
                 )
               else ...[
-                if ((state.status['quota_bytes'] as num? ?? 0) <= 0)
+                if ((state.status['quota_bytes'] as num? ?? 0) <= 0 &&
+                    (!state.paidEnabled || state.plansVisible))
                   NoticeCard(
                     title: 'Get 2 TB with Premium',
                     message: 'Choose a plan to upload and open files.',

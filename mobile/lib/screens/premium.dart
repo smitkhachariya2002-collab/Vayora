@@ -174,8 +174,31 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
                                 : 'Log in to manage your account.')
                           : (state.status['quota_bytes'] as num? ?? 0) > 0
                           ? 'Your allowance is ${storageLabel(state.status['quota_bytes'] as num?)}.'
-                          : 'Get 2 TB with Premium',
+                          : state.plansVisible || freeMode
+                          ? 'Get 2 TB with Premium'
+                          : 'Your account is active.',
                     ),
+                    if (!freeMode &&
+                        state.premium &&
+                        state.status['plan_name'] != null) ...[
+                      const SizedBox(height: 16),
+                      NoticeCard(
+                        title: '${state.status['plan_name']} active',
+                        message:
+                            'Your plan is active until ${shortDate(state.status['plan_ends_at'] as String?)}.',
+                        tone: NoticeTone.success,
+                      ),
+                    ],
+                    if (!freeMode && !state.guest)
+                      TextButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => Payments(state: state),
+                          ),
+                        ),
+                        child: const Text('Payment history'),
+                      ),
                     if (!state.guest) ...[
                       const SizedBox(height: 16),
                       StorageMeter(state: state),
@@ -340,180 +363,75 @@ class _PlansState extends State<Plans> with WidgetsBindingObserver {
           body: freeAccount(freeMode: true),
         );
       }
+      if (!state.plansVisible) {
+        return AppPage(
+          title: 'Premium',
+          actions: actions,
+          body: freeAccount(freeMode: false),
+        );
+      }
+      // Plans and prices come from the website page; payment stays native.
       return ListenableBuilder(
         listenable: catalog,
-        builder: (context, _) {
-          if (!playStore && state.status['web_plans'] == true) {
-            return AppPage(
-              title: 'Premium',
-              actions: actions,
-              body: catalog.loaded
-                  ? WebPlans(
-                      uri: webPlansUri(
-                        free: catalog.freeIds,
-                        paused: !catalog.paymentsAvailable,
-                      ),
-                      onBuy: buyFromWeb,
-                    )
-                  : const SkeletonList(),
-            );
-          }
-          if (catalog.loaded && catalog.error == null && catalog.rows.isEmpty) {
-            return AppPage(
-              title: 'Premium',
-              actions: actions,
-              body: freeAccount(freeMode: false),
-            );
-          }
-          final rows = catalog.rows;
-          final matches = rows.where((p) => p['id'] == catalog.selected);
-          final plan = matches.isEmpty ? null : matches.first;
-          final perks = planPerks(plan, rows);
-          final free = catalog.isFree(plan?['id'] as String?);
-          final anyFree = rows.any((p) => catalog.isFree(p['id'] as String?));
-          return AppPage(
-            title: 'Premium',
-            actions: actions,
-            navigation: SafeArea(
-              top: false,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: const BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border(top: BorderSide(color: AppColors.border)),
-                ),
-                child: PageWidth(
-                  form: true,
-                  child: GradientButton(
-                    label: premiumButtonLabel(
-                      selected: plan != null,
-                      guest: state.guest,
-                      busy: busy,
-                      price: plan?['price_inr'] as num?,
-                      free: free,
-                      paymentsAvailable: catalog.paymentsAvailable,
-                    ),
-                    icon: free
-                        ? Icons.workspace_premium_outlined
-                        : Icons.arrow_forward,
-                    busy: busy,
-                    onPressed:
-                        checkoutRequested ||
-                            plan == null ||
-                            (!free && !catalog.paymentsAvailable)
-                        ? null
-                        : () => free ? claim(plan) : pay(plan),
-                  ),
-                ),
-              ),
-            ),
-            body: RefreshIndicator(
-              onRefresh: refresh,
-              child: PageWidth(
-                form: true,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    FutureBuilder<List<Map<String, dynamic>>>(
-                      future: openOrders,
-                      builder: (context, snapshot) {
-                        final orders = snapshot.data ?? [];
-                        final banner = premiumBanner(state.status, orders);
-                        if (banner == PremiumBannerKind.none) {
-                          return const SizedBox.shrink();
-                        }
-                        final active = banner == PremiumBannerKind.active;
-                        final order = orders.isEmpty ? null : orders.first;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: NoticeCard(
-                            title: active
-                                ? 'Premium active'
-                                : order?['status'] == 'initiated'
-                                ? 'Payment not completed'
-                                : 'Payment being checked',
-                            message: active
-                                ? 'You have ${state.status['plan_name']} until ${shortDate(state.status['plan_ends_at'] as String?)}.'
-                                : 'Payment for ${(order?['plans'] as Map?)?['name'] ?? 'Premium'} (order ${order?['reference']}) is ${order?['status'] == 'initiated' ? 'not completed' : 'being checked'}. Tap to see the status.',
-                            tone: active
-                                ? NoticeTone.success
-                                : NoticeTone.warning,
-                            onTap: active
-                                ? null
-                                : () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute<void>(
-                                      builder: (_) => Payments(
-                                        state: state,
-                                        orderId: order!['id'] as String,
-                                      ),
-                                    ),
+        builder: (context, _) => AppPage(
+          title: 'Premium',
+          actions: actions,
+          body: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: FutureBuilder<List<Map<String, dynamic>>>(
+                  future: openOrders,
+                  builder: (context, snapshot) {
+                    final orders = snapshot.data ?? [];
+                    final banner = premiumBanner(state.status, orders);
+                    if (banner == PremiumBannerKind.none) {
+                      return const SizedBox.shrink();
+                    }
+                    final active = banner == PremiumBannerKind.active;
+                    final order = orders.isEmpty ? null : orders.first;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: NoticeCard(
+                        title: active
+                            ? 'Premium active'
+                            : order?['status'] == 'initiated'
+                            ? 'Payment not completed'
+                            : 'Payment being checked',
+                        message: active
+                            ? 'You have ${state.status['plan_name']} until ${shortDate(state.status['plan_ends_at'] as String?)}.'
+                            : 'Payment for ${(order?['plans'] as Map?)?['name'] ?? 'Premium'} (order ${order?['reference']}) is ${order?['status'] == 'initiated' ? 'not completed' : 'being checked'}. Tap to see the status.',
+                        tone: active ? NoticeTone.success : NoticeTone.warning,
+                        onTap: active
+                            ? null
+                            : () => Navigator.push(
+                                context,
+                                MaterialPageRoute<void>(
+                                  builder: (_) => Payments(
+                                    state: state,
+                                    orderId: order!['id'] as String,
                                   ),
-                          ),
-                        );
-                      },
-                    ),
-                    PremiumHero(perks: perks),
-                    if (anyFree) ...[
-                      const SizedBox(height: 16),
-                      const NoticeCard(
-                        title: 'Free for you',
-                        message:
-                            'Plans marked FREE are free for you for a limited time.',
-                        tone: NoticeTone.success,
+                                ),
+                              ),
                       ),
-                    ] else if (catalog.loaded &&
-                        !catalog.paymentsAvailable) ...[
-                      const SizedBox(height: 16),
-                      const NoticeCard(
-                        title: 'Payments paused',
-                        message: 'Payments are paused. Please try again later.',
-                        tone: NoticeTone.warning,
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    const SectionTitle('Choose your plan'),
-                    const SizedBox(height: 16),
-                    if (catalog.error != null)
-                      ErrorRetry(onRetry: () => setState(reload))
-                    else if (!catalog.loaded)
-                      const SkeletonList()
-                    else
-                      for (final row in rows)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: PlanCard(
-                            plan: row,
-                            free: catalog.isFree(row['id'] as String?),
-                            selected: row['id'] == catalog.selected,
-                            onTap: busy
-                                ? null
-                                : () => catalog.select(row['id'] as String),
-                          ),
-                        ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'One-time payment. No automatic renewal.',
-                      style: Theme.of(context).textTheme.bodySmall,
-                      textAlign: TextAlign.center,
-                    ),
-                    if (!state.guest)
-                      TextButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute<void>(
-                            builder: (_) => Payments(state: state),
-                          ),
-                        ),
-                        child: const Text('Payment history'),
-                      ),
-                  ],
+                    );
+                  },
                 ),
               ),
-            ),
-          );
-        },
+              Expanded(
+                child: catalog.loaded
+                    ? WebPlans(
+                        uri: webPlansUri(
+                          free: catalog.freeIds,
+                          paused: !catalog.paymentsAvailable,
+                        ),
+                        onBuy: buyFromWeb,
+                      )
+                    : const SkeletonList(),
+              ),
+            ],
+          ),
+        ),
       );
     },
   );
@@ -546,183 +464,4 @@ List<String> planPerks(
   final own = read(selected);
   if (own.isNotEmpty) return own;
   return read(rows.isEmpty ? null : rows.first);
-}
-
-class PremiumHero extends StatelessWidget {
-  const PremiumHero({super.key, this.perks = const []});
-  final List<String> perks;
-  @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      gradient: AppColors.actionGradient,
-      borderRadius: BorderRadius.circular(24),
-      boxShadow: const [
-        BoxShadow(
-          color: AppColors.heroShadow,
-          blurRadius: 24,
-          offset: Offset(0, 8),
-        ),
-      ],
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(Gap.l),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const PremiumBadge(),
-          const SizedBox(height: Gap.l),
-          for (final perk
-              in perks.isNotEmpty
-                  ? perks
-                  : const [
-                      'Full premium videos',
-                      '2 TB cloud storage',
-                      'Download to your phone',
-                    ])
-            Padding(
-              padding: const EdgeInsets.only(bottom: Gap.s),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.check_circle_outline,
-                    color: AppColors.white,
-                    size: AppSizes.iconSmall,
-                  ),
-                  const SizedBox(width: Gap.s),
-                  Expanded(
-                    child: Text(
-                      perk,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    ),
-  );
-}
-
-class PlanCard extends StatelessWidget {
-  const PlanCard({
-    super.key,
-    required this.plan,
-    required this.selected,
-    required this.onTap,
-    this.free = false,
-  });
-  final Map<String, dynamic> plan;
-  final bool selected, free;
-  final VoidCallback? onTap;
-  @override
-  Widget build(BuildContext context) => Semantics(
-    selected: selected,
-    inMutuallyExclusiveGroup: true,
-    child: PressScale(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: AppMotion.fade,
-        padding: const EdgeInsets.all(Gap.l),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.selectedPlan : AppColors.surface,
-          boxShadow: selected
-              ? const [
-                  BoxShadow(color: AppColors.selectedShadow, blurRadius: 16),
-                ]
-              : null,
-          borderRadius: Radii.cardRadius,
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              selected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: selected ? AppColors.primary : AppColors.muted,
-            ),
-            const SizedBox(width: Gap.m),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    plan['name'] as String,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  if ((plan['badge'] as String? ?? '').trim().isNotEmpty) ...[
-                    const SizedBox(height: Gap.xs),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        plan['badge'] as String,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.primaryText,
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: Gap.xs),
-                  Text(
-                    planDuration(plan['duration_days'] as num),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: Gap.s),
-            if (free)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    planPrice(plan['price_inr'] as num),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      decoration: TextDecoration.lineThrough,
-                    ),
-                  ),
-                  const SizedBox(height: Gap.xs),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'FREE',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            else
-              Text(
-                planPrice(plan['price_inr'] as num),
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-          ],
-        ),
-      ),
-    ),
-  );
 }
