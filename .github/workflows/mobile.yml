@@ -23,6 +23,9 @@ jobs:
       - name: Install locked dependencies
         working-directory: mobile
         run: flutter pub get --enforce-lockfile
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Regenerate branding from committed SVG sources before Android builds
         working-directory: mobile
         run: |
@@ -98,6 +101,9 @@ jobs:
         with:
           name: Vayora-visual-debug
           path: visual-apk
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Prepare capture tools and emulator acceleration
         if: steps.capture.outputs.needed == 'true'
         run: |
@@ -182,6 +188,9 @@ jobs:
           PY
       - run: flutter pub get --enforce-lockfile
         working-directory: mobile
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Verify reproducible release branding
         working-directory: mobile
         run: |
