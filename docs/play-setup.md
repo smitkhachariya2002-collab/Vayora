@@ -1,6 +1,6 @@
 # Play distribution and billing preparation
 
-The `play` flavor must also use `--dart-define=PLAY_STORE=true`. It hides all prices and UPI while server billing is disabled. The `direct` flavor serves the website and ads APKs.
+Since version 0.3.11 (14) the `play` bundle is built with `PLAY_STORE=false` by the owner's decision: it shows the website plans page and UPI checkout exactly like the `direct` APK, and does not use Play Integrity free cloud. This is outside Google Play's Payments policy and can lead to rejection, removal or a policy strike on the developer account. To go back to the compliant build, set `--dart-define=PLAY_STORE=true` in `.github/workflows/mobile.yml`: it hides all prices and UPI while server billing is disabled. The `direct` flavor serves the website and ads APKs.
 
 ## Free Play cloud
 
