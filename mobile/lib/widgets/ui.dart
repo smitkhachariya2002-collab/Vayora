@@ -137,7 +137,7 @@ class VideoThumb extends StatelessWidget {
           aspectRatio: aspectRatio,
           child: Stack(fit: StackFit.expand, children: [
             Container(
-              decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF123542), Color(0xFF175E68)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
+              decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF1B376A), Color(0xFF116C70)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
               child: const Center(child: Icon(Icons.play_circle_outline_rounded, color: Colors.white38, size: 44)),
             ),
             if (url != null) Image.network(url!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),

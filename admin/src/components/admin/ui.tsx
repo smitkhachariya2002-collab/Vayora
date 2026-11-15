@@ -26,14 +26,14 @@ export function Card({ title, sub, children, className }: { title?: string; sub?
 }
 
 const BTN = {
-  primary: "bg-teal-700 text-white hover:bg-teal-800",
+  primary: "bg-blue-700 text-white hover:bg-blue-800",
   secondary: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
   danger: "bg-red-600 text-white hover:bg-red-700",
   success: "bg-green-600 text-white hover:bg-green-700",
 };
 export type Variant = keyof typeof BTN;
 export const btnClass = (v: Variant = "primary", small = false) =>
-  cx("inline-flex items-center justify-center rounded-xl font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 disabled:opacity-50",
+  cx("inline-flex items-center justify-center rounded-xl font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:opacity-50",
     small ? "min-h-8 px-3 py-1.5 text-xs" : "min-h-10 px-4 py-2.5 text-sm", BTN[v]);
 
 export function Button({ variant = "primary", small, children, ...p }: { variant?: Variant; small?: boolean; children: ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
@@ -52,7 +52,7 @@ export function Field({ label, hint, children, className }: { label: string; hin
     </label>
   );
 }
-const INPUT = "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-gray-400 focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/15 disabled:bg-gray-100 read-only:bg-gray-100";
+const INPUT = "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-gray-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/15 disabled:bg-gray-100 read-only:bg-gray-100";
 export const Input = (p: React.InputHTMLAttributes<HTMLInputElement>) => <input {...p} className={cx(INPUT, p.className)} />;
 export const Textarea = (p: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => <textarea {...p} className={cx(INPUT, p.className)} />;
 export const Select = (p: React.SelectHTMLAttributes<HTMLSelectElement>) => <select {...p} className={cx(INPUT, p.className)} />;
@@ -113,7 +113,7 @@ export function Tabs({ items, current }: { items: { href: string; label: string;
     <div className="mb-5 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1">
       {items.map((t) => (
         <Link key={t.key} href={t.href} aria-current={t.key === current ? "page" : undefined}
-          className={cx("whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium", t.key === current ? "bg-teal-50 text-teal-800" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800")}>
+          className={cx("whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium", t.key === current ? "bg-blue-50 text-blue-800" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800")}>
           {t.label}{t.count ? <span className="ml-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] text-white">{t.count}</span> : null}
         </Link>
       ))}

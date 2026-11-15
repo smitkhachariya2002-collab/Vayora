@@ -57,15 +57,15 @@ export default function DeleteAccount() {
           <h1 className="text-3xl font-bold text-slate-900">Delete your Vayora account</h1>
           <p className="text-slate-600">
             Deleting removes your profile, cloud files, channels and posts. Payment records are kept without any link to you for up to 8 years, as tax and
-            accounting rules require. In the app you can also go to Profile → Delete account.
+            accounting rules require. In the app you can also go to Profile â†’ Delete account.
           </p>
         </section>
 
-        {msg && <p role="status" className={`rounded-lg border px-4 py-3 ${msg.kind === "ok" ? "border-green-300 bg-green-50 text-green-800" : msg.kind === "err" ? "border-red-300 bg-red-50 text-red-800" : "border-cyan-200 bg-cyan-50 text-cyan-900"}`}>{msg.text}</p>}
+        {msg && <p role="status" className={`rounded-lg border px-4 py-3 ${msg.kind === "ok" ? "border-green-300 bg-green-50 text-green-800" : msg.kind === "err" ? "border-red-300 bg-red-50 text-red-800" : "border-cyan-200 bg-cyan-50 text-indigo-900"}`}>{msg.text}</p>}
 
         {!signedIn ? (
           <form onSubmit={login} className="card space-y-3">
-            <p className="rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3 text-cyan-900">Please log in to delete your account.</p>
+            <p className="rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3 text-indigo-900">Please log in to delete your account.</p>
             <label className="block">Email<input className="input mt-1" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
             <label className="block">Password<input className="input mt-1" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
             <button className="btn" disabled={busy}>Login</button>

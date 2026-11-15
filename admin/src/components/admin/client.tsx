@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 const BTN: Record<string, string> = {
-  primary: "bg-teal-700 text-white hover:bg-teal-800",
+  primary: "bg-blue-700 text-white hover:bg-blue-800",
   secondary: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
   danger: "bg-red-600 text-white hover:bg-red-700",
   success: "bg-green-600 text-white hover:bg-green-700",
@@ -19,9 +19,9 @@ export function SubmitButton({ children, confirm, variant = "primary", small }: 
       type="submit"
       disabled={pending}
       onClick={(e) => { if (confirm && !window.confirm(confirm)) e.preventDefault(); }}
-      className={"inline-flex items-center justify-center rounded-xl font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 disabled:opacity-50 " + (small ? "px-2.5 py-1 text-xs " : "px-3.5 py-2 text-sm ") + BTN[variant]}
+      className={"inline-flex items-center justify-center rounded-xl font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:opacity-50 " + (small ? "px-2.5 py-1 text-xs " : "px-3.5 py-2 text-sm ") + BTN[variant]}
     >
-      {pending ? "Working…" : children}
+      {pending ? "Workingâ€¦" : children}
     </button>
   );
 }

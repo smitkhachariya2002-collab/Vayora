@@ -5,12 +5,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#0A0A14",
-        surface: "#13131F",
-        border: "#24243A",
-        muted: "#9A9AB5",
-        primary: "#7C5CFF",
-        accent: "#FF5CA8",
+        bg: "#090F1E",
+        surface: "#141D32",
+        border: "#293956",
+        muted: "#AFC0D9",
+        primary: "#3478F6",
+        accent: "#FF8A65",
         gold: "#FFC94D",
         success: "#35D07F",
         warning: "#FFB020",
@@ -18,7 +18,7 @@ const config: Config = {
       },
       fontFamily: { sans: ["Poppins", "system-ui", "sans-serif"] },
       backgroundImage: {
-        brand: "linear-gradient(135deg,#6A5CFF,#9B5CFF,#FF5CA8)",
+        brand: "linear-gradient(135deg,#3478F6,#245ED1)",
       },
     },
   },

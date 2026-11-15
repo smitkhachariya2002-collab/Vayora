@@ -47,7 +47,7 @@ class Measurement extends ChangeNotifier {
     final id=p.getString('install_id')??_uuid.v4();await p.setString('install_id',id);
     final native=await const MethodChannel('app/measurement').invokeMapMethod<String,dynamic>('context')??{};
     final view=PlatformDispatcher.instance.views.first;
-    return {'install_id':id,'extinfo':['a2',Config.authScheme,'16',Config.versionLabel,
+    return {'install_id':id,'extinfo':['a2',Config.authScheme,'17',Config.versionLabel,
       '${native['os']??''}','${native['model']??''}',PlatformDispatcher.instance.locale.toLanguageTag(),DateTime.now().timeZoneName,'',
       view.physicalSize.width.round().toString(),view.physicalSize.height.round().toString(),view.devicePixelRatio.toString(),'${native['cores']??''}','','','']};
   }

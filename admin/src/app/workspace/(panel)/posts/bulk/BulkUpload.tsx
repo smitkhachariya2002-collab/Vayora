@@ -131,36 +131,36 @@ export default function BulkUpload({ channels, initialChannelId }: { channels: C
           patch(row.id, { state: "error", error: error instanceof Error ? error.message : "Upload failed. Retry this item." }); failed++;
         }
       }
-      setMessage(`${succeeded} saved, ${failed} failed.${stop.current ? " Paused after the current file." : ""} Published posts appear after the app refreshes, within the channel’s audience.`);
+      setMessage(`${succeeded} saved, ${failed} failed.${stop.current ? " Paused after the current file." : ""} Published posts appear after the app refreshes, within the channelâ€™s audience.`);
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not start upload."); }
     finally { running.current = false; setBusy(false); }
   };
 
   const locked = busy || entries.some(row => row.postId);
-  const cls = "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/10 disabled:opacity-60";
+  const cls = "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 disabled:opacity-60";
   return <div className="space-y-5">
     <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4 sm:p-6">
       <div><h2 className="text-base font-semibold text-slate-900">Choose your destination</h2><p className="mt-1 text-xs text-slate-500">Set the channel and audience once for this batch.</p></div>
       <label className="block text-sm font-medium">Channel<select className={cls} value={channelId} disabled={locked} onChange={e => setChannelId(e.target.value)}>
-        <option value="">Choose a channel</option>{channels.map(c => <option key={c.id} value={c.id}>{c.name} · {audienceName(c.audience)}{c.review_status !== "approved" ? " · awaiting approval" : ""}</option>)}
+        <option value="">Choose a channel</option>{channels.map(c => <option key={c.id} value={c.id}>{c.name} Â· {audienceName(c.audience)}{c.review_status !== "approved" ? " Â· awaiting approval" : ""}</option>)}
       </select></label>
       {!channels.length && <p>No channels are available for your admin account.</p>}
       <label className="block text-sm font-medium">Post audience<select className={cls} value={audience} disabled={locked} onChange={e => setAudience(e.target.value)}>
         <option value="channel">Use channel audience</option><option value="all">Both ads and organic</option><option value="ads">Ads users</option><option value="organic">Organic users</option>
       </select></label>
-      <p className="text-sm text-gray-600">Posts also respect the channel’s audience. For example, a post in an ads-only channel stays restricted to ads users.</p>
+      <p className="text-sm text-gray-600">Posts also respect the channelâ€™s audience. For example, a post in an ads-only channel stays restricted to ads users.</p>
       {channel && (channel.hidden || channel.review_status !== "approved" || !["published", "active"].includes(channel.status)) && <p role="status" className="text-amber-800">This channel is hidden, unapproved, or a draft. Uploads will not be visible to viewers until the channel is approved and published.</p>}
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={publish} disabled={locked} onChange={e => setPublish(e.target.checked)} />Publish posts after upload (uncheck to save drafts)</label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={premium} disabled={locked} onChange={e => setPremium(e.target.checked)} />Premium media (full files require the existing Premium access)</label>
     </section>
-    <div className="flex flex-wrap gap-3 items-center rounded-2xl border border-dashed border-teal-300 bg-teal-50/50 p-5">
+    <div className="flex flex-wrap gap-3 items-center rounded-2xl border border-dashed border-blue-300 bg-blue-50/50 p-5">
       <label className="btn cursor-pointer">Select videos and images<input type="file" accept="video/*,image/*" multiple disabled={busy} className="sr-only" onChange={e => { choose(e.target.files); e.target.value = ""; }} /></label>
       <button type="button" className="rounded-lg border px-4 py-2" disabled={busy} onClick={() => setEntries(rows => [...rows, { id: crypto.randomUUID(), title: "", description: "", state: "ready", progress: 0 }])}>Add text post</button>
       <p className="text-sm text-gray-600">One post per file. Keep this page open until the batch finishes.</p>
     </div>
-    {entries.length > 0 && <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-base font-semibold text-slate-900">Upload queue <span className="ml-1 text-sm font-normal text-slate-400">{entries.length} items</span></h2><p className="text-xs text-slate-500">{entries.filter(row => row.state === "done").length} saved · {entries.filter(row => row.state === "error").length} need retry</p></div>}
+    {entries.length > 0 && <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-base font-semibold text-slate-900">Upload queue <span className="ml-1 text-sm font-normal text-slate-400">{entries.length} items</span></h2><p className="text-xs text-slate-500">{entries.filter(row => row.state === "done").length} saved Â· {entries.filter(row => row.state === "error").length} need retry</p></div>}
     <div className="space-y-4">{entries.map(row => <article key={row.id} className="rounded-xl border bg-white p-4 space-y-2">
-      <div className="flex flex-wrap justify-between gap-2"><span className="text-sm text-gray-600 break-all">{row.file ? `${row.file.name} · ${(row.file.size / 1048576).toFixed(1)} MB` : "Text post"}</span><span className="text-sm font-medium" role="status">{row.state === "uploading" ? `Uploading ${row.progress}%` : row.state === "done" ? publish ? "Published" : "Draft saved" : row.state === "error" ? "Needs retry" : "Ready"}</span></div>
+      <div className="flex flex-wrap justify-between gap-2"><span className="text-sm text-gray-600 break-all">{row.file ? `${row.file.name} Â· ${(row.file.size / 1048576).toFixed(1)} MB` : "Text post"}</span><span className="text-sm font-medium" role="status">{row.state === "uploading" ? `Uploading ${row.progress}%` : row.state === "done" ? publish ? "Published" : "Draft saved" : row.state === "error" ? "Needs retry" : "Ready"}</span></div>
       {row.file && <BulkMediaPreview file={row.file} thumbnail={row.thumbnail} trailer={row.trailer} video={mediaType(row.file).startsWith("video/")} />}
       <label className="block text-sm">Title<input className={cls} maxLength={160} value={row.title} disabled={busy || row.state === "done"} onChange={e => patch(row.id, { title: e.target.value })} /></label>
       <label className="block text-sm">{row.file ? "Description / content" : "Content"}<textarea className={cls} rows={3} value={row.description} disabled={busy || row.state === "done"} onChange={e => patch(row.id, { description: e.target.value })} /></label>
