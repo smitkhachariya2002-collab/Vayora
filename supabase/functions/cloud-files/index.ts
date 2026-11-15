@@ -1,47 +1,48 @@
-import {createClient} from "npm:@supabase/supabase-js@2.118.0";
-const headers={"Content-Type":"application/json"};
-const reply=(status:number,message:string,data?:unknown)=>new Response(JSON.stringify({message,data}),{status,headers});
-Deno.serve(async(req:Request)=>{
- if(req.method!=="POST")return reply(405,"POST required");
- const token=req.headers.get("Authorization")?.replace(/^Bearer /i,"");if(!token)return reply(401,"Authentication required");
- const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false,autoRefreshToken:false}});
- const {data:{user},error}=await admin.auth.getUser(token);
- if(error||!user||user.is_anonymous)return reply(401,"Member account required");
- const caller=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{
- auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:"Bearer "+token}}});
- try{
- if((req.headers.get("content-type")??"").startsWith("multipart/form-data")){
-   const body=await req.formData(),file=body.get("file"),parent=body.get("parent_id");
-   if(!(file instanceof File)||file.size>52428800)return reply(400,"50 MB maximum per file");
-   const {data:entry,error:reserved}=await caller.rpc("cloud_reserve",{
-     name:String(body.get("name")||file.name),parent_id:parent?String(parent):null,is_folder:false,mime:String(body.get("mime")||file.type||"application/octet-stream"),size:file.size}).single<{id:string;storage_key:string;mime:string}>();
-   if(reserved||!entry)return reply(400,reserved?.message??"Reservation failed");
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.49.8";
+const url=Deno.env.get("SUPABASE_URL")!;
+const anon=Deno.env.get("SUPABASE_ANON_KEY")!;
+const service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json"}});
+const admin=()=>createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
+const userClient=(req:Request)=>createClient(url,anon,{global:{headers:{Authorization:req.headers.get("Authorization")??""}},auth:{persistSession:false,autoRefreshToken:false}});
+async function user(req:Request){const sb=userClient(req);const {data,error}=await sb.auth.getUser();if(error||!data.user)throw new Error("unauthorized");return {sb,user:data.user};}
+async function isOwner(uid:string){const {data}=await admin().from("admins").select("role").eq("user_id",uid).maybeSingle();return data?.role==="owner";}
+async function adminRole(uid:string){const {data}=await admin().from("admins").select("role").eq("user_id",uid).maybeSingle();return data?.role??null;}
 
-   try{
-     const {error:stored}=await admin.storage.from("cloud").upload(entry.storage_key,await file.arrayBuffer(),{contentType:entry.mime,upsert:false});
-     if(stored)throw stored;
-     const {error:finished}=await admin.rpc("cloud_finish_upload",{user_id:user.id,entry_id:entry.id});
-     if(finished)throw finished;
-     return reply(200,"Uploaded",entry);
-   }catch{
-     // Never release counted quota while an object might still exist.
-     const prepared=await caller.rpc("cloud_begin_delete",{entry_id:entry.id});
-     if(!prepared.error){
-       const cleaned=await admin.storage.from("cloud").remove([entry.storage_key]);
-       if(!cleaned.error)await admin.rpc("cloud_finish_delete",{user_id:user.id,entry_id:entry.id,upload_finished:true});
-     }
-     return reply(409,"Upload could not finish. Retry or delete the incomplete entry.");
-   }
- }
- const body=await req.json();
- if(body.operation!=="delete"||typeof body.entry_id!=="string")return reply(400,"Invalid action");
- const {data:deletion,error:begin}=await caller.rpc("cloud_begin_delete",{entry_id:body.entry_id});
- if(begin)return reply(400,begin.message);
- for(let i=0;i<deletion.keys.length;i+=100){
-   const {error:removed}=await admin.storage.from("cloud").remove(deletion.keys.slice(i,i+100));if(removed)return reply(409,"Cleanup incomplete. Please retry deletion.");
- }
- const {error:finished}=await admin.rpc("cloud_finish_delete",{user_id:user.id,entry_id:body.entry_id});
- if(finished)return reply(409,"Cleanup incomplete. Please retry deletion.");
- return reply(200,"Deleted");
- }catch{return reply(400,"Could not complete the cloud operation");}
+Deno.serve(async(req)=>{
+ try{
+  if(req.method!=="POST")return json({error:"method not allowed"},405);
+  const {sb,user:u}=await user(req); const b=await req.json(); const action=String(b?.action??"");
+  if(action==="upload"){
+    const name=String(b?.name??"").trim(); const size=Number(b?.size??0);
+    if(!name||!Number.isFinite(size)||size<=0)return json({error:"invalid file"},400);
+    const safe=name.replace(/[\\/\0]/g,"_").slice(0,180);
+    const path=`${u.id}/${crypto.randomUUID()}/${safe}`;
+    const {data:file,error:e1}=await sb.from("cloud_files").insert({user_id:u.id,name:safe,storage_path:path,size_bytes:Math.floor(size),mime:"application/octet-stream"}).select("id,name,size_bytes,mime,storage_path,created_at").single();
+    if(e1)return json({error:e1.message},e1.code==="42501"?403:400);
+    const {data:up,error:e2}=await sb.storage.from("cloud").createSignedUploadUrl(path);
+    if(e2){await sb.from("cloud_files").delete().eq("id",file.id);return json({error:e2.message},400);}
+    return json({file,upload:up});
+  }
+  if(action==="finalize"){
+    const id=String(b?.id??""); const {data,error}=await sb.from("cloud_files").select("id,name,size_bytes,mime,storage_path,created_at").eq("id",id).single();
+    if(error)return json({error:error.message},404); return json({file:data});
+  }
+  if(action==="download"){
+    const id=String(b?.id??""); const {data:file,error:e1}=await sb.from("cloud_files").select("storage_path").eq("id",id).single();
+    if(e1)return json({error:"not found"},404);
+    const {data,error}=await sb.storage.from("cloud").createSignedUrl(file.storage_path,3600);
+    if(error||!data?.signedUrl)return json({error:error?.message??"could not sign"},400);
+    return json({url:data.signedUrl});
+  }
+  if(action==="delete"){
+    const id=String(b?.id??""); const {data:file,error:e1}=await sb.from("cloud_files").select("storage_path").eq("id",id).single();
+    if(e1)return json({error:"not found"},404);
+    const {error:e2}=await sb.storage.from("cloud").remove([file.storage_path]); if(e2)return json({error:e2.message},400);
+    const {error:e3}=await sb.from("cloud_files").delete().eq("id",id); if(e3)return json({error:e3.message},400);
+    return json({ok:true});
+  }
+  return json({error:"unknown action"},400);
+ }catch(e){return json({error:e instanceof Error?e.message:"request failed"},401);}
 });

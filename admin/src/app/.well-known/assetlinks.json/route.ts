@@ -1,5 +1,12 @@
-export async function GET(){
- const fingerprints=(process.env.ANDROID_SIGNING_SHA256??"").split(",").map(s=>s.trim().toUpperCase()).filter(s=>/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(s));
- if(!fingerprints.length)return Response.json([],{headers:{"Cache-Control":"public, max-age=300"}});
- return Response.json(["com.vayora.app","com.vayora.play"].map(package_name=>({relation:["delegate_permission/common.handle_all_urls"],target:{namespace:"android_app",package_name,sha256_cert_fingerprints:fingerprints}})),{headers:{"Cache-Control":"public, max-age=3600"}});
+import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
+export function GET() {
+  const fps = (process.env.ANDROID_SIGNING_SHA256 || "").split(",").map((s) => s.trim()).filter((s) => /^([A-Fa-f0-9]{2}:){31}[A-Fa-f0-9]{2}$/.test(s));
+  const body = (fps.length ? ["com.vayora.app"] : []).map((pkg) => ({
+    relation: ["delegate_permission/common.handle_all_urls"],
+    target: { namespace: "android_app", package_name: pkg, sha256_cert_fingerprints: fps },
+  }));
+  return NextResponse.json(body);
 }

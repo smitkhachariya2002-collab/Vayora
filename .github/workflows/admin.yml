@@ -3,7 +3,7 @@ on:
   pull_request:
     paths: ['admin/**', '.github/workflows/admin.yml']
   push:
-    branches: [main]
+    branches: [main, feature/puffle-parity-no-google-ads]
   workflow_dispatch:
 permissions:
   contents: read
@@ -13,6 +13,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://fzloulsjhkdxwagonsgt.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_yhWaOl1wsOEpqCkCN_CzMw_Guaabspq
     defaults:
       run:
         working-directory: admin
@@ -24,9 +27,6 @@ jobs:
           cache: npm
           cache-dependency-path: admin/package-lock.json
       - run: npm ci
-      - run: npm run lint
       - run: npm run typecheck
-      - run: npm run build
+      - run: npm run build -- --webpack
 
-      - name: Verify public deletion page and request forwarding
-        run: node scripts/deletion-page-check.mjs

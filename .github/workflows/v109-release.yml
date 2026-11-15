@@ -1,0 +1,53 @@
+name: Vayora v1.0.9 candidate
+on:
+  push:
+    branches: [feature/puffle-parity-no-google-ads]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'vayora' }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: {flutter-version: '3.47.7', cache: true}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17'}
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test
+      - run: flutter test --dart-define=PLAY_STORE=true
+      - name: Restore existing signing identity
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64" && test -n "$ANDROID_KEYSTORE_PASSWORD"
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
+          keytool -list -keystore android/app/release.jks -storepass:env ANDROID_KEYSTORE_PASSWORD -alias "$ANDROID_KEY_ALIAS"
+      - name: Build signed artifacts
+        run: |
+          mkdir -p release
+          flutter build apk --release --flavor direct
+          cp build/app/outputs/flutter-apk/app-direct-release.apk release/Vayora.apk
+          flutter build apk --release --flavor direct '--dart-define=APK_REFERRER=utm_source=meta&utm_medium=paid_social&utm_campaign=apk_download'
+          cp build/app/outputs/flutter-apk/app-direct-release.apk release/Vayora-ads.apk
+          flutter build appbundle --release --flavor play --dart-define=PLAY_STORE=true --dart-define=ANDROID_APP_ID=com.vayora.play
+          cp build/app/outputs/bundle/playRelease/app-play-release.aab release/Vayora-play.aab
+          cd release && sha256sum *.apk *.aab > checksums.txt
+      - name: Verify signatures
+        run: |
+          signer=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          "$signer" verify --print-certs release/Vayora.apk
+          "$signer" verify --print-certs release/Vayora-ads.apk
+          jarsigner -verify release/Vayora-play.aab
+      - uses: actions/upload-artifact@v4
+        with: {name: Vayora-v1.0.9-signed, path: mobile/release/}

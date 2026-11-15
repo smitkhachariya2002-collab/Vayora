@@ -1,62 +1,34 @@
-import { createClient } from "npm:@supabase/supabase-js@2.118.0";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.49.8";
+const url=Deno.env.get("SUPABASE_URL")!;
+const anon=Deno.env.get("SUPABASE_ANON_KEY")!;
+const service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json"}});
+const admin=()=>createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
+const userClient=(req:Request)=>createClient(url,anon,{global:{headers:{Authorization:req.headers.get("Authorization")??""}},auth:{persistSession:false,autoRefreshToken:false}});
+async function user(req:Request){const sb=userClient(req);const {data,error}=await sb.auth.getUser();if(error||!data.user)throw new Error("unauthorized");return {sb,user:data.user};}
+async function isOwner(uid:string){const {data}=await admin().from("admins").select("role").eq("user_id",uid).maybeSingle();return data?.role==="owner";}
+async function adminRole(uid:string){const {data}=await admin().from("admins").select("role").eq("user_id",uid).maybeSingle();return data?.role??null;}
 
-Deno.serve(async (req: Request) => {
-  const headers = {"Content-Type":"application/json"};
-  if (req.method !== "POST") return new Response('{"error":"POST required"}',{status:405,headers});
-  try {
-    const token = req.headers.get("Authorization")?.replace(/^Bearer /i,"");
-    if (!token) return new Response('{"error":"Authentication required"}',{status:401,headers});
-    const body = await req.json();
-    if (body.confirm !== true) return new Response('{"error":"Confirmation required"}',{status:400,headers});
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{
-      auth:{persistSession:false,autoRefreshToken:false}
-    });
-    const {data:{user},error} = await admin.auth.getUser(token);
-    if (error || !user || user.is_anonymous) return new Response('{"error":"Member account required"}',{status:401,headers});
-    const caller = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:"Bearer "+token}}
-    });
-    const prepared = await caller.rpc("prepare_account_deletion");
-    if (prepared.error) return new Response(JSON.stringify({error:prepared.error.message}),{status:409,headers});
-    // Revoke refresh sessions first. Every call revalidates the access token with Auth.
-    const signedOut = await admin.auth.admin.signOut(token,"global");
-    if(signedOut.error)throw signedOut.error;
-    const {data:channels,error:channelError}=await admin.from("channels").select("id").eq("created_by",user.id);
-    if(channelError)throw channelError;
-    const channelIds=(channels??[]).map(c=>c.id);
-    let query=admin.from("posts").select("id,post_items(media_key,trailer_key,thumbnail_key)").eq("created_by",user.id);
-    if(channelIds.length)query=admin.from("posts").select("id,post_items(media_key,trailer_key,thumbnail_key)")
-      .or("created_by.eq."+user.id+",channel_id.in.("+channelIds.join(",")+")");
-    const {data:posts,error:postError}=await query;
-    if(postError)throw postError;
-    for(const post of posts??[]){
-      for(const item of post.post_items??[]){
-        const keys=[item.media_key,item.trailer_key].filter(Boolean) as string[];
-        if(keys.length){const result=await admin.storage.from("media").remove(keys);if(result.error)throw result.error;}
-        if(item.thumbnail_key){const result=await admin.storage.from("public").remove([item.thumbnail_key]);if(result.error)throw result.error;}
-      }
-    }
-    async function clearPrefix(bucket:string,prefix:string):Promise<void>{
-      while(true){
-        const {data,error}=await admin.storage.from(bucket).list(prefix,{limit:100});
-        if(error)throw error;
-        if(!data?.length)return;
-        for(const item of data){
-          const path=prefix+"/"+item.name;
-          if(item.id){const removed=await admin.storage.from(bucket).remove([path]);if(removed.error)throw removed.error;}
-          else await clearPrefix(bucket,path);
-        }
-      }
-    }
-    for(const bucket of ["cloud","media","public","channel-icons"])await clearPrefix(bucket,user.id);
-    const removedPosts=await admin.from("posts").delete().eq("created_by",user.id);
-    if(removedPosts.error)throw removedPosts.error;
-    const removedChannels=await admin.from("channels").delete().eq("created_by",user.id);
-    if(removedChannels.error)throw removedChannels.error;
-    const deleted=await admin.auth.admin.deleteUser(user.id);
-    if(deleted.error)throw deleted.error;
-    return new Response('{"deleted":true}',{headers});
-  }catch{
-    return new Response('{"error":"Deletion could not finish. Contact help.vayora@gmail.com before retrying."}',{status:500,headers});
-  }
+async function removeStorage(a:any,uid:string){
+ const {data:cf}=await a.from("cloud_files").select("storage_path").eq("user_id",uid);
+ const cloud=(cf??[]).map((x:any)=>x.storage_path).filter(Boolean); for(let i=0;i<cloud.length;i+=100)await a.storage.from("cloud").remove(cloud.slice(i,i+100));
+ const {data:chs}=await a.from("channels").select("id,icon_url").eq("created_by",uid); const cids=(chs??[]).map((x:any)=>x.id);
+ const {data:p1}=await a.from("posts").select("id").eq("created_by",uid); let posts=(p1??[]).map((x:any)=>x.id);
+ if(cids.length){const {data:p2}=await a.from("posts").select("id").in("channel_id",cids);posts=[...new Set([...posts,...(p2??[]).map((x:any)=>x.id)])];}
+ if(posts.length){const {data:items}=await a.from("post_items").select("media_key,thumbnail_key,trailer_key").in("post_id",posts);const media=[...new Set((items??[]).flatMap((x:any)=>[x.media_key,x.thumbnail_key,x.trailer_key]).filter(Boolean))];for(let i=0;i<media.length;i+=100)await a.storage.from("media").remove(media.slice(i,i+100));}
+ const icons=(chs??[]).map((x:any)=>x.icon_url).filter(Boolean);if(icons.length)await a.storage.from("channel-icons").remove(icons);
+ const {data:avs}=await a.storage.from("avatars").list(uid,{limit:1000});const ap=(avs??[]).map((x:any)=>`${uid}/${x.name}`);if(ap.length)await a.storage.from("avatars").remove(ap);
+}
+Deno.serve(async(req)=>{
+ try{
+  if(req.method!=="POST")return json({error:"method not allowed"},405);
+  const {user:u}=await user(req);
+  if(await isOwner(u.id))return json({error:"Transfer ownership before deleting your account"},403);
+  const a=admin(); await removeStorage(a,u.id);
+  await a.from("payment_orders").update({email_at_purchase:null}).eq("user_id",u.id);
+  await a.from("posts").delete().eq("created_by",u.id); await a.from("channels").delete().eq("created_by",u.id);
+  const {error}=await a.auth.admin.deleteUser(u.id); if(error)return json({error:error.message},400);
+  return json({ok:true});
+ }catch(e){return json({error:e instanceof Error?e.message:"delete failed"},401);}
 });

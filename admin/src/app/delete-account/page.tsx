@@ -1,34 +1,98 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import DeletionForm from "./request-form";
+"use client";
+import { useState } from "react";
+import SiteShell from "@/components/SiteShell";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
-export const metadata: Metadata = {
-  title: "Delete your account | Vayora",
-  description: "Request deletion of your Vayora account and associated data without signing in.",
-};
-export default function DeleteAccountPage() {
-  return <main className="mx-auto max-w-3xl px-5 py-10 text-gray-900 sm:py-16">
-    <header className="mb-8"><span className="text-lg font-bold text-violet-800">Vayora</span>
-      <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Delete your account</h1>
-      <p className="mt-4 leading-7 text-gray-600">You can request deletion of your Vayora account and its associated data here. You do not need to sign in, pay, or reinstall the app.</p>
-    </header>
-    <section aria-labelledby="request-title" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-      <h2 id="request-title" className="text-xl font-semibold">Request account deletion</h2>
-      <p className="mt-3 mb-6 leading-6 text-gray-600">Enter the email address used for your Vayora account. Our support team will contact that address to verify ownership before deleting anything. Never send your password, payment PIN or one-time codes.</p>
-      <DeletionForm />
-    </section>
-    <section className="mt-10 space-y-5 leading-7" aria-labelledby="next-title">
-      <h2 id="next-title" className="text-xl font-semibold">What happens next?</h2>
-      <ol className="list-decimal space-y-2 pl-6"><li>Your request is recorded for the Vayora support team.</li><li>We contact your account email to verify ownership. Submitting this form alone does not delete an account.</li><li>After verification, we process the deletion and confirm completion by email. If you cannot access your email, contact support for help verifying ownership.</li></ol>
-      <h2 className="pt-3 text-xl font-semibold">What is deleted?</h2>
-      <p>Your sign-in account, profile, channel memberships, channels you created, uploaded posts, and cloud files associated with your account are removed. Account deletion is permanent; download any files you want to keep first. Files other people have already downloaded to their own devices cannot be recalled.</p>
-      <h2 className="pt-3 text-xl font-semibold">What is retained?</h2>
-      <p>Payment and transaction records are retained for accounting, payment disputes and fraud prevention. Relevant support and security audit records may also be retained to document the request and protect the service. These records are restricted to authorised staff. No fixed automatic expiry is currently configured for these retained records; contact support for details about a specific record.</p>
-      <h2 className="pt-3 text-xl font-semibold">Delete directly in the app</h2>
-      <p>Sign in to Vayora, open <strong>Profile → Settings</strong>, find <strong>Delete Account</strong>, and confirm <strong>Delete</strong>. You can also use the form above if you no longer have the app.</p>
-      <p>Deleting your account does not automatically cancel a subscription billed by Google Play. If you have one, cancel it under <strong>Google Play → Payments &amp; subscriptions → Subscriptions</strong>. You do not need to make a payment to request deletion.</p>
-      <p>For help or to request deletion by email, write to <a className="font-medium text-violet-800 underline" href="mailto:help.vayora@gmail.com?subject=Vayora%20account%20deletion%20request">help.vayora@gmail.com</a> from your account email with the subject “Vayora account deletion request”.</p>
-    </section>
-    <footer className="mt-10 border-t border-gray-200 pt-6 text-sm text-gray-500"><Link className="text-violet-800 underline" href="/privacy">Privacy policy</Link><p className="mt-3">Vayora · Updated 20 October 2026</p></footer>
-  </main>;
+export default function DeleteAccount() {
+  const sb = supabaseBrowser();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [signedIn, setSignedIn] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ kind: "ok" | "err" | "info"; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // Fallback request form (for people who cannot log in)
+  const [reqEmail, setReqEmail] = useState("");
+  const [partial, setPartial] = useState(false);
+  const [details, setDetails] = useState("");
+  const [website, setWebsite] = useState(""); // honeypot
+  const [reqState, setReqState] = useState<"idle" | "busy" | "ok" | "err">("idle");
+
+  async function login(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true); setMsg(null);
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (error || !data.user) setMsg({ kind: "err", text: "Wrong email or password." });
+    else setSignedIn(data.user.email ?? email);
+  }
+
+  async function remove() {
+    if (!confirm("Delete your account permanently? Your profile, files and posts will be removed. This cannot be undone.")) return;
+    setBusy(true); setMsg(null);
+    const { error } = await sb.functions.invoke("delete-account");
+    if (error) { setBusy(false); setMsg({ kind: "err", text: "Could not delete the account. Please try again or send a request below." }); return; }
+    await sb.auth.signOut();
+    setBusy(false); setSignedIn(null);
+    setMsg({ kind: "ok", text: "Your account has been deleted." });
+  }
+
+  async function submitRequest(e: React.FormEvent) {
+    e.preventDefault();
+    setReqState("busy");
+    try {
+      const r = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/deletion-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY! },
+        body: JSON.stringify({ email: reqEmail, partial, details, website }),
+      });
+      setReqState(r.ok ? "ok" : "err");
+    } catch { setReqState("err"); }
+  }
+
+  return (
+    <SiteShell>
+      <main className="mx-auto max-w-2xl px-4 py-12 space-y-8 text-sm">
+        <section className="space-y-3">
+          <h1 className="text-3xl font-bold text-slate-900">Delete your Vayora account</h1>
+          <p className="text-slate-600">
+            Deleting removes your profile, cloud files, channels and posts. Payment records are kept without any link to you for up to 8 years, as tax and
+            accounting rules require. In the app you can also go to Profile → Delete account.
+          </p>
+        </section>
+
+        {msg && <p role="status" className={`rounded-lg border px-4 py-3 ${msg.kind === "ok" ? "border-green-300 bg-green-50 text-green-800" : msg.kind === "err" ? "border-red-300 bg-red-50 text-red-800" : "border-cyan-200 bg-cyan-50 text-cyan-900"}`}>{msg.text}</p>}
+
+        {!signedIn ? (
+          <form onSubmit={login} className="card space-y-3">
+            <p className="rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3 text-cyan-900">Please log in to delete your account.</p>
+            <label className="block">Email<input className="input mt-1" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+            <label className="block">Password<input className="input mt-1" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+            <button className="btn" disabled={busy}>Login</button>
+          </form>
+        ) : (
+          <div className="card space-y-3">
+            <p>Signed in as <b>{signedIn}</b>.</p>
+            <button className="btn !bg-red-600 !bg-none" onClick={remove} disabled={busy}>Delete my account</button>
+          </div>
+        )}
+
+        <section>
+          <h2 className="text-xl font-semibold text-slate-900">Cannot log in, or want to delete only some data?</h2>
+          {reqState === "ok" ? (
+            <p className="card mt-3 text-green-700" role="status">Request received. We will process it within 30 days.</p>
+          ) : (
+            <form onSubmit={submitRequest} className="card mt-3 space-y-3">
+              <input className="input" type="email" required placeholder="Account email" value={reqEmail} onChange={(e) => setReqEmail(e.target.value)} />
+              <label className="flex items-center gap-2"><input type="checkbox" checked={partial} onChange={(e) => setPartial(e.target.checked)} /> Delete only some data (describe below)</label>
+              <textarea className="input" rows={4} maxLength={2000} placeholder="Details (optional)" value={details} onChange={(e) => setDetails(e.target.value)} />
+              <input className="hidden" tabIndex={-1} autoComplete="off" aria-hidden value={website} onChange={(e) => setWebsite(e.target.value)} name="website" />
+              {reqState === "err" && <p className="text-red-600" role="alert">Could not send. Please try again.</p>}
+              <button className="btn" disabled={reqState === "busy"}>Submit request</button>
+            </form>
+          )}
+        </section>
+      </main>
+    </SiteShell>
+  );
 }

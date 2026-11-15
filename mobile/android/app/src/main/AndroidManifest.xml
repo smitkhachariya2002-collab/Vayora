@@ -1,42 +1,55 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <application android:label="Vayora" android:name="${applicationName}" android:icon="@mipmap/ic_launcher" android:usesCleartextTraffic="false">
-        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.files"
-            android:exported="false" android:grantUriPermissions="true">
-            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths"/>
-        </provider>
-        <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop"
-            android:taskAffinity="" android:theme="@style/LaunchTheme"
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Advertising ID is excluded. No Google advertising SDK is included. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+
+    <queries>
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="upi" /></intent>
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="upi" android:host="pay" /></intent>
+        <package android:name="com.google.android.apps.nbu.paisa.user" />
+        <package android:name="com.phonepe.app" />
+        <package android:name="net.one97.paytm" />
+        <package android:name="in.org.npci.upiapp" />
+        <package android:name="in.amazon.mShop.android.shopping" />
+        <package android:name="com.dreamplug.androidapp" />
+        <package android:name="com.mobikwik_new" />
+        <package android:name="com.freecharge.android" />
+        <package android:name="com.myairtelapp" />
+        <package android:name="com.csam.icici.bank.imobile" />
+        <package android:name="com.sbi.upi" />
+        <package android:name="com.axis.mobile" />
+        <package android:name="com.kotak.mobile" />
+    </queries>
+
+    <application
+        android:label="Vayora"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-            android:hardwareAccelerated="true" android:windowSoftInputMode="adjustResize">
-            <meta-data android:name="io.flutter.embedding.android.NormalTheme" android:resource="@style/NormalTheme"/>
-            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="https" android:host="vayora-eta.vercel.app" android:pathPrefix="/p/"/>
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <meta-data android:name="flutter_deeplinking_enabled" android:value="false"/>
-            <intent-filter android:autoVerify="false">
-                <action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="${authScheme}" android:host="login-callback"/>
+            <!-- Login / password-reset callback: <package>://login-callback -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="${authScheme}" android:host="login-callback" />
             </intent-filter>
         </activity>
-        <meta-data android:name="flutterEmbedding" android:value="2"/>
+        <meta-data android:name="flutterEmbedding" android:value="2" />
     </application>
-    <queries>
-        <package android:name="com.google.android.apps.nbu.paisa.user"/>
-        <package android:name="com.phonepe.app"/>
-        <package android:name="net.one97.paytm"/>
-        <package android:name="in.org.npci.upiapp"/>
-        <package android:name="in.amazon.mShop.android.shopping"/>
-        <package android:name="com.dreamplug.androidapp"/>
-        <package android:name="com.mobikwik_new"/>
-        <package android:name="com.csam.icici.bank.imobile"/>
-        <package android:name="com.bandhan.mbanking"/>
-        <intent><action android:name="android.intent.action.VIEW"/><data android:scheme="upi"/></intent>
-        <intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent>
-        <intent><action android:name="android.intent.action.SENDTO"/><data android:scheme="mailto"/></intent>
-    </queries>
 </manifest>
