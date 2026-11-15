@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vayora/screens/consent_gate.dart';
+import 'package:vayora/services/measurement.dart';
 import 'package:vayora/screens/plans_page.dart';
 import 'package:vayora/widgets/vayora_nav_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,26 +16,63 @@ Future<List<Map<String, dynamic>>> plans() async => [
 
 void main() {
   group('Consent popup (first open)', () {
-    testWidgets('shown once, blocks until Agree, then asks for notifications', (tester) async {
+    test('no measurement starts before the new consent is accepted', () async {
+      SharedPreferences.setMockInitialValues({'terms_accepted_v1':true});
+      final measurement=Measurement();
+      await measurement.start();
+      expect(measurement.ready,false);
+      expect(measurement.advertising,false);
+      expect(measurement.analytics,false);
+    });
+    testWidgets('Meta opt-in is explicit and independent on a phone screen', (tester) async {
+      tester.view.physicalSize=const Size(390,844);
+      tester.view.devicePixelRatio=1;
+      addTearDown(tester.view.reset);
+      SharedPreferences.setMockInitialValues({'terms_accepted_v1':true});
+      await tester.pumpWidget(const MaterialApp(home: ConsentGate(child:Text('home'))));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('accept_terms')));
+      await tester.tap(find.byKey(const Key('accept_terms')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('consent_meta')));
+      await tester.tap(find.byKey(const Key('consent_meta')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('consent_continue')));
+      await tester.tap(find.byKey(const Key('consent_continue')));
+      await tester.pumpAndSettle();
+      final choice=jsonDecode((await SharedPreferences.getInstance()).getString('measurement_pending_choice')!) as Map;
+      expect(choice['advertising'],true);
+      expect(choice['analytics'],false);
+      expect(tester.takeException(),isNull);
+    });
+    testWidgets('single popup requires terms but leaves optional sharing off', (tester) async {
       SharedPreferences.setMockInitialValues({});
-      var asked = 0;
-      await tester.pumpWidget(MaterialApp(home: ConsentGate(requestNotifications: () async => asked++, child: const Text('home'))));
+      await tester.pumpWidget(const MaterialApp(home: ConsentGate(child: Text('home'))));
       await tester.pumpAndSettle();
-      expect(find.text('Terms of Service and Privacy Policy'), findsOneWidget);
-      expect(find.text('Agree and continue'), findsOneWidget);
+      expect(find.text('Welcome to Vayora'), findsOneWidget);
+      expect(tester.widget<FilledButton>(find.byKey(const Key('consent_continue'))).onPressed, isNull);
+      expect(tester.widget<SwitchListTile>(find.byKey(const Key('consent_analytics'))).value, false);
+      expect(tester.widget<SwitchListTile>(find.byKey(const Key('consent_meta'))).value, false);
       expect(find.textContaining('Privacy Policy', findRichText: true), findsWidgets);
-      await tester.tap(find.text('Agree and continue'));
+      await tester.ensureVisible(find.byKey(const Key('accept_terms')));
+      await tester.tap(find.byKey(const Key('accept_terms')));
       await tester.pumpAndSettle();
-      expect(find.text('Agree and continue'), findsNothing);
-      expect(asked, 1);
+      await tester.ensureVisible(find.byKey(const Key('consent_continue')));
+      await tester.tap(find.byKey(const Key('consent_continue')));
+      await tester.pumpAndSettle();
+      expect(find.text('Accept terms and save choices'), findsNothing);
       expect((await SharedPreferences.getInstance()).getBool(consentPrefKey), true);
+      final choice=jsonDecode((await SharedPreferences.getInstance()).getString('measurement_pending_choice')!) as Map;
+      expect(choice['analytics'],false);
+      expect(choice['advertising'],false);
+      expect(choice['policy'],'2026-11-15-v2');
     });
 
     testWidgets('not shown again once accepted', (tester) async {
       SharedPreferences.setMockInitialValues({consentPrefKey: true});
-      await tester.pumpWidget(MaterialApp(home: ConsentGate(requestNotifications: () async {}, child: const Text('home'))));
+      await tester.pumpWidget(const MaterialApp(home: ConsentGate(child: Text('home'))));
       await tester.pumpAndSettle();
-      expect(find.text('Agree and continue'), findsNothing);
+      expect(find.text('Accept terms and save choices'), findsNothing);
       expect(find.text('home'), findsOneWidget);
     });
   });

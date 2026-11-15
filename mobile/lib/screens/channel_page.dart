@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import 'package:video_thumbnail/video_thumbnail.dart' as vt;
 
 import '../services/app_state.dart';
+import '../config.dart';
 import '../services/measurement.dart';
 import '../theme.dart';
 import '../widgets/ui.dart';
@@ -196,7 +197,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
     final key = '${widget.channelId}/${const Uuid().v4()}.$ext';
     final uploaded = <String>[];
     try {
-      await sb.rpc('accept_consent', params: {'p_policy': 'v1'});
+      await sb.rpc('accept_consent', params: {'p_policy': Config.consentPolicy});
       await media.upload(key, File(f.path!), fileOptions: FileOptions(contentType: _mimeOf(ext)));
       uploaded.add(key);
 

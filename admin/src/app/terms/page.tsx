@@ -14,6 +14,7 @@ export default function Terms() {
         <p>Welcome to Vayora. These terms are an agreement between you and Vayora (“we”, “us”). By installing or using the app or this website you agree to these service terms. Please also read our <a href="/privacy">Privacy Policy</a>, <a href="/refund">Refund Policy</a> and <a href="/community-guidelines">Community Guidelines</a>. Optional usage analytics and Meta advertising measurement require separate choices; accepting these terms does not turn them on.</p>
 
         <h2>2. Who can use Vayora</h2>
+        <p>On first opening the app, one popup links to these terms and the Privacy Policy. You must confirm acceptance and that you are at least 18. Separate, initially unchecked switches in that popup control optional Vayora usage analytics and Meta/Facebook measurement. You can accept these terms while leaving both off. The popup explains the data shared, recipients and purpose; the Privacy Policy describes retention and withdrawal. You can change optional choices later in Profile → Measurement preferences. Google Ads is not used.</p>
         <ul>
           <li>You must be at least 18 years old.</li>
           <li>You must follow all applicable local and national laws.</li>

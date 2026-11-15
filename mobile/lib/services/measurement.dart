@@ -20,6 +20,8 @@ class Measurement extends ChangeNotifier {
   Future<void> _writing=Future.value();
   Future<void> _serial(Future<void> Function() f) {final next=_writing.then((_)=>f());_writing=next.catchError((Object _){});return next;}
   Future<void> start() async {
+    final prefs=await SharedPreferences.getInstance();
+    if(prefs.getBool(Config.consentPrefKey)!=true){ready=false;analytics=false;advertising=false;hasChoice=false;return;}
     final uid=_sb.auth.currentUser?.id;
     if(uid==null)return;
     if(_uid!=uid){_uid=uid;ready=false;analytics=false;advertising=false;hasChoice=false;
@@ -30,7 +32,13 @@ class Measurement extends ChangeNotifier {
       try{final row=await _sb.from('measurement_preferences').select('analytics,advertising').eq('user_id',uid).maybeSingle();
         if(row!=null){analytics=row['analytics']==true;advertising=row['advertising']==true;hasChoice=true;}}catch(_){}
     }
-    try{await _sync();}catch(_){ready=false;notifyListeners();return;}
+    final pending=prefs.getString('measurement_pending_choice');
+    if(pending!=null){final v=jsonDecode(pending) as Map;analytics=v['analytics']==true;advertising=v['advertising']==true;hasChoice=true;}
+    try{
+      await _sb.rpc('accept_consent',params:{'p_policy':Config.consentPolicy});
+      await _sync();
+      if(pending!=null){await prefs.setString('measurement_choice_$uid',pending);await prefs.remove('measurement_pending_choice');}
+    }catch(_){ready=false;notifyListeners();return;}
     ready=true;notifyListeners();await track('AppOpen');unawaited(flush());
   }
   Future<Map<String,dynamic>> _context() async{
@@ -39,7 +47,7 @@ class Measurement extends ChangeNotifier {
     final id=p.getString('install_id')??_uuid.v4();await p.setString('install_id',id);
     final native=await const MethodChannel('app/measurement').invokeMapMethod<String,dynamic>('context')??{};
     final view=PlatformDispatcher.instance.views.first;
-    return {'install_id':id,'extinfo':['a2',Config.authScheme,'15',Config.versionLabel,
+    return {'install_id':id,'extinfo':['a2',Config.authScheme,'16',Config.versionLabel,
       '${native['os']??''}','${native['model']??''}',PlatformDispatcher.instance.locale.toLanguageTag(),DateTime.now().timeZoneName,'',
       view.physicalSize.width.round().toString(),view.physicalSize.height.round().toString(),view.devicePixelRatio.toString(),'${native['cores']??''}','','','']};
   }
@@ -52,6 +60,12 @@ class Measurement extends ChangeNotifier {
     await p.setString('measurement_choice_$uid',jsonEncode({'analytics':usage,'advertising':ads}));
     if(!usage&&!ads)await _serial(()async{await p.remove('measurement_queue');});
     notifyListeners();if(usage||ads){await track('AppOpen');unawaited(flush());}
+  }
+  Future<void> saveInitialChoice(bool usage,bool ads) async {
+    final p=await SharedPreferences.getInstance();
+    await p.setString('measurement_pending_choice',jsonEncode({'analytics':usage,'advertising':ads,'policy':Config.consentPolicy,'accepted_at':DateTime.now().toUtc().toIso8601String()}));
+    await p.setBool(Config.consentPrefKey,true);
+    try{await start();}catch(_){/* Saved locally; sync after the session is available. */}
   }
   Future<void> resumed() async{
     if(DateTime.now().difference(_lastActive)>const Duration(minutes:30))_session=_uuid.v4();
