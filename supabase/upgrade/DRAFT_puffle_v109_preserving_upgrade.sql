@@ -2,6 +2,20 @@
 -- Original tables, functions, data and policies are retained in private archive schemas.
 set local lock_timeout = '10s';
 create table private.v109_cutover_backup(kind text, name text, definition text);
+alter table private.v109_cutover_backup enable row level security;
+-- Save the exact grants before hiding the legacy schema; rollback must not broaden access.
+insert into private.v109_cutover_backup
+select 'grant',n.nspname,format('grant %s on schema %I to %s%s;',a.privilege_type,n.nspname,case when a.grantee=0 then 'public' else quote_ident(pg_get_userbyid(a.grantee)) end,case when a.is_grantable then ' with grant option' else '' end)
+from pg_namespace n cross join lateral aclexplode(coalesce(n.nspacl,acldefault('n',n.nspowner))) a where n.nspname in ('public','private');
+insert into private.v109_cutover_backup
+select 'grant',c.relname,format('grant %s on %s %I.%I to %s%s;',a.privilege_type,case when c.relkind='S' then 'sequence' else 'table' end,n.nspname,c.relname,case when a.grantee=0 then 'public' else quote_ident(pg_get_userbyid(a.grantee)) end,case when a.is_grantable then ' with grant option' else '' end)
+from pg_class c join pg_namespace n on n.oid=c.relnamespace cross join lateral aclexplode(coalesce(c.relacl,acldefault(case when c.relkind='S' then 'S'::"char" else 'r'::"char" end,c.relowner))) a
+where n.nspname in ('public','private') and c.relkind in ('r','p','v','m','S');
+insert into private.v109_cutover_backup
+select 'grant',p.proname,format('grant %s on function %I.%I(%s) to %s%s;',a.privilege_type,n.nspname,p.proname,pg_get_function_identity_arguments(p.oid),case when a.grantee=0 then 'public' else quote_ident(pg_get_userbyid(a.grantee)) end,case when a.is_grantable then ' with grant option' else '' end)
+from pg_proc p join pg_namespace n on n.oid=p.pronamespace cross join lateral aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a where n.nspname in ('public','private') and p.prokind='f';
+insert into private.v109_cutover_backup select 'publication',tablename,format('alter publication supabase_realtime add table %I.%I;',schemaname,tablename) from pg_publication_tables where pubname='supabase_realtime' and schemaname='public';
+insert into private.v109_cutover_backup select 'bucket',id,jsonb_build_object('public',public,'file_size_limit',file_size_limit,'allowed_mime_types',allowed_mime_types)::text from storage.buckets;
 insert into private.v109_cutover_backup
 select 'auth_trigger',t.tgname,pg_get_triggerdef(t.oid) from pg_trigger t
 join pg_proc p on p.oid=t.tgfoid join pg_namespace n on n.oid=p.pronamespace

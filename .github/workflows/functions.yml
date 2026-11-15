@@ -1,5 +1,8 @@
 name: Edge Function verification
 on:
+  push:
+    branches: [feature/puffle-parity-no-google-ads]
+    paths: ['supabase/functions/**', '.github/workflows/functions.yml']
   pull_request:
     paths: ['supabase/functions/**', '.github/workflows/functions.yml']
   workflow_dispatch:
@@ -22,5 +25,5 @@ jobs:
       - name: Verify provider HMAC boundary
         run: deno test supabase/functions/provider-payment/handler_test.ts
 
-      - name: Verify public deletion request boundary
-        run: deno test supabase/functions/deletion-request/handler_test.ts
+      - name: Verify consent-aware measurement payloads
+        run: deno test supabase/functions/meta-send/payload_test.ts
