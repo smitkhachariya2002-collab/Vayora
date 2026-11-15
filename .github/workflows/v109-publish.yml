@@ -17,7 +17,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      BUILD_RUN: '43752607483'
+      BUILD_RUN: '43752845653'
       PUBLISH: 'true'
     steps:
       - uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: Vayora-v1.0.9-signed
-          run-id: 43752607483
+          run-id: 43752845653
           github-token: ${{ github.token }}
           path: release
       - name: Verify checksums and original Vayora certificate
@@ -51,8 +51,9 @@ jobs:
           if gh release view v1.0.9 --json isDraft > /tmp/release.json 2>/dev/null; then
             jq -e 'has("isDraft")' /tmp/release.json
           else
-            gh release create v1.0.9 --draft --target "$GITHUB_SHA" --title 'Vayora v1.0.9' --notes 'Updated cloud storage, creator channels, video playback, purchase history and admin workspace based on Puffle v1.0.9. Existing Vayora accounts and purchases are preserved. Google Ads is excluded. Android APKs use the existing Vayora signing identity. The Play bundle is included for store submission. Signed artifacts: GitHub Actions run 43752607483.'
+            gh release create v1.0.9 --draft --target "$GITHUB_SHA" --title 'Vayora v1.0.9' --notes 'Updated cloud storage, creator channels, video playback, purchase history and admin workspace based on Puffle v1.0.9. Existing Vayora accounts and purchases are preserved. Google Ads is excluded. Android APKs use the existing Vayora signing identity. The Play bundle is included for store submission. Signed artifacts: GitHub Actions run 43752845653.'
           fi
           gh release upload v1.0.9 release/* --clobber
           gh release edit v1.0.9 --notes "Vayora 1.0.9 build 17: complete midnight blue, electric blue and coral theme across app, website and admin. Single first-launch privacy choices. Google Ads excluded. Existing Vayora data and signing identity preserved. Signed build source: $BUILD_SHA; verified Actions run $BUILD_RUN. Play package: com.vayora.play. Upload Vayora-play.aab to Play Console; APKs are for direct installation."
           if [ "$PUBLISH" = true ]; then gh release edit v1.0.9 --draft=false --latest; fi
+
