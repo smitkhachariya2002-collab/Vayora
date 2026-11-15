@@ -35,7 +35,7 @@ class Measurement extends ChangeNotifier {
     final pending=prefs.getString('measurement_pending_choice');
     if(pending!=null){final v=jsonDecode(pending) as Map;analytics=v['analytics']==true;advertising=v['advertising']==true;hasChoice=true;}
     try{
-      await _sb.rpc('accept_consent',params:{'p_policy':Config.consentPolicy});
+      await _sb.rpc('accept_app_consent',params:{'p_policy':Config.consentPolicy});
       await _sync();
       if(pending!=null){await prefs.setString('measurement_choice_$uid',pending);await prefs.remove('measurement_pending_choice');}
     }catch(_){ready=false;notifyListeners();return;}

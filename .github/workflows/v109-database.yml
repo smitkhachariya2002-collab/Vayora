@@ -14,7 +14,13 @@ jobs:
       - uses: supabase/setup-cli@v1
         with: {version: 3.1.0}
       - run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
-      - run: supabase start
+      - name: Start the legacy schema for the populated conversion rehearsal
+        run: |
+          mkdir -p /tmp/vayora-reviewed-upgrade
+          mv supabase/migrations/20261115114110_puffle_v109_preserving_upgrade.sql /tmp/vayora-reviewed-upgrade/
+          mv supabase/migrations/*_app_policy_consent.sql /tmp/vayora-reviewed-upgrade/
+          cmp /tmp/vayora-reviewed-upgrade/20261115114110_puffle_v109_preserving_upgrade.sql supabase/upgrade/DRAFT_puffle_v109_preserving_upgrade.sql
+          supabase start
       - run: python3 supabase/upgrade/verify.py
       - if: always()
         run: supabase stop --no-backup

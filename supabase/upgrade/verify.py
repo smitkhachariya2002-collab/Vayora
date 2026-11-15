@@ -12,6 +12,11 @@ def run(sql,report=False):
 run((root/'fixtures.sql').read_text())
 run('begin;\n'+(root/'DRAFT_puffle_v109_preserving_upgrade.sql').read_text()+'\ncommit;')
 print('PASS populated conversion on Supabase')
+consent_migrations=list((root.parent/'migrations').glob('*_app_policy_consent.sql')) or list(pathlib.Path('/tmp/vayora-reviewed-upgrade').glob('*_app_policy_consent.sql'))
+assert len(consent_migrations)==1
+run(consent_migrations[0].read_text())
+run((root/'app_consent_test.sql').read_text())
+print('PASS guest consent, isolation, policy validation and unchanged channel access')
 for p in sorted((root/'tests').glob('*.sql')):
  run("begin; insert into private.owner_bootstrap(email) values('owner@example.test') on conflict do nothing; update public.app_mode set free_mode=false,plans_visible_for='everyone',free_plans_for='none'; update public.payment_settings set enabled=true,upi_id='2728412a@bandhan',payee_name='As Enterprice';\n"+p.read_text(),True)
 run((root/'rollback.sql').read_text())
