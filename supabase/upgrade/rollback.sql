@@ -8,7 +8,7 @@ do $$declare r record;begin
  for r in select policyname from pg_policies where schemaname='storage' and tablename='objects' loop execute format('drop policy %I on storage.objects',r.policyname);end loop;
  for r in select schemaname,tablename from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' loop execute format('alter publication supabase_realtime drop table %I.%I',r.schemaname,r.tablename);end loop;
 end$$;
-select cron.alter_job(jobid,active:=false) from cron.job where jobname in ('meta-send','measurement-retention');
+select cron.alter_job(jobid,active:=false) from cron.job where jobname in ('cancel-stale-orders','meta-send','measurement-retention');
 alter schema public rename to vayora_v109_rollback_public;
 alter schema private rename to vayora_v109_rollback_private;
 revoke all on schema vayora_v109_rollback_public,vayora_v109_rollback_private from public,anon,authenticated,service_role;

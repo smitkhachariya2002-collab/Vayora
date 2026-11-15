@@ -1,8 +1,5 @@
 name: Deploy reviewed Supabase migrations
 on:
-  push:
-    branches: [main]
-    paths: ['supabase/**', '.github/workflows/supabase-deploy.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,7 +26,7 @@ jobs:
           test -n "$SUPABASE_DB_PASSWORD" || { echo "Missing SUPABASE_DB_PASSWORD"; exit 1; }
           test "$SUPABASE_PROJECT_REF" = "fzloulsjhkdxwagonsgt" || { echo "Wrong project ref"; exit 1; }
       - run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
-      - run: supabase db push
+      # The preserving cutover is applied explicitly and atomically, not by a branch push.
       - run: supabase functions deploy delete-account --project-ref "$SUPABASE_PROJECT_REF"
       - run: supabase functions deploy admin-delete-account --project-ref "$SUPABASE_PROJECT_REF"
       - run: supabase functions deploy admin-invite --project-ref "$SUPABASE_PROJECT_REF"
@@ -39,7 +36,6 @@ jobs:
           supabase functions deploy upi-webhook --project-ref "$SUPABASE_PROJECT_REF"
           supabase functions deploy cloud-files --project-ref "$SUPABASE_PROJECT_REF"
           supabase functions deploy post-delete --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy play-verify --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy play-report --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy meta-send --project-ref "$SUPABASE_PROJECT_REF"
       - run: supabase functions deploy deletion-request --project-ref "$SUPABASE_PROJECT_REF"
       - run: supabase migration list

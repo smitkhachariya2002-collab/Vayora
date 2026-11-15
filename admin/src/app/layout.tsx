@@ -5,7 +5,7 @@ const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vayora-eta.vercel.app"
 
 export const metadata: Metadata = {
   metadataBase: new URL(site),
-  title: { default: "Vayora â€” Cloud storage & creator channels", template: "%s Â· Vayora" },
+  title: { default: "Vayora — Cloud storage & creator channels", template: "%s · Vayora" },
   description: "Vayora: private cloud storage and creator channels, made for India.",
   openGraph: { siteName: "Vayora", type: "website" },
 };

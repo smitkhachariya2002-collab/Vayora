@@ -17,7 +17,7 @@ export default function Guidelines() {
           <li>Sexual content shared without the consent of the people shown.</li>
         </ul>
         <h3>1.2 Hate and harassment</h3>
-        <p>Content that threatens, harasses or demeans people because of race, caste, gender, religion, nationality, disability, sexual orientation, age or similar traits, or that invades someoneâ€™s privacy.</p>
+        <p>Content that threatens, harasses or demeans people because of race, caste, gender, religion, nationality, disability, sexual orientation, age or similar traits, or that invades someone’s privacy.</p>
         <h3>1.3 Violence and harm</h3>
         <p>Graphic violence or gore, content that promotes violence, self-harm or dangerous challenges.</p>
         <h3>1.4 Illegal and deceptive content</h3>
@@ -49,7 +49,7 @@ export default function Guidelines() {
         </ul>
 
         <h2>5. Reporting</h2>
-        <p>In the app open the post, tap â‹® then Report, and pick a reason. You can also block a channel. If you cannot use the app, use the <a href="/report-content">Report Content</a> page. Our team reviews reports and hides content that breaks these rules.</p>
+        <p>In the app open the post, tap ⋮ then Report, and pick a reason. You can also block a channel. If you cannot use the app, use the <a href="/report-content">Report Content</a> page. Our team reviews reports and hides content that breaks these rules.</p>
 
         <h2>6. What happens if rules are broken</h2>
         <ul>

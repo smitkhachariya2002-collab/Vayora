@@ -1,0 +1,53 @@
+name: Prepare verified Vayora download release
+on:
+  push:
+    branches: [feature/puffle-parity-no-google-ads]
+    paths: ['.github/workflows/v109-publish.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: vayora-v109-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BUILD_RUN: '43688777714'
+      PUBLISH: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require a successful signed build from this repository
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN" > /tmp/build.json
+          jq -e '.conclusion == "success" and .name == "Vayora v1.0.9 candidate"' /tmp/build.json
+          echo "BUILD_SHA=$(jq -r .head_sha /tmp/build.json)" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          name: Vayora-v1.0.9-signed
+          run-id: 43688777714
+          github-token: ${{ github.token }}
+          path: release
+      - name: Verify checksums and original Vayora certificate
+        working-directory: release
+        run: |
+          sha256sum -c checksums.txt
+          signer=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          for apk in Vayora.apk Vayora-ads.apk; do
+            "$signer" verify --print-certs "$apk" > "$apk.signature.txt"
+            grep -qi 'c6d9bda7acafc683db399a3d879a125a05a78cbbc71bc256bfe7b76f5c35e76b' "$apk.signature.txt"
+          done
+          jarsigner -verify Vayora-play.aab
+      - name: Prepare or publish verified assets
+        run: |
+          if gh release view v1.0.9 --json isDraft > /tmp/release.json 2>/dev/null; then
+            jq -e '.isDraft == true' /tmp/release.json
+          else
+            gh release create v1.0.9 --draft --target "$BUILD_SHA" --title 'Vayora v1.0.9' --notes 'Updated cloud storage, creator channels, video playback, purchase history and admin workspace based on Puffle v1.0.9. Existing Vayora accounts and purchases are preserved. Google Ads is excluded. Android APKs use the existing Vayora signing identity. The Play bundle is included for store submission.'
+          fi
+          gh release upload v1.0.9 release/* --clobber
+          if [ "$PUBLISH" = true ]; then gh release edit v1.0.9 --draft=false --latest; fi

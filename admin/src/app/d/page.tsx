@@ -8,7 +8,7 @@ export default function Download() {
   return (
     <SiteShell>
       <main className="mx-auto max-w-md px-4 py-16 text-center space-y-4">
-        <div className="mx-auto h-20 w-20 rounded-3xl bg-brand grid place-items-center text-2xl font-bold text-white">PF</div>
+        <div className="mx-auto h-20 w-20 rounded-3xl bg-brand grid place-items-center text-2xl font-bold text-white">VY</div>
         <h1 className="text-3xl font-bold text-slate-900">Get Vayora for Android</h1>
         <p className="text-slate-600">Private cloud storage, approved creator channels and Premium plans. Storage allowances and content access depend on your account, plan and admin-selected audience.</p>
         <DownloadButton />

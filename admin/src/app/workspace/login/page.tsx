@@ -27,7 +27,7 @@ function LoginForm() {
   return (
     <form onSubmit={submit} className="w-full max-w-md space-y-5 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
       <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-lg bg-teal-700 font-bold text-white">PF</div>
+        <div className="grid h-10 w-10 place-items-center rounded-lg bg-teal-700 font-bold text-white">VY</div>
         <div>
           <div className="font-semibold text-gray-900">Vayora Admin</div>
           <div className="text-xs text-gray-500">Sign in with your admin account</div>
