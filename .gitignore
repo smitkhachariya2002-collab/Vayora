@@ -12,3 +12,4 @@
 **/.supabase/
 supabase/.temp/
 supabase/.branches/
+/release-check/
