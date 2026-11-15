@@ -16,12 +16,7 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(color: Tokens.primary.withValues(alpha: .12), borderRadius: BorderRadius.circular(24)),
-            child: Icon(icon, color: Tokens.primary, size: 32),
-          ),
+          _AttentionIcon(icon: icon),
           const SizedBox(height: 16),
           Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           if (message != null) ...[
@@ -215,5 +210,40 @@ class VideoCard extends StatelessWidget {
       ]),
     ),
   );
+}
+
+
+/// Decorative motion is confined to empty states and respects reduced motion.
+class _AttentionIcon extends StatefulWidget {
+  const _AttentionIcon({required this.icon});
+  final IconData icon;
+  @override
+  State<_AttentionIcon> createState() => _AttentionIconState();
+}
+class _AttentionIconState extends State<_AttentionIcon> with SingleTickerProviderStateMixin {
+  late final AnimationController _motion = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200));
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) { _motion.stop(); _motion.value = 0; }
+    else if (_motion.status == AnimationStatus.dismissed) { _motion.forward(); }
+  }
+  @override
+  void dispose() { _motion.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(child: SizedBox(width: 88, height: 88,
+    child: AnimatedBuilder(animation: _motion, builder: (context, child) {
+      final pulse = Curves.easeInOut.transform(_motion.value);
+      return Stack(alignment: Alignment.center, children: [
+        Transform.scale(scale: 1 + pulse * .12, child: Container(width: 78, height: 78,
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Tokens.primary.withValues(alpha: .12 + pulse * .12))))),
+        Transform.translate(offset: Offset(0, -3 * pulse), child: Container(width: 68, height: 68,
+          decoration: BoxDecoration(gradient: Tokens.gradient, borderRadius: BorderRadius.circular(22),
+            boxShadow: [BoxShadow(color: Tokens.primary.withValues(alpha: .12 + pulse * .1), blurRadius: 18 + pulse * 8)]),
+          child: Icon(widget.icon, color: Colors.white, size: 30))),
+        Positioned(right: 2, top: 14 + pulse * 6, child: Container(width: 7, height: 7,
+          decoration: const BoxDecoration(color: Tokens.accent, shape: BoxShape.circle))),
+      ]);
+    })));
 }
 
