@@ -2,6 +2,7 @@ name: Vayora v1.0.9 candidate
 on:
   push:
     branches: [feature/puffle-parity-no-google-ads]
+    paths: ['mobile/**', '.github/workflows/v109-release.yml']
   workflow_dispatch:
 permissions:
   contents: read

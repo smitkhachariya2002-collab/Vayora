@@ -24,7 +24,7 @@ insert into private.v109_cutover_backup
 select 'storage_policy',policyname,format('create policy %I on %I.%I as %s for %s to %s %s %s;',policyname,schemaname,tablename,permissive,cmd,array_to_string(roles,','),case when qual is null then '' else 'using ('||qual||')' end,case when with_check is null then '' else 'with check ('||with_check||')' end)
 from pg_policies where schemaname='storage' and tablename='objects';
 insert into private.v109_cutover_backup select 'cron',jobname,command from cron.job where jobname like 'vayora-%' and active;
-update cron.job set active=false where jobname like 'vayora-%';
+select cron.alter_job(jobid,active:=false) from cron.job where jobname like 'vayora-%';
 do $$declare r record;begin
  for r in select tablename,schemaname from pg_tables where schemaname in ('public','private') loop
   execute format('lock table %I.%I in access exclusive mode',r.schemaname,r.tablename);

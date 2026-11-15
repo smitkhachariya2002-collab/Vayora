@@ -6,7 +6,7 @@ import {hasAdvertisingConsent} from "./PrivacyChoices";
 type Fbq=((...args:unknown[])=>void)&{queue?:unknown[];loaded?:boolean;version?:string;push?:unknown;callMethod?:(...args:unknown[])=>void};
 declare global {interface Window {fbq?:Fbq;_fbq?:Fbq;__vayoraPixelIds?:Set<string>;__vayoraPixel?:{at:number;id:string|null;pending?:Promise<string|null>};}}
 const cookie=(name:string)=>{try{return decodeURIComponent(document.cookie.match(new RegExp("(?:^|; )"+name+"=([^;]*)"))?.[1]??"");}catch{return "";}};
-export function fromAd(){const q=new URLSearchParams(location.search);if(q.get("fbclid")||q.get("gclid")||q.get("gbraid")||q.get("wbraid")||(/^(meta|facebook|instagram|ig|fb)$/i.test(q.get("utm_source")??"")||(/^(google|google_ads)$/i.test(q.get("utm_source")??"")&&/^(cpc|ppc|paid|paid_search|display|video)$/i.test(q.get("utm_medium")??"")))){try{sessionStorage.setItem("vayora_download_variant","ads");}catch{}return true;}try{return sessionStorage.getItem("vayora_download_variant")==="ads";}catch{return false;}}
+export function fromAd(){const q=new URLSearchParams(location.search);if(q.get("fbclid")||/^(meta|facebook|instagram|ig|fb)$/i.test(q.get("utm_source")??"")){try{sessionStorage.setItem("vayora_download_variant","ads");}catch{}return true;}try{return sessionStorage.getItem("vayora_download_variant")==="ads";}catch{return false;}}
 export async function loadPixel():Promise<string|null>{
  if(!hasAdvertisingConsent())return null;
  const cache=window.__vayoraPixel;

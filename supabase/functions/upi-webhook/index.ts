@@ -17,7 +17,7 @@ Deno.serve(async(req:Request)=>{
  const value=JSON.parse(raw);
  if(typeof value.reference!=="string"||!/^VY[0-9A-Za-z]+$/.test(value.reference)||!Number.isSafeInteger(value.amount_paise)||value.amount_paise<=0||typeof value.utr!=="string"||!/^[A-Za-z0-9]{6,40}$/.test(value.utr))return reply(400,"Invalid payment");
  const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false,autoRefreshToken:false}});
- const {error}=await db.rpc("provider_activate_payment",{reference:value.reference,amount_paise:value.amount_paise,utr:value.utr});
+ const {error}=await db.rpc("provider_payment_update",{p_reference:value.reference,p_amount_paise:value.amount_paise,p_txn:value.utr,p_status:"SUCCESS"});
  if(error)return reply(409,"Payment could not be activated");
  return reply(200,"Payment accepted");
  }catch{return reply(400,"Invalid payload");}

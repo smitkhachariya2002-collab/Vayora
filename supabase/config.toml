@@ -52,3 +52,6 @@ verify_jwt = false
 # Public form queues unverified requests only; it cannot delete accounts.
 [functions.deletion-request]
 verify_jwt = false
+
+[functions.meta-send]
+verify_jwt = false

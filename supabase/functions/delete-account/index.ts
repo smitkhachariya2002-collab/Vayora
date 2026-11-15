@@ -3,7 +3,8 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.8";
 const url=Deno.env.get("SUPABASE_URL")!;
 const anon=Deno.env.get("SUPABASE_ANON_KEY")!;
 const service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json"}});
+const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization,x-client-info,apikey,content-type","Access-Control-Allow-Methods":"POST,OPTIONS"};
+const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,"content-type":"application/json"}});
 const admin=()=>createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
 const userClient=(req:Request)=>createClient(url,anon,{global:{headers:{Authorization:req.headers.get("Authorization")??""}},auth:{persistSession:false,autoRefreshToken:false}});
 async function user(req:Request){const sb=userClient(req);const {data,error}=await sb.auth.getUser();if(error||!data.user)throw new Error("unauthorized");return {sb,user:data.user};}
@@ -21,6 +22,7 @@ async function removeStorage(a:any,uid:string){
  const {data:avs}=await a.storage.from("avatars").list(uid,{limit:1000});const ap=(avs??[]).map((x:any)=>`${uid}/${x.name}`);if(ap.length)await a.storage.from("avatars").remove(ap);
 }
 Deno.serve(async(req)=>{
+ if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
  try{
   if(req.method!=="POST")return json({error:"method not allowed"},405);
   const {user:u}=await user(req);
