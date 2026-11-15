@@ -47,7 +47,8 @@ jobs:
           if gh release view v1.0.9 --json isDraft > /tmp/release.json 2>/dev/null; then
             jq -e '.isDraft == true' /tmp/release.json
           else
-            gh release create v1.0.9 --draft --target "$BUILD_SHA" --title 'Vayora v1.0.9' --notes 'Updated cloud storage, creator channels, video playback, purchase history and admin workspace based on Puffle v1.0.9. Existing Vayora accounts and purchases are preserved. Google Ads is excluded. Android APKs use the existing Vayora signing identity. The Play bundle is included for store submission.'
+            gh release create v1.0.9 --draft --target "$GITHUB_SHA" --title 'Vayora v1.0.9' --notes 'Updated cloud storage, creator channels, video playback, purchase history and admin workspace based on Puffle v1.0.9. Existing Vayora accounts and purchases are preserved. Google Ads is excluded. Android APKs use the existing Vayora signing identity. The Play bundle is included for store submission. Signed artifacts: GitHub Actions run 43688777714.'
           fi
           gh release upload v1.0.9 release/* --clobber
           if [ "$PUBLISH" = true ]; then gh release edit v1.0.9 --draft=false --latest; fi
+
