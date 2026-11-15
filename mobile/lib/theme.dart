@@ -8,13 +8,13 @@ class Tokens {
   static const border = Color(0xFF293956);
   static const text = Color(0xFFFFFFFF);
   static const muted = Color(0xFFAFC0D9);
-  static const primary = Color(0xFF3478F6);
+  static const primary = Color(0xFF245ED1);
   static const accent = Color(0xFFFF8A65);
-  static const gold = Color(0xFFFFC857); // Premium only
+  static const gold = Color(0xFFFFC94D); // Premium only
   static const success = Color(0xFF35D07F);
   static const warning = Color(0xFFFFB020);
   static const danger = Color(0xFFFF4D5E);
-  static const gradient = LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF3478F6), Color(0xFF13B8A6)]);
+  static const gradient = LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF245ED1), Color(0xFF087F82)]);
 }
 
 /// A consistent line height keeps headings and supporting copy readable.
