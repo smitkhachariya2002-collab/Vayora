@@ -1,0 +1,44 @@
+name: Publish Vayora plans UPI AAB
+on:
+  push:
+    branches: [feature/puffle-parity-no-google-ads]
+    paths: ['.github/workflows/upi-publish.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BUILD_RUN: '43793113978'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for successful requested build
+        run: |
+          for attempt in $(seq 1 60); do
+            gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN" > /tmp/build.json
+            if jq -e '.status == "completed"' /tmp/build.json >/dev/null; then break; fi
+            sleep 30
+          done
+          jq -e '.conclusion == "success" and .name == "Vayora UPI AAB candidate"' /tmp/build.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: Vayora-UPI-AAB-18
+          run-id: 43793113978
+          github-token: ${{ github.token }}
+          path: release
+      - name: Verify published bytes and identity
+        working-directory: release
+        run: |
+          sha256sum -c checksums.txt
+          jarsigner -verify Vayora-plans-upi.aab
+          keytool -printcert -jarfile Vayora-plans-upi.aab > certificate.txt
+          grep -qi 'C6:D9:BD:A7:AC:AF:C6:83:DB:39:9A:3D:87:9A:12:5A:05:A7:8C:BB:C7:1B:C2:56:BF:E7:B7:6F:5C:35:E7:6B' certificate.txt
+      - name: Publish separate UPI bundle
+        run: |
+          gh release create v1.0.9-upi-build18 --target "$GITHUB_SHA" --title "Vayora 1.0.9 build 18 - Plans and UPI" --notes "Requested variant with visible plans and existing UPI intent checkout. Package com.vayora.play, version code 18. Google Ads excluded. This build is NOT verified as ready for Google Play open testing: applicable alternative-billing enrollment and integration, Play Console acceptance and Play-installed device payment testing remain unverified. Signed artifact run $BUILD_RUN. The standard build 17 release remains available separately." --latest=false
+          gh release upload v1.0.9-upi-build18 release/* --clobber
