@@ -1,9 +1,9 @@
-Vayora 1.0.9 - Plans, UPI intent and instant access
+Vayora 1.0.10 - Plans, UPI intent and instant access
 
 BUILDS
-Vayora.apk: organic/direct Android app, com.vayora.app, version code 17.
+Vayora.apk: organic/direct Android app, com.vayora.app, version code 19.
 Vayora-ads.apk: direct campaign variant, same package/signing; use only for Meta acquisition.
-Vayora-plans-upi.aab: com.vayora.play, version code 18; includes plans and UPI checkout.
+Vayora-play.aab: com.vayora.play, version code 19; includes plans and UPI checkout.
 The website, admin, and account data are shared by these builds.
 New payment orders use the UPI ID currently set in Admin > Payments: 2728412a@bandhan.
 
@@ -18,8 +18,8 @@ Manual mode remains available in Admin > Payments. Provider webhooks are not con
 This behavior is server controlled; installing a new APK/AAB is not needed to apply it.
 
 PLAY CONSOLE
-Upload Vayora-plans-upi.aab, not an APK. Package must match com.vayora.play.
-Version code 18 must not have been used before. Upload signing certificate must
+Upload Vayora-play.aab, not an APK. Package must match com.vayora.play.
+Version code 19 must not have been used before. Upload signing certificate must
 match the certificate registered for this Play listing.
 The UPI-enabled AAB is NOT certified as Play compliant or approved. Alternative
 billing enrollment/integration obligations, review access, Data safety, content
@@ -45,3 +45,10 @@ Privacy: https://vayora-eta.vercel.app/privacy
 Deletion: https://vayora-eta.vercel.app/delete-account
 Support: help.vayora@gmail.com
 Source: https://github.com/smitkhachariya2002-collab/Vayora/tree/feature/puffle-parity-no-google-ads
+
+CONSENT UPDATE
+First launch now has one Accept and continue button and no sharing switches.
+It explicitly enables analytics and Meta sharing as described on screen.
+No measurement starts before acceptance is saved and synced. Users can later
+withdraw either choice in Profile > Measurement preferences. Existing users
+see the updated notice before their saved choice is changed. Google Ads excluded.

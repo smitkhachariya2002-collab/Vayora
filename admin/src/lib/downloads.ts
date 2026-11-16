@@ -1,3 +1,3 @@
-const release = "https://github.com/smitkhachariya2002-collab/Vayora/releases/download/v1.0.9";
+const release = "https://github.com/smitkhachariya2002-collab/Vayora/releases/download/v1.0.10";
 export const APK_URL = release + "/Vayora.apk";
 export const ADS_APK_URL = release + "/Vayora-ads.apk";

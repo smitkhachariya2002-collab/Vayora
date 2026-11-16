@@ -8,13 +8,13 @@ export default function Terms() {
     <SiteShell>
       <article className="prose-doc mx-auto max-w-3xl px-4 py-12 text-sm">
         <h1>Terms and Conditions</h1>
-        <p className="text-slate-500">Last updated: 15 November 2026</p>
+        <p className="text-slate-500">Last updated: 16 November 2026</p>
 
         <h2>1. Introduction</h2>
-        <p>Welcome to Vayora. These terms are an agreement between you and Vayora (“we”, “us”). By installing or using the app or this website you agree to these service terms. Please also read our <a href="/privacy">Privacy Policy</a>, <a href="/refund">Refund Policy</a> and <a href="/community-guidelines">Community Guidelines</a>. Optional usage analytics and Meta advertising measurement require separate choices; accepting these terms does not turn them on.</p>
+        <p>Welcome to Vayora. These terms are an agreement between you and Vayora (“we”, “us”). By installing or using the app or this website you agree to these service terms. Please also read our <a href="/privacy">Privacy Policy</a>, <a href="/refund">Refund Policy</a> and <a href="/community-guidelines">Community Guidelines</a>. Reading these terms alone does not enable measurement. The in-app Accept and continue action enables the analytics and Meta sharing described in the first-open notice; users can later withdraw either choice in measurement preferences.</p>
 
         <h2>2. Who can use Vayora</h2>
-        <p>On first opening a new app release, one disclosure popup explains the service processing, app analytics and Meta/Facebook sharing and links to these terms and the Privacy Policy. There are no initial sharing switches. Pressing Accept and continue confirms that you are at least 18, accepts these documents and enables both analytics and Meta sharing as disclosed. Acceptance is required to complete setup; closing or leaving the app does not give consent. No analytics or Meta events are sent before this affirmative action is saved and synced. You can subsequently withdraw either choice in Profile > Measurement preferences. Previous app versions may show separate choices. Google Ads is not used.</p>
+        <p>On first opening a new app release, one disclosure popup explains the service processing, app analytics and Meta/Facebook sharing and links to these terms and the Privacy Policy. There are no initial sharing switches. Pressing Accept and continue confirms that you are at least 18, accepts these documents and enables both analytics and Meta sharing as disclosed. Acceptance is required to complete setup; closing or leaving the app does not give consent. No analytics or Meta events are sent before this affirmative action is saved and synced. You can subsequently withdraw either choice in Profile &gt; Measurement preferences. Previous app versions may show separate choices. Google Ads is not used.</p>
         <ul>
           <li>You must be at least 18 years old.</li>
           <li>You must follow all applicable local and national laws.</li>
