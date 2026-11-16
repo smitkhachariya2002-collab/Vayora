@@ -22,7 +22,7 @@ export async function buildEvent(e:QueuedEvent,email?:string|null,now=Date.now()
  const event:Record<string,unknown>={event_name:e.event_name,event_id:e.event_id,event_time:time,action_source:e.action_source,user_data:user};
  if(e.action_source==="app"){
   const data=e.app_data;const ext=data?.extinfo;
-  if(!data||!Array.isArray(ext)||ext.length!==16||ext[0]!=="a2"||ext[1]!=="com.vayora.app"||!ext[4]||ext.some(x=>typeof x!=="string"))throw new Error("Valid Android app_data is required");
+  if(!data||!Array.isArray(ext)||ext.length!==16||ext[0]!=="a2"||!["com.vayora.app","com.vayora.play"].includes(ext[1])||!ext[4]||ext.some(x=>typeof x!=="string"))throw new Error("Valid Android app_data is required");
   if(data.application_tracking_enabled!==1||data.advertiser_tracking_enabled!==1)throw new Error("App advertising permission is disabled");
   event.app_data={advertiser_tracking_enabled:1,application_tracking_enabled:1,extinfo:ext};
  }else if(e.source_url)event.event_source_url=e.source_url;

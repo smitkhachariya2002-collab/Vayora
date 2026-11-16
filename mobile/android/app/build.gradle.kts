@@ -68,6 +68,7 @@ android {
 flutter { source = "../.." }
 
 dependencies {
+ implementation("com.android.installreferrer:installreferrer:2.2")
  testImplementation("junit:junit:4.13.2")
  testImplementation("org.robolectric:robolectric:4.17")
  implementation("androidx.core:core-ktx:1.16.0")

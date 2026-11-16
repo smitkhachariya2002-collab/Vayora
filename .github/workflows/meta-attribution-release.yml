@@ -1,0 +1,65 @@
+name: Meta attribution release 1.0.12 build 21
+on:
+  push:
+    branches: [feature/puffle-parity-no-google-ads]
+    paths: ['.github/workflows/meta-attribution-release.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: vayora-meta-attribution-21
+  cancel-in-progress: true
+jobs:
+  build:
+    uses: ./.github/workflows/v109-release.yml
+    secrets: inherit
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17'}
+      - uses: actions/download-artifact@v4
+        with:
+          name: Vayora-v1.0.9-signed
+          path: release
+      - name: Verify signed artifacts and version code 21
+        run: |
+          cd release
+          sha256sum -c checksums.txt
+          signer=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          aapt=$(find "$ANDROID_HOME/build-tools" -name aapt | sort -V | tail -1)
+          for apk in Vayora.apk Vayora-ads.apk; do
+            "$signer" verify --print-certs "$apk" > "$apk.signature.txt"
+            grep -qi 'c6d9bda7acafc683db399a3d879a125a05a78cbbc71bc256bfe7b76f5c35e76b' "$apk.signature.txt"
+            "$aapt" dump badging "$apk" > "$apk.manifest.txt"
+            grep -q "versionCode='21' versionName='1.0.12'" "$apk.manifest.txt"
+          done
+          jarsigner -verify Vayora-play.aab
+          gh release download 1.18.2 --repo google/bundletool --pattern 'bundletool-all-1.18.2.jar' --dir /tmp
+          test "$(java -jar /tmp/bundletool-all-1.18.2.jar dump manifest --bundle=Vayora-play.aab --xpath='/manifest/@android:versionCode')" = 21
+          test "$(java -jar /tmp/bundletool-all-1.18.2.jar dump manifest --bundle=Vayora-play.aab --xpath='/manifest/@package')" = com.vayora.play
+      - name: Package release and store assets
+        run: |
+          cp docs/META_AD_LINKS.md release/
+          cp -r play-console-assets release/
+          cd release
+          zip -qr Vayora-1.0.12-release.zip Vayora.apk Vayora-ads.apk Vayora-play.aab checksums.txt META_AD_LINKS.md play-console-assets
+      - name: Publish Meta attribution build
+        run: |
+          cat > /tmp/release-notes.txt <<'EOF'
+          Vayora 1.0.12 (version code 21).
+
+          Adds real Google Play install referrer collection, campaign attribution and consent-gated measurement support for both direct and Play packages. Keeps Google login, plans and the existing owner-requested instant UPI response activation. UPI client responses are not bank verification; they are not sent as verified purchase revenue. No Google Ads.
+
+          Meta delivery remains disabled until the owner configures a valid Pixel/Dataset ID and access token. Use the documented Traffic/Engagement destination links; native Meta App Installs objective integration is not included. Automated checks cover parsing, caching, fallbacks, consent payloads, app tests, version and signing. Real-device Play referrer delivery and payment completion still require device testing.
+          EOF
+          gh release view v1.0.12 >/dev/null 2>&1 || gh release create v1.0.12 --draft --target "$GITHUB_SHA" --title 'Vayora 1.0.12 — Meta attribution (21)' --notes-file /tmp/release-notes.txt
+          gh release upload v1.0.12 release/*.apk release/*.aab release/*.zip release/*.txt release/*.md --clobber
+          gh release edit v1.0.12 --draft=false --latest --notes-file /tmp/release-notes.txt

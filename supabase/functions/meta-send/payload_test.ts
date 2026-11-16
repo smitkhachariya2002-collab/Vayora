@@ -1,6 +1,8 @@
 import {buildEvent,type QueuedEvent} from "./payload.ts";
 const base=():QueuedEvent=>({event_name:"Purchase",event_id:"purchase-test",created_at:new Date().toISOString(),action_source:"app",advertising_consent:true,user_id:"user-1",anon_id:"install-1",app_data:{advertiser_tracking_enabled:1,application_tracking_enabled:1,extinfo:["a2","com.vayora.app","9","1.0.8","14","","en_IN","","","1080","1920","3","4","","",""]},value_inr:49,content_name:"Day pass",custom_data:{password:"never",filename:"private.mp4",search:"private",progress:25}});
 function ok(v:unknown){if(!v)throw Error("Assertion failed");}
+Deno.test("Play package context is accepted with consent",async()=>{const e=base();(e.app_data!.extinfo as string[])[1]="com.vayora.play";ok((await buildEvent(e)).app_data);});
+Deno.test("unrelated package context is rejected",()=>{const e=base();(e.app_data!.extinfo as string[])[1]="com.unrelated.app";return rejects(e);});
 async function rejects(e:QueuedEvent){try{await buildEvent(e);throw Error("did not reject");}catch(x){if(String(x).includes("did not reject"))throw x;}}
 Deno.test("server payload hashes identifiers and strips private properties",async()=>{const r=await buildEvent(base(),"  TEST@EXAMPLE.COM ");const u=r.user_data as Record<string,string[]>;ok(u.em[0].length===64&&u.external_id[0].length===64);ok(!JSON.stringify(r).includes("private")&&!JSON.stringify(r).includes("password"));const c=r.custom_data as Record<string,unknown>;ok(c.value===49&&c.currency==="INR"&&c.progress===25);});
 Deno.test("declined advertising is rejected",()=>rejects({...base(),advertising_consent:false}));

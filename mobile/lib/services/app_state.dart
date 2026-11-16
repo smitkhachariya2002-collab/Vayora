@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import '../config.dart';
 import 'measurement.dart';
+import 'install_attribution.dart';
 import '../models/status.dart';
 import '../payments/pending_queue.dart';
 import '../payments/upi.dart';
@@ -44,25 +45,27 @@ class AppState extends ChangeNotifier {
     _poll = Timer.periodic(const Duration(seconds:60),(_){refresh();Measurement.instance.flush();});
     sb.auth.onAuthStateChange.listen((event) async {
       await refresh();
-      if(event.event==AuthChangeEvent.signedIn||event.event==AuthChangeEvent.userUpdated){await Measurement.instance.start();}
+      if(event.event==AuthChangeEvent.signedIn||event.event==AuthChangeEvent.userUpdated){await _recordInstallOnce();await Measurement.instance.start();}
     });
   }
 
   Future<void> _recordInstallOnce() async {
     final p = await SharedPreferences.getInstance();
-    if (p.getBool('install_recorded') == true) return;
+    final uid = sb.auth.currentUser?.id;
+    if (uid == null) return;
+    if (p.getString('install_recorded_v2_user') == uid) return;
     final id = p.getString('install_id') ?? const Uuid().v4();
     final secret = p.getString('install_secret') ?? const Uuid().v4();
     await p.setString('install_id', id);
     await p.setString('install_secret', secret);
     try {
-      await sb.rpc('record_install', params: {
+      final attribution = await InstallAttribution.read(Config.apkReferrer);
+      await sb.rpc('record_install_v2', params: {
         'p_install_id': id,
-        'p_referrer_status': Config.apkReferrer.isEmpty ? 'none' : 'apk_define',
-        'p_raw_referrer': Config.apkReferrer,
         'p_install_secret': secret,
+        'p_attribution': attribution,
       });
-      await p.setBool('install_recorded', true);
+      if (attribution['status'] != 'unavailable') await p.setString('install_recorded_v2_user', uid);
     } catch (_) {/* retried next launch */}
   }
 

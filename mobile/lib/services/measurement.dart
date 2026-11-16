@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../config.dart';
 
 /// Optional measurement only. Keys, prices and purchase authority stay on the server.
@@ -47,7 +48,8 @@ class Measurement extends ChangeNotifier {
     final id=p.getString('install_id')??_uuid.v4();await p.setString('install_id',id);
     final native=await const MethodChannel('app/measurement').invokeMapMethod<String,dynamic>('context')??{};
     final view=PlatformDispatcher.instance.views.first;
-    return {'install_id':id,'extinfo':['a2',Config.authScheme,'19',Config.versionLabel,
+    final package = await PackageInfo.fromPlatform();
+    return {'install_id':id,'extinfo':['a2',package.packageName,package.buildNumber,package.version,
       '${native['os']??''}','${native['model']??''}',PlatformDispatcher.instance.locale.toLanguageTag(),DateTime.now().timeZoneName,'',
       view.physicalSize.width.round().toString(),view.physicalSize.height.round().toString(),view.devicePixelRatio.toString(),'${native['cores']??''}','','','']};
   }

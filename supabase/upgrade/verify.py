@@ -35,6 +35,11 @@ assert len(notices)==1
 run(notices[0].read_text())
 run("begin; select set_config('request.jwt.claims','{\"sub\":\"10000000-0000-0000-0000-000000000003\",\"role\":\"authenticated\",\"is_anonymous\":true}',true); set local role authenticated; select public.accept_app_consent('2026-11-16-v3'); do $$begin if not exists(select 1 from public.app_policy_acceptances where user_id=auth.uid() and policy_version='2026-11-16-v3') then raise exception 'New notice not saved'; end if;end$$; rollback;")
 print('PASS new explicit notice version accepted for guests')
+attribution=list((root.parent/'migrations').glob('*_play_install_attribution.sql')) or list(pathlib.Path('/tmp/vayora-reviewed-upgrade').glob('*_play_install_attribution.sql'))
+assert len(attribution)==1
+run(attribution[0].read_text())
+run((root/'install_attribution_test.sql').read_text())
+print('PASS Play attribution, source preservation and install secret isolation')
 run((root/'rollback.sql').read_text())
 run("do $$begin if (select count(*) from public.profiles)<>3 or (select count(*) from public.payment_orders)<>2 or (select count(*) from public.subscriptions)<>1 or not has_schema_privilege('authenticated','public','usage') then raise exception 'Rollback mismatch';end if;end$$;")
 print('PASS rollback preserves original data and access')
