@@ -1,0 +1,19 @@
+name: Publish complete Vayora release kit
+on:
+  push:
+    branches: [feature/puffle-parity-no-google-ads]
+    paths: ['.github/workflows/release-kit.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/package_release_kit.py
+      - name: Publish verified bundle and artwork
+        run: gh release upload v1.0.9-upi-build18 release-check/Vayora-1.0.9-Plans-UPI-Release-Kit.zip --clobber

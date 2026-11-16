@@ -24,6 +24,12 @@ assert len(upi_migrations)==1
 run(upi_migrations[0].read_text())
 run((root/'upi_verification_test.sql').read_text())
 print('PASS client callbacks cannot activate plans; verified callbacks are idempotent')
+for suffix in ['owner_requested_instant_upi','instant_upi_no_daily_review']:
+ candidates=list((root.parent/'migrations').glob('*_'+suffix+'.sql')) or list(pathlib.Path('/tmp/vayora-reviewed-upgrade').glob('*_'+suffix+'.sql'))
+ assert len(candidates)==1
+ run(candidates[0].read_text())
+run((root/'instant_upi_test.sql').read_text())
+print('PASS owner-requested instant activation, duplicate protection and bank-unverified status')
 run((root/'rollback.sql').read_text())
 run("do $$begin if (select count(*) from public.profiles)<>3 or (select count(*) from public.payment_orders)<>2 or (select count(*) from public.subscriptions)<>1 or not has_schema_privilege('authenticated','public','usage') then raise exception 'Rollback mismatch';end if;end$$;")
 print('PASS rollback preserves original data and access')

@@ -1,0 +1,5 @@
+<en-IN>
+Refreshed Vayora theme with gentle interface motion.
+Personal cloud storage, creator channels and Premium plan selection.
+UPI intent checkout and account privacy choices.
+</en-IN>

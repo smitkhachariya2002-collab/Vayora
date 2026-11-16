@@ -13,3 +13,6 @@
 supabase/.temp/
 supabase/.branches/
 /release-check/
+/mobile/assets/storefonts/
+/mobile/tool/store_assets_test.dart
+/prepare_store_assets.py
