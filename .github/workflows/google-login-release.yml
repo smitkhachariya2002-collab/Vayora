@@ -9,7 +9,7 @@ permissions:
   actions: read
 concurrency:
   group: vayora-google-login-20
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   build:
     uses: ./.github/workflows/v109-release.yml

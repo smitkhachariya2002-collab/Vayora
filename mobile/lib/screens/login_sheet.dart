@@ -98,7 +98,11 @@ class _LoginSheetState extends State<LoginSheet> {
     super.dispose();
   }
 
-  void _mode(bool signup) => setState(() { _signup = signup; _err = null; _info = null; });
+  void _mode(bool signup) {
+    unawaited(_googleSubscription?.cancel());
+    _googleSubscription = null;
+    setState(() { _signup = signup; _err = null; _info = null; });
+  }
 
   String? _validate(String email) {
     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) return 'Enter a valid email address.';
@@ -110,6 +114,10 @@ class _LoginSheetState extends State<LoginSheet> {
     final email = _email.text.trim();
     final bad = _validate(email);
     if (bad != null) return setState(() { _err = bad; _info = null; });
+    // A browser sign-in retry must not also close an email login's route.
+    await _googleSubscription?.cancel();
+    _googleSubscription = null;
+    if (!mounted) { return; }
     setState(() { _busy = true; _err = null; _info = null; });
     try {
       if (_signup) {
