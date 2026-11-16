@@ -1,0 +1,48 @@
+name: Vayora UPI AAB candidate
+on:
+  push:
+    branches: [feature/puffle-parity-no-google-ads]
+    paths: ['.github/workflows/upi-aab.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'vayora' }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: {flutter-version: '3.47.7', cache: true}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17'}
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test
+      - name: Restore existing signing identity
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64" && test -n "$ANDROID_KEYSTORE_PASSWORD"
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
+          keytool -list -keystore android/app/release.jks -storepass:env ANDROID_KEYSTORE_PASSWORD -alias "$ANDROID_KEY_ALIAS"
+      - name: Build signed artifacts
+        run: |
+          mkdir -p release
+          flutter build appbundle --release --flavor play --build-number=18 --dart-define=PLAY_STORE=false --dart-define=ANDROID_APP_ID=com.vayora.play
+          cp build/app/outputs/bundle/playRelease/app-play-release.aab release/Vayora-plans-upi.aab
+          cd release && sha256sum *.aab > checksums.txt
+      - name: Verify signatures
+        run: |
+          jarsigner -verify release/Vayora-plans-upi.aab
+          keytool -printcert -jarfile release/Vayora-plans-upi.aab > release/certificate.txt
+          grep -qi 'C6:D9:BD:A7:AC:AF:C6:83:DB:39:9A:3D:87:9A:12:5A:05:A7:8C:BB:C7:1B:C2:56:BF:E7:B7:6F:5C:35:E7:6B' release/certificate.txt
+      - uses: actions/upload-artifact@v4
+        with: {name: Vayora-UPI-AAB-18, path: mobile/release/}
