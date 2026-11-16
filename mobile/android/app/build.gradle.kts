@@ -73,4 +73,5 @@ dependencies {
  implementation("androidx.core:core-ktx:1.16.0")
  implementation("com.android.billingclient:billing:8.3.0")
  implementation("com.google.android.play:integrity:1.6.0")
+ implementation("com.android.installreferrer:installreferrer:2.2")
 }
