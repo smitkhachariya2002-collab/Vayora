@@ -13,7 +13,7 @@ class ConsentChoice {
   final bool analytics,advertising;
 }
 
-/// One first-open dialog holds required terms and separate optional sharing choices.
+/// One explicit acceptance follows the complete sharing disclosure.
 class ConsentGate extends StatefulWidget {
   const ConsentGate({super.key, required this.child});
   final Widget child;
@@ -54,7 +54,6 @@ class ConsentDialog extends StatefulWidget {
 }
 
 class _ConsentDialogState extends State<ConsentDialog> {
-  bool accepted=false,analytics=false,advertising=false;
   late final TapGestureRecognizer _privacy;
   late final TapGestureRecognizer _terms;
 
@@ -94,16 +93,20 @@ class _ConsentDialogState extends State<ConsentDialog> {
               TextSpan(text: 'Privacy Policy', style: link, recognizer: _privacy),
               const TextSpan(text: ' and '),
               TextSpan(text: 'Terms & Conditions', style: link, recognizer: _terms),
-              const TextSpan(text: '. Choose below. Optional sharing is off unless you enable it. Google Ads is not used.'),
+              const TextSpan(text: '. Accepting below confirms you are 18 or older, accept these documents, and consent to the analytics and Meta sharing described here.'),
             ]),
             textAlign: TextAlign.center,
           ),
-          CheckboxListTile(key:const Key('accept_terms'),contentPadding:EdgeInsets.zero,value:accepted,onChanged:(v)=>setState(()=>accepted=v??false),title:const Text('I am 18 or older and accept the Terms & Conditions and Privacy Policy.')),
-          SwitchListTile(key:const Key('consent_analytics'),contentPadding:EdgeInsets.zero,value:analytics,onChanged:(v)=>setState(()=>analytics=v),title:const Text('Optional app analytics'),subtitle:const Text('Share app activity and session information with Vayora to understand usage and improve the service.')),
-          SwitchListTile(key:const Key('consent_meta'),contentPadding:EdgeInsets.zero,value:advertising,onChanged:(v)=>setState(()=>advertising=v),title:const Text('Optional Meta/Facebook measurement'),subtitle:const Text('Send app activity, video-use milestones and verified purchase value/currency to Meta for ad measurement and optimisation. Includes hashed account/email identifiers, an install ID, IP address, browser/device information and available ad-click identifiers. Meta can match this with its own data. Passwords, UPI credentials, UTRs and private files are never sent.')),
-          const Text('Both optional choices can stay off. They do not change your plan, storage or content access. Change them anytime in Profile → Measurement preferences. Withdrawal stops future sharing and cancels unsent events; it cannot recall data Meta already received.',style:TextStyle(color:Tokens.muted,fontSize:12,height:1.5)),
+          const SizedBox(height: 16),
+          const Text('Analytics and Meta sharing',style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),
+          const SizedBox(height: 10),
+          const Text('Accepting enables app analytics and sharing with Meta/Facebook for advertising measurement and optimisation. This includes app and session activity, video-use milestones, verified purchase value/currency, hashed account/email identifiers, an install ID, IP address, browser/device information and available ad-click identifiers. Meta may match these with its own data.',style:TextStyle(color:Tokens.muted,height:1.5)),
+          const SizedBox(height: 10),
+          const Text('Passwords, UPI credentials, UTRs and private files are never sent to Meta. Google Ads is not used.',style:TextStyle(color:Tokens.muted,height:1.5)),
+          const SizedBox(height: 10),
+          const Text('Acceptance is needed to complete setup. You may close the app without accepting; leaving this screen does not give consent. Analytics and Meta events remain off until you accept. You can later withdraw either choice in Profile > Measurement preferences. Withdrawal stops future sharing and cancels unsent events; it cannot recall data Meta already received.',style:TextStyle(color:Tokens.muted,fontSize:12,height:1.5)),
           const SizedBox(height: 18),
-          SizedBox(width: double.infinity, child: FilledButton(key:const Key('consent_continue'),onPressed:accepted?()=>Navigator.pop(context,ConsentChoice(analytics,advertising)):null,child:const Text('Accept terms and save choices'))),
+          SizedBox(width: double.infinity, child: FilledButton(key:const Key('consent_continue'),onPressed:()=>Navigator.pop(context,const ConsentChoice(true,true)),child:const Text('Accept and continue'))),
         ]),
       ),
     );

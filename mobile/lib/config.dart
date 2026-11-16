@@ -1,8 +1,8 @@
 /// Vayora build-time configuration. Nothing secret lives here: the Supabase URL and
 /// publishable key are public by design (access is enforced by RLS on the server).
 class Config {
-  static const consentPrefKey = 'terms_accepted_20261115_v2';
-  static const consentPolicy = '2026-11-15-v2';
+  static const consentPrefKey = 'terms_accepted_20261116_v3';
+  static const consentPolicy = '2026-11-16-v3';
   static const appName = 'Vayora';
   static const shortCode = 'VY';
   static const websiteUrl = String.fromEnvironment('WEBSITE_URL', defaultValue: 'https://vayora-eta.vercel.app');
@@ -18,7 +18,7 @@ class Config {
   static const authScheme = String.fromEnvironment('AUTH_SCHEME', defaultValue: String.fromEnvironment('ANDROID_APP_ID', defaultValue: 'com.vayora.app'));
 
   /// Kept in sync with pubspec.yaml; a test fails when they differ.
-  static const versionLabel = '1.0.9';
+  static const versionLabel = '1.0.10';
 }
 
 
