@@ -3,7 +3,7 @@ CREATE OR REPLACE FUNCTION public.report_result(p_order uuid, p_raw text)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$;
+AS $function$
 declare uid uuid := auth.uid(); o public.payment_orders%rowtype; raw text := coalesce(p_raw, '');
         st text; txn text; ref text; apr text; mode text; recent int; got boolean;
 begin
@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION private.activate_order(p_order uuid, p_kind text)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$;
+AS $function$
 declare o public.payment_orders%rowtype; base timestamptz; new_end timestamptz;
 begin
   select * into o from public.payment_orders where id = p_order for update;
