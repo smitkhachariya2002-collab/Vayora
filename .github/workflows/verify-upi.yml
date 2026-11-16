@@ -25,4 +25,5 @@ jobs:
         run: flutter build apk --config-only --flavor direct
       - name: Verify native result handling for both variants
         working-directory: mobile/android
-        run: ./gradlew :app:testDirectDebugUnitTest :app:testPlayDebugUnitTest --console=plain
+        run: ./gradlew :app:testDirectDebugUnitTest :app:testPlayDebugUnitTest --console=plain -Pandroid.enableJetifier=false
+
