@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -43,9 +45,54 @@ class _LoginSheetState extends State<LoginSheet> {
   late bool _signup = widget.startSignup;
   bool _busy = false, _hide = true;
   String? _err, _info;
+  StreamSubscription<AuthState>? _googleSubscription;
+
+  Future<void> _google() async {
+    setState(() { _busy = true; _err = null; _info = null; });
+    await _googleSubscription?.cancel();
+    if (!mounted) { return; }
+    // Linking upgrades the guest UUID instead of abandoning its purchases/files.
+    final linkGuest = sb.auth.currentUser?.isAnonymous == true &&
+        (_signup || widget.saveMode || AppScope.of(context).status.isPremium);
+    _googleSubscription = sb.auth.onAuthStateChange.listen((state) {
+      if (!mounted || state.session?.user.isAnonymous != false ||
+          (state.event != AuthChangeEvent.signedIn && state.event != AuthChangeEvent.userUpdated)) { return; }
+      unawaited(_googleSubscription?.cancel());
+      _googleSubscription = null;
+      Navigator.pop(context, true);
+    }, onError: (Object error) {
+      if (mounted) setState(() { _err = 'Google sign-in could not finish. Please try again.'; _info = null; });
+    });
+    try {
+      final launched = linkGuest
+          ? await sb.auth.linkIdentity(OAuthProvider.google,
+              redirectTo: '${Config.authScheme}://login-callback',
+              authScreenLaunchMode: LaunchMode.externalApplication,
+              queryParams: {'prompt': 'select_account'})
+          : await sb.auth.signInWithOAuth(OAuthProvider.google,
+              redirectTo: '${Config.authScheme}://login-callback',
+              authScreenLaunchMode: LaunchMode.externalApplication,
+              queryParams: {'prompt': 'select_account'});
+      if (!launched) { throw const AuthException('Could not open your browser. Please try again.'); }
+      if (mounted) setState(() => _info = 'Finish signing in with Google in your browser. If you cancelled, tap Google again to retry.');
+    } on AuthException catch (e) {
+      await _googleSubscription?.cancel();
+      _googleSubscription = null;
+      if (mounted) setState(() => _err = e.code == 'identity_already_exists'
+          ? 'This Google account already belongs to another Vayora account. Your guest plan is unchanged. Contact support to keep both accounts safe.'
+          : e.message);
+    } catch (_) {
+      await _googleSubscription?.cancel();
+      _googleSubscription = null;
+      if (mounted) setState(() => _err = 'Could not start Google sign-in. Check your connection and try again.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   void dispose() {
+    unawaited(_googleSubscription?.cancel());
     _email.dispose();
     _pass.dispose();
     super.dispose();
@@ -169,7 +216,7 @@ class _LoginSheetState extends State<LoginSheet> {
           if (_info != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(_info!, style: const TextStyle(color: Tokens.success, fontSize: 13))),
           const SizedBox(height: 12),
           GradientButton(label: _busy ? 'Please wait…' : (widget.saveMode ? 'Save account' : (_signup ? 'Create account' : 'Log in')), onPressed: _busy ? null : _submit),
-          if (!widget.saveMode) ...[
+          ...[
             const SizedBox(height: 14),
             const Row(children: [
               Expanded(child: Divider(color: Tokens.border)),
@@ -179,9 +226,9 @@ class _LoginSheetState extends State<LoginSheet> {
             const SizedBox(height: 10),
             OutlinedButton.icon(
               key: const Key('google_login'),
-              onPressed: () => setState(() { _err = null; _info = 'Google sign-in is coming soon. Please use email for now.'; }),
+              onPressed: _busy ? null : _google,
               icon: const Icon(Icons.g_mobiledata, size: 26),
-              label: const Text('Continue with Google (coming soon)', maxLines: 1, overflow: TextOverflow.ellipsis),
+              label: const Text('Continue with Google', maxLines: 1, overflow: TextOverflow.ellipsis),
             ),
           ],
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text(widget.saveMode ? 'Not now' : 'Maybe later')),
@@ -217,3 +264,4 @@ class _Tabs extends StatelessWidget {
         ]),
       );
 }
+
