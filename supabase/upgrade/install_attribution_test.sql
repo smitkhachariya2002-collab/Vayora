@@ -17,4 +17,15 @@ begin
  end;
  if has_table_privilege('authenticated','private.install_attribution','SELECT') or has_function_privilege('anon','public.record_install_v2(text,text,jsonb)','EXECUTE') then raise exception 'Attribution publicly accessible'; end if;
 end $$;
+-- Isolated transaction: simulate first launch without touching persisted sources.
+delete from private.user_sources where user_id=auth.uid();
+select public.record_install_v2('test-retry-install','test-retry-install-secret','{"status":"unavailable","params":{}}');
+do $$begin
+ if exists(select 1 from private.user_sources where user_id=auth.uid()) then raise exception 'Unknown evidence permanently assigned source'; end if;
+end $$;
+select public.record_install_v2('test-retry-install','test-retry-install-secret','{"status":"play_referrer","params":{"utm_source":"meta","utm_campaign":"retry-test"}}');
+do $$begin
+ if private.source_of(auth.uid())<>'ads' then raise exception 'Play retry did not classify Meta'; end if;
+ if not exists(select 1 from public.installs where install_id='test-retry-install' and source='ads') then raise exception 'Install cache not updated'; end if;
+end $$;
 rollback;

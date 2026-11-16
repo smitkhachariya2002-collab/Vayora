@@ -38,6 +38,9 @@ print('PASS new explicit notice version accepted for guests')
 attribution=list((root.parent/'migrations').glob('*_play_install_attribution.sql')) or list(pathlib.Path('/tmp/vayora-reviewed-upgrade').glob('*_play_install_attribution.sql'))
 assert len(attribution)==1
 run(attribution[0].read_text())
+retry=list((root.parent/'migrations').glob('*_retry_install_evidence.sql')) or list(pathlib.Path('/tmp/vayora-reviewed-upgrade').glob('*_retry_install_evidence.sql'))
+assert len(retry)==1
+run(retry[0].read_text())
 run((root/'install_attribution_test.sql').read_text())
 print('PASS Play attribution, source preservation and install secret isolation')
 contexts=list((root.parent/'migrations').glob('*_play_measurement_context.sql')) or list(pathlib.Path('/tmp/vayora-reviewed-upgrade').glob('*_play_measurement_context.sql'))
