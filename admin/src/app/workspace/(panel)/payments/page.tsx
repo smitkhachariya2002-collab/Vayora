@@ -38,14 +38,14 @@ export default async function Payments({ searchParams: pending }: { searchParams
       <Card title="UPI settings" className="mb-5">
         <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
           <Badge tone={live ? "green" : "red"}>{live ? "Payments live" : "Payments off"}</Badge>
-          <span className="text-gray-700">Money goes to <strong className="text-gray-900">{s?.upi_id || "no UPI ID set"}</strong>{s?.payee_name ? <> · {s.payee_name}</> : null}</span>
+          <span className="text-gray-700">Money goes to <strong className="text-gray-900">{s?.upi_id || "no UPI ID set"}</strong>{s?.payee_name ? <> Â· {s.payee_name}</> : null}</span>
         </div>
         <form action={savePaymentSettings} className="grid gap-3 md:grid-cols-2">
           <Field label="UPI ID" hint="Like name@bank"><Input name="upi_id" defaultValue={s?.upi_id ?? ""} placeholder="name@bank" /></Field>
           <Field label="Payee name" hint="Shown in the customer's UPI app"><Input name="payee_name" defaultValue={s?.payee_name ?? ""} /></Field>
-          <Field label="Activation" hint="Automatic: the plan starts when the UPI app reports success; check your bank later. Manual: you check the bank first, then mark each order paid." className="md:col-span-2">
+          <Field label="Activation" hint="Automatic activation requires a signed confirmation from a configured payment provider. A UPI app's success message alone never activates a plan. Until provider verification is connected, check your bank and mark the order paid." className="md:col-span-2">
             <Select name="activation_mode" defaultValue={s?.activation_mode ?? "instant"}>
-              <option value="instant">Automatic (instant)</option><option value="manual">Manual (verify bank first)</option>
+              <option value="instant">Automatic (provider verification required)</option><option value="manual">Manual (verify bank first)</option>
             </Select>
           </Field>
           <label className="flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" name="enabled" defaultChecked={!!s?.enabled} /> Enable payments</label>
@@ -57,15 +57,15 @@ export default async function Payments({ searchParams: pending }: { searchParams
       </Card>
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Stat label="Verified revenue · range" value={inr(Number(st.verified_revenue ?? 0))} />
-        <Stat label="Unverified revenue · range" value={inr(Number(st.unverified_revenue ?? 0))} />
+        <Stat label="Verified revenue Â· range" value={inr(Number(st.verified_revenue ?? 0))} />
+        <Stat label="Unverified revenue Â· range" value={inr(Number(st.unverified_revenue ?? 0))} />
         <Stat label="Successful orders" value={n(st.paid_orders)} />
-        <Stat label="Paying users · range" value={n(st.paying_users)} />
-        <Stat label="Repeat buyers · range" value={n(st.repeat_buyers)} />
+        <Stat label="Paying users Â· range" value={n(st.paying_users)} />
+        <Stat label="Repeat buyers Â· range" value={n(st.repeat_buyers)} />
       </div>
 
       <div className="mb-3 flex flex-wrap gap-2">
-        <LinkButton href="/workspace/payments?verify=today" variant={q.verify === "today" ? "primary" : "secondary"} small>Activated today — check against bank</LinkButton>
+        <LinkButton href="/workspace/payments?verify=today" variant={q.verify === "today" ? "primary" : "secondary"} small>Activated today â€” check against bank</LinkButton>
         <LinkButton href="/workspace/payments?verify=all" variant={q.verify === "all" ? "primary" : "secondary"} small>All bank checks outstanding</LinkButton>
         <LinkButton href="/workspace/payments" variant={!filtered ? "primary" : "secondary"} small>All payments</LinkButton>
       </div>
@@ -94,19 +94,19 @@ export default async function Payments({ searchParams: pending }: { searchParams
                   <Td className="whitespace-nowrap text-xs text-gray-600">{ist(o.created_at as string)}</Td>
                   <Td><div className="font-medium text-gray-900">{o.user_id ? <Link className="underline" href={"/workspace/users/"+String(o.user_id)}>{o.email ? String(o.email) : "Guest (no email yet)"}</Link> : "Deleted account"}</div><div className="text-xs text-gray-500">{String(o.plan_name ?? "")}</div></Td>
                   <Td className="whitespace-nowrap font-medium">{inr(Number(o.amount_inr))}</Td>
-                  <Td className="text-xs"><div className="font-mono">{String(o.reference ?? "—")}</div>{o.utr ? <div className="font-mono text-gray-500">UTR {String(o.utr)}</div> : null}</Td>
+                  <Td className="text-xs"><div className="font-mono">{String(o.reference ?? "â€”")}</div>{o.utr ? <div className="font-mono text-gray-500">UTR {String(o.utr)}</div> : null}</Td>
                   <Td><StatusBadge value={o.status as string} />{needsBank ? <div className="mt-1"><Badge tone="amber">Verify against bank</Badge></div> : null}{paid && o.bank_verified ? <div className="mt-1"><Badge tone="green">Bank verified</Badge></div> : null}</Td>
                   <Td>
                     <details>
                       <summary className="cursor-pointer text-sm font-medium text-violet-700">Details and actions</summary>
                       <dl className="mt-2 grid grid-cols-[auto,1fr] gap-x-3 gap-y-0.5 text-xs text-gray-600">
-                        <dt>Txn id</dt><dd className="break-all font-mono">{String(o.txn_id ?? "—")}</dd>
-                        <dt>Activated</dt><dd>{o.activated_at ? `${ist(o.activated_at as string)} (${o.activation_kind})` : "—"}</dd>
-                        <dt>UPI ID used</dt><dd>{String(o.upi_id_used ?? "—")}</dd>
+                        <dt>Txn id</dt><dd className="break-all font-mono">{String(o.txn_id ?? "â€”")}</dd>
+                        <dt>Activated</dt><dd>{o.activated_at ? `${ist(o.activated_at as string)} (${o.activation_kind})` : "â€”"}</dd>
+                        <dt>UPI ID used</dt><dd>{String(o.upi_id_used ?? "â€”")}</dd>
                         <dt>Updated</dt><dd>{ist(o.updated_at as string)}</dd>
                         <dt>Verified</dt><dd>{o.bank_verified ? ist(o.bank_verified_at as string) : "No"}</dd>
-                        <dt>Note</dt><dd>{String(o.admin_note ?? "—")}</dd>
-                        <dt>UPI reply</dt><dd className="break-all font-mono">{String(o.raw_result ?? "—")}</dd>
+                        <dt>Note</dt><dd>{String(o.admin_note ?? "â€”")}</dd>
+                        <dt>UPI reply</dt><dd className="break-all font-mono">{String(o.raw_result ?? "â€”")}</dd>
                       </dl>
                       <div className="mt-2 space-y-1.5">
                         {needsBank && <form action={orderAction}><Hidden name="id" value={id} /><Hidden name="kind" value="bank" /><Hidden name="back" value={back} /><SubmitButton small variant="success" confirm="Confirm you can see this payment in your bank statement?">Bank verified</SubmitButton></form>}
@@ -157,8 +157,8 @@ export default async function Payments({ searchParams: pending }: { searchParams
             {rowsOf(audit.data).map((a, i) => (
               <tr key={i} className="border-b border-gray-100 last:border-0">
                 <td className="whitespace-nowrap py-1.5 pr-3 text-gray-500">{ist(a.changed_at as string)}</td>
-                <td className="py-1.5 pr-3">{LABEL[a.table_name as string] ?? String(a.table_name)} · {String(a.field).replace(/_/g, " ")}</td>
-                <td className="py-1.5 pr-3"><span className="text-gray-500">{String(a.old_value ?? "—")}</span> → <span className="font-medium text-gray-900">{String(a.new_value ?? "—")}</span></td>
+                <td className="py-1.5 pr-3">{LABEL[a.table_name as string] ?? String(a.table_name)} Â· {String(a.field).replace(/_/g, " ")}</td>
+                <td className="py-1.5 pr-3"><span className="text-gray-500">{String(a.old_value ?? "â€”")}</span> â†’ <span className="font-medium text-gray-900">{String(a.new_value ?? "â€”")}</span></td>
                 <td className="py-1.5 text-gray-500">{String(a.changed_by ?? "system")}</td>
               </tr>
             ))}
