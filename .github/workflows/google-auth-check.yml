@@ -1,0 +1,19 @@
+name: Verify Google provider and guest account linking
+on:
+  push:
+    branches: [feature/puffle-parity-no-google-ads]
+    paths: ['.github/workflows/google-auth-check.yml', 'tools/verify_google_auth.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify login configuration without printing credentials
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: python3 tools/verify_google_auth.py
+
