@@ -3,6 +3,7 @@ select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-00000000
 do $$
 declare src text; before_source text;
 begin
+ insert into private.user_sources(user_id,source) values(auth.uid(),'organic') on conflict(user_id) do nothing;
  before_source:=private.source_of(auth.uid());
  src:=public.record_install_v2('test-attribution-install','test-attribution-secret','{"status":"play_referrer","params":{"utm_source":"meta","utm_medium":"paid_social","utm_campaign":"release-test"},"click_timestamp":100,"install_timestamp":200}');
  if src<>before_source then raise exception 'Existing account source changed'; end if;

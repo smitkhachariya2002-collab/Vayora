@@ -40,6 +40,11 @@ assert len(attribution)==1
 run(attribution[0].read_text())
 run((root/'install_attribution_test.sql').read_text())
 print('PASS Play attribution, source preservation and install secret isolation')
+contexts=list((root.parent/'migrations').glob('*_play_measurement_context.sql')) or list(pathlib.Path('/tmp/vayora-reviewed-upgrade').glob('*_play_measurement_context.sql'))
+assert len(contexts)==1
+run(contexts[0].read_text())
+run((root/'play_measurement_test.sql').read_text())
+print('PASS Play consent context and withdrawal')
 run((root/'rollback.sql').read_text())
 run("do $$begin if (select count(*) from public.profiles)<>3 or (select count(*) from public.payment_orders)<>2 or (select count(*) from public.subscriptions)<>1 or not has_schema_privilege('authenticated','public','usage') then raise exception 'Rollback mismatch';end if;end$$;")
 print('PASS rollback preserves original data and access')
