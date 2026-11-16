@@ -1,0 +1,28 @@
+name: Verify UPI checkout variants
+on:
+  push:
+    branches: [feature/puffle-parity-no-google-ads]
+    paths: ['.github/workflows/verify-upi.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: {flutter-version: '3.47.7', cache: true}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17'}
+      - run: flutter pub get --enforce-lockfile
+      - name: Check plans, UPI URI, results and retry persistence
+        run: flutter test test/upi_test.dart test/pending_queue_test.dart test/ui_test.dart
+      - name: Generate Android configuration
+        run: flutter build apk --config-only --flavor direct
+      - name: Verify native result handling for both variants
+        working-directory: mobile/android
+        run: ./gradlew :app:testDirectDebugUnitTest :app:testPlayDebugUnitTest --console=plain
