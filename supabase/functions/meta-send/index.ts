@@ -63,7 +63,25 @@ Deno.serve(async req=>{
  try{
   if(req.method!=="POST")return json({error:"method not allowed"},405);
   if(!await authorised(req))return json({error:"forbidden"},403);
-  const body=await req.json().catch(()=>({}));const action=String(body.action??"flush"),s=await settings();
+  const body=await req.json().catch(()=>({}));const action=String(body.action??"flush");
+  // Validate candidate credentials BEFORE the admin action writes to the database.
+  // Only owner/cron authorised callers reach this branch. Tokens never enter error responses.
+  if(action==="validate_candidate"){
+   const pixel=String(body.pixel_id??"").trim(),token=String(body.capi_token??"").trim();
+   const testCode=String(body.test_event_code??"").trim();
+   if(!/^\\d{5,20}$/.test(pixel)||!token)return json({ok:false,message:"A valid Pixel ID and access token are required."});
+   const event={event_name:"PageView",event_time:Math.floor(Date.now()/1000),event_id:"vayora-credential-check-"+crypto.randomUUID(),
+    action_source:"website",event_source_url:"https://vayora-eta.vercel.app/d",
+    user_data:{external_id:[await hash("vayora-credential-validation")]}};
+   try{
+    const data=await graph(pixel,token,{data:[event],...(testCode?{test_event_code:testCode}:{})},"/events");
+    return json({ok:true,events_received:data.events_received,fbtrace_id:data.fbtrace_id??null,timed_out:false});
+   }catch(error){
+    if(error instanceof Error&&(error.name==="TimeoutError"||error.name==="AbortError"))return json({ok:true,timed_out:true,message:"Meta validation timed out; credentials are not yet confirmed."});
+    return json({ok:false,message:String(error instanceof Error?error.message:error).replaceAll(token,"[redacted]").slice(0,500)});
+   }
+  }
+  const s=await settings();
   if(action==="verify"){
    if(!s.pixel_id||!s.capi_token)return json({ok:false,message:"Dataset/Pixel ID and access token are required."});
    const data=await graph(s.pixel_id,s.capi_token,undefined,"?fields=name");
