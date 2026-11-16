@@ -19,6 +19,11 @@ run((root/'app_consent_test.sql').read_text())
 print('PASS guest consent, isolation, policy validation and unchanged channel access')
 for p in sorted((root/'tests').glob('*.sql')):
  run("begin; insert into private.owner_bootstrap(email) values('owner@example.test') on conflict do nothing; update public.app_mode set free_mode=false,plans_visible_for='everyone',free_plans_for='none'; update public.payment_settings set enabled=true,upi_id='2728412a@bandhan',payee_name='As Enterprice';\n"+p.read_text(),True)
+upi_migrations=list((root.parent/'migrations').glob('*_verify_upi_before_activation.sql')) or list(pathlib.Path('/tmp/vayora-reviewed-upgrade').glob('*_verify_upi_before_activation.sql'))
+assert len(upi_migrations)==1
+run(upi_migrations[0].read_text())
+run((root/'upi_verification_test.sql').read_text())
+print('PASS client callbacks cannot activate plans; verified callbacks are idempotent')
 run((root/'rollback.sql').read_text())
 run("do $$begin if (select count(*) from public.profiles)<>3 or (select count(*) from public.payment_orders)<>2 or (select count(*) from public.subscriptions)<>1 or not has_schema_privilege('authenticated','public','usage') then raise exception 'Rollback mismatch';end if;end$$;")
 print('PASS rollback preserves original data and access')
