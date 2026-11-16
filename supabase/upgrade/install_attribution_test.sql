@@ -17,8 +17,9 @@ begin
  end;
  if has_table_privilege('authenticated','private.install_attribution','SELECT') or has_function_privilege('anon','public.record_install_v2(text,text,jsonb)','EXECUTE') then raise exception 'Attribution publicly accessible'; end if;
 end $$;
--- Isolated transaction: simulate first launch without touching persisted sources.
-delete from private.user_sources where user_id=auth.uid();
+-- Isolated transaction: a separate synthetic account tests first launch.
+insert into auth.users(id,email,is_anonymous) values('77777777-7777-4777-8777-777777777777',null,true);
+select set_config('request.jwt.claims','{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}',true);
 select public.record_install_v2('test-retry-install','test-retry-install-secret','{"status":"unavailable","params":{}}');
 do $$begin
  if exists(select 1 from private.user_sources where user_id=auth.uid()) then raise exception 'Unknown evidence permanently assigned source'; end if;
@@ -29,3 +30,4 @@ do $$begin
  if not exists(select 1 from public.installs where install_id='test-retry-install' and source='ads') then raise exception 'Install cache not updated'; end if;
 end $$;
 rollback;
+
