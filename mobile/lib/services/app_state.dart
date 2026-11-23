@@ -34,6 +34,7 @@ class AppState extends ChangeNotifier {
       } catch (_) {/* guest session unavailable: browse with the public guest status */}
     }
     await _recordInstallOnce();
+    await _linkInstallToSession();
     await refresh();
     unawaited(Measurement.instance.start());
     flushPending();
@@ -44,7 +45,7 @@ class AppState extends ChangeNotifier {
     _poll = Timer.periodic(const Duration(seconds:60),(_){refresh();Measurement.instance.flush();});
     sb.auth.onAuthStateChange.listen((event) async {
       await refresh();
-      if(event.event==AuthChangeEvent.signedIn||event.event==AuthChangeEvent.userUpdated){await Measurement.instance.start();}
+      if(event.event==AuthChangeEvent.signedIn||event.event==AuthChangeEvent.userUpdated){await _linkInstallToSession();await Measurement.instance.start();}
     });
   }
 
@@ -103,6 +104,20 @@ class AppState extends ChangeNotifier {
         await p.setBool('install_recorded', true);
       }
     } catch (_) {/* retry next launch; no tracking failure blocks app startup */}
+  }
+
+  Future<void> _linkInstallToSession() async {
+    if (sb.auth.currentSession == null) return;
+    final p = await SharedPreferences.getInstance();
+    final id = p.getString('install_id');
+    final secret = p.getString('install_secret');
+    if (id == null || secret == null || p.getBool('install_recorded') != true) return;
+    try {
+      await sb.rpc('link_install_attribution', params: {
+        'p_install_id': id,
+        'p_install_secret': secret,
+      });
+    } catch (_) {/* Preserve login even if attribution is temporarily unavailable. */}
   }
 
   /// Makes sure there is an auth session (a guest/anonymous one if needed). Returns false if none could be created.
