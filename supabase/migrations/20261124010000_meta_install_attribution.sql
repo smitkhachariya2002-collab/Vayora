@@ -43,7 +43,7 @@ as $$
    select split_part(pair,'=',1) as k,
           substring(pair from position('=' in pair)+1) as v
    from regexp_split_to_table(
-     replace(replace(left(coalesce(p_raw,''),2048),'%3D','='),'%3d','=') ,'&') pair
+     replace(replace(replace(left(coalesce(p_raw,''),2048),'%26','&'),'%3D','='),'%3d','=') ,'&') pair
    where position('=' in pair)>0
  ), mapped as (
    select lower(k) k,
