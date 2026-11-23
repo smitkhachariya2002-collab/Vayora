@@ -29,3 +29,12 @@ Keep com.vayora.app / com.vayora.play and existing signing identity. Do not copy
 Apply the five-section Bunny/media/UPI specification to Vayora only. Puffle is untouched. Preserve existing account, guest purchase, channel approval, Ads/Organic and Premium rules. Do not introduce a new install-verification gate as part of this media upgrade. The requested Puffle version code 18 cannot be reused for Vayora, whose released code is already 21; choose an unused higher Vayora version after checking releases.
 
 Latest instruction: preserve the current Vayora app/admin theme colors. Dark-orange recoloring is explicitly superseded. Font and encoding fixes must not alter the palette.
+
+## Verification and deployment, 24 November
+- Admin/public encoding repairs deployed. Inspected all main live admin sections; no corrupted labels remained. Inter is bundled locally. Existing CSS colors and mobile theme source are preserved.
+- Additive media migration and owner-control follow-up applied through Supabase MCP after the populated SQL rehearsal passed. File timestamps now match the applied migration history: 20261123204032 and 20261123205335.
+- Production record counts remained 107 profiles, 38 payment orders, 11 subscriptions, 3 channels, 0 posts and 0 cloud files. Access-function hashes were identical before/after.
+- Flutter direct suite: 70 passed, 6 skipped; standard Play: 62 passed; plans Play: 70 passed, 6 skipped. All three suites also passed in CI. Admin production build and Edge checks passed; 6 Bunny boundary tests passed.
+- Production web/admin deployment 2ef8dcbf799f7050bd075b1399209a18249f455b is READY. No Puffle resources were changed.
+- Bunny/FCM credentials remain deferred. No real-provider media or notification success is claimed. Automatic notifications are seeded disabled; Bunny processing starts only on a configured reservation.
+- Version 1.0.13 (22) signing workflow is running. GitHub CLI's stored accounts cannot create the Vayora draft release; browser control was stopped because it could not verify the Windows browser URL. Continue checking the pipeline before choosing a delivery fallback.

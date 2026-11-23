@@ -10,6 +10,8 @@ Deno.test('TUS signature binds library, video, expiry and server secret',async()
 Deno.test('Signed paths reject traversal and mismatched directory scopes',async()=>{
  await assertRejects(()=>signedCdnUrl('zone.b-cdn.net','/a/../secret','key',123));
  await assertRejects(()=>signedCdnUrl('zone.b-cdn.net','/other/main.m3u8','key',123,'/a/'));
+ await assertRejects(()=>signedCdnUrl('zone.b-cdn.net','/a/%2e%2e/secret','key',123));
+ assertMatch(await signedCdnUrl('zone.b-cdn.net','/files/backup..txt','key',123),/backup\.\.txt\?token=/);
  assertMatch(await signedCdnUrl('zone.b-cdn.net','/video/playlist.m3u8','key',123,'/video/'),/bcdn_token=HS256-[A-Za-z0-9_-]+&expires=123&token_path=%2Fvideo%2F/);
 });
 Deno.test('Preview contains at most two minutes and no reusable full-video token',async()=>{

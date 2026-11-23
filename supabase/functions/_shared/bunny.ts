@@ -25,7 +25,7 @@ export async function tusAuthorization(libraryId: string, apiKey: string, id: st
   return {AuthorizationSignature:await sha256(libraryId+apiKey+expires+videoId(id)),AuthorizationExpire:String(expires),LibraryId:libraryId,VideoId:id};
 }
 export async function signedCdnUrl(origin: string, path: string, key: string, expires: number, directory?: string) {
-  if (!path.startsWith('/') || path.includes('..') || /[?#\\\x00-\x20]/.test(path)) throw new Error('Invalid media path');
+  if (!path.startsWith('/') || path.split('/').some(part=>{const decoded=decodeURIComponent(part);return decoded==='..'||decoded==='.'||decoded.includes('/')||decoded.includes('\\');}) || /[?#\\\x00-\x20]/.test(path)) throw new Error('Invalid media path');
   if (directory && (!directory.endsWith('/') || !path.startsWith(directory) || directory.includes('..'))) throw new Error('Invalid token scope');
   const params = directory ? `token_path=${directory}` : '';
   const signing = (directory ?? path)+expires+params;
