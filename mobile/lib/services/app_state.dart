@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -77,9 +78,26 @@ class AppState extends ChangeNotifier {
     final id = prefs.getString('install_id');
     final secret = prefs.getString('install_secret');
     if (id == null || secret == null) return;
+    // The original Play referrer was cached at first launch. Only bounded
+    // campaign dimensions travel to the server, never an additional source.
+    final stored = prefs.getString('install_referrer_v2');
+    Map<String, String> details = {};
+    if (stored != null) {
+      try {
+        final decoded = jsonDecode(stored);
+        if (decoded is Map && decoded['params'] is Map) {
+          final params = decoded['params'] as Map;
+          details = {
+            'utm_content': params['utm_content']?.toString() ?? '',
+            'utm_term': params['utm_term']?.toString() ?? '',
+          };
+        }
+      } catch (_) {/* Ignore invalid cached referrer metadata. */}
+    }
     try {
       await sb.rpc('link_install_touch_v2', params: {
         'p_install_id': id, 'p_install_secret': secret,
+        'p_details': details,
       });
     } catch (_) {/* Login never depends on analytics availability. */}
   }
