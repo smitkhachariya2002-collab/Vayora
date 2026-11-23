@@ -18,7 +18,7 @@ class Config {
   static const authScheme = String.fromEnvironment('AUTH_SCHEME', defaultValue: String.fromEnvironment('ANDROID_APP_ID', defaultValue: 'com.vayora.app'));
 
   /// Kept in sync with pubspec.yaml; a test fails when they differ.
-  static const versionLabel = '1.0.11';
+  static const versionLabel = '1.0.12';
 }
 
 
