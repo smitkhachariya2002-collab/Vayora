@@ -55,15 +55,48 @@ class AppState extends ChangeNotifier {
     final secret = p.getString('install_secret') ?? const Uuid().v4();
     await p.setString('install_id', id);
     await p.setString('install_secret', secret);
+
+    String status = 'none';
+    String raw = '';
+    int? clickTs;
+    int? installTs;
+    if (Config.playStore) {
+      // The Google Play referrer is authoritative; never infer an ad from a
+      // browser URL or from the package's installation source alone.
+      try {
+        final details = await const MethodChannel('app/install-referrer')
+            .invokeMapMethod<String, dynamic>('read')
+            .timeout(const Duration(seconds: 8));
+        status = details?['status']?.toString() ?? 'unavailable';
+        raw = details?['raw_referrer']?.toString() ?? '';
+        clickTs = (details?['click_ts'] as num?)?.toInt();
+        installTs = (details?['install_ts'] as num?)?.toInt();
+      } catch (_) {
+        status = 'unavailable';
+      }
+    } else if (Config.apkReferrer.isNotEmpty) {
+      status = 'apk_define';
+      raw = Config.apkReferrer;
+    }
+
     try {
-      await sb.rpc('record_install', params: {
+      await sb.rpc('record_install_attributed', params: {
         'p_install_id': id,
-        'p_referrer_status': Config.apkReferrer.isEmpty ? 'none' : 'apk_define',
-        'p_raw_referrer': Config.apkReferrer,
+        'p_referrer_status': status,
+        'p_raw_referrer': raw,
         'p_install_secret': secret,
+        'p_click_ts': clickTs,
+        'p_install_ts': installTs,
       });
-      await p.setBool('install_recorded', true);
-    } catch (_) {/* retried next launch */}
+      // Unavailable Play data is provisional: retry on a future launch so
+      // a temporary Play Services outage cannot permanently lose attribution.
+      // Rate-limit retries and stop after five attempts.
+      final attempts = (p.getInt('install_referrer_attempts') ?? 0) + 1;
+      await p.setInt('install_referrer_attempts', attempts);
+      if (status != 'unavailable' && status != 'not_available' || attempts >= 5) {
+        await p.setBool('install_recorded', true);
+      }
+    } catch (_) {/* retry next launch; no tracking failure blocks app startup */}
   }
 
   /// Makes sure there is an auth session (a guest/anonymous one if needed). Returns false if none could be created.
