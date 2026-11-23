@@ -123,7 +123,7 @@ begin
  on conflict(user_id) do nothing;
 
  -- Collect campaign dimensions separately; acquisition source remains immutable.
- insert into private.user_attribution(
+ insert into private.user_attribution as ua(
    user_id,first_touch_source,first_touch_medium,first_touch_campaign,
    first_touch_content,first_touch_install_id,first_touch_at,
    last_touch_source,last_touch_medium,last_touch_campaign,
@@ -133,12 +133,12 @@ begin
    parsed->>'utm_medium',parsed->>'utm_campaign',parsed->>'utm_content',
    p_install_id,now())
  on conflict(user_id) do update set
-   first_touch_source=coalesce(private.user_attribution.first_touch_source,excluded.first_touch_source),
-   first_touch_medium=coalesce(private.user_attribution.first_touch_medium,excluded.first_touch_medium),
-   first_touch_campaign=coalesce(private.user_attribution.first_touch_campaign,excluded.first_touch_campaign),
-   first_touch_content=coalesce(private.user_attribution.first_touch_content,excluded.first_touch_content),
-   first_touch_install_id=coalesce(private.user_attribution.first_touch_install_id,excluded.first_touch_install_id),
-   first_touch_at=coalesce(private.user_attribution.first_touch_at,excluded.first_touch_at),
+   first_touch_source=coalesce(ua.first_touch_source,excluded.first_touch_source),
+   first_touch_medium=coalesce(ua.first_touch_medium,excluded.first_touch_medium),
+   first_touch_campaign=coalesce(ua.first_touch_campaign,excluded.first_touch_campaign),
+   first_touch_content=coalesce(ua.first_touch_content,excluded.first_touch_content),
+   first_touch_install_id=coalesce(ua.first_touch_install_id,excluded.first_touch_install_id),
+   first_touch_at=coalesce(ua.first_touch_at,excluded.first_touch_at),
    last_touch_source=excluded.last_touch_source,
    last_touch_medium=excluded.last_touch_medium,
    last_touch_campaign=excluded.last_touch_campaign,
