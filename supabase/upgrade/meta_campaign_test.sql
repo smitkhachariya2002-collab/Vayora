@@ -13,15 +13,20 @@ insert into private.install_attribution(install_id,classification,confidence,
 
 select set_config('request.jwt.claims',
  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',true);
-select public.link_install_touch_v2('campaign-test-install-01','campaign-test-secret-01');
+select public.link_install_touch_v2('campaign-test-install-01','campaign-test-secret-01', '{"utm_content":"creative_a","utm_term":"storage"}'::jsonb);
 do $$
 declare uid uuid:='10000000-0000-0000-0000-000000000003';
 begin
  if not exists(select 1 from private.user_attribution
    where user_id=uid and first_touch_source='organic'
      and last_touch_source='meta' and last_touch_campaign='winter_launch'
+     and last_touch_content='creative_a'
      and last_touch_install_id='campaign-test-install-01') then
    raise exception 'Existing organic first touch or latest Meta campaign was lost';
+ end if;
+ if not exists(select 1 from private.install_attribution
+    where install_id='campaign-test-install-01' and utm_term='storage') then
+   raise exception 'UTM term not persisted';
  end if;
  if private.source_of(uid)<>'organic' then
    raise exception 'Existing account acquisition source was overwritten';
@@ -36,7 +41,7 @@ begin
    raise exception 'Unconsented click row persisted';
  end if;
  if has_function_privilege('anon',
-     'public.link_install_touch_v2(text,text)','EXECUTE') then
+     'public.link_install_touch_v2(text,text,jsonb)','EXECUTE') then
    raise exception 'Anonymous role can reassign install attribution';
  end if;
 end
