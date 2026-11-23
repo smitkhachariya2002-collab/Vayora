@@ -55,3 +55,30 @@ verify_jwt = false
 
 [functions.meta-send]
 verify_jwt = false
+
+[functions.bunny-status]
+verify_jwt = false
+
+[functions.bunny-stream-create]
+verify_jwt = false
+
+[functions.bunny-stream-url]
+verify_jwt = false
+
+[functions.bunny-preview]
+verify_jwt = false
+
+[functions.bunny-sync]
+verify_jwt = false
+
+[functions.bunny-cleanup]
+verify_jwt = false
+
+[functions.bunny-stream-delete]
+verify_jwt = false
+
+[functions.cloud-upload]
+verify_jwt = false
+
+[functions.push-send]
+verify_jwt = false

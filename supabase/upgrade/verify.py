@@ -48,6 +48,12 @@ assert len(contexts)==1
 run(contexts[0].read_text())
 run((root/'play_measurement_test.sql').read_text())
 print('PASS Play consent context and withdrawal')
+features=list((root.parent/'migrations').glob('*_cinematic_bunny_notifications.sql')) or list(pathlib.Path('/tmp/vayora-reviewed-upgrade').glob('*_cinematic_bunny_notifications.sql'))
+assert len(features)==1
+run("create table private.upgrade_rule_snapshot as select oid as oid_,md5(pg_get_functiondef(oid)) as hash_ from pg_proc where pronamespace in ('public'::regnamespace,'private'::regnamespace) and proname in ('has_ads_access','can_full_premium','source_of','can_see_audience','can_post_to_channel','guard_posts');")
+run(features[0].read_text())
+run((root/'bunny_media_test.sql').read_text())
+print('PASS media readiness, cleanup protection, payment recovery and legacy access preservation')
 run((root/'rollback.sql').read_text())
 run("do $$begin if (select count(*) from public.profiles)<>3 or (select count(*) from public.payment_orders)<>2 or (select count(*) from public.subscriptions)<>1 or not has_schema_privilege('authenticated','public','usage') then raise exception 'Rollback mismatch';end if;end$$;")
 print('PASS rollback preserves original data and access')

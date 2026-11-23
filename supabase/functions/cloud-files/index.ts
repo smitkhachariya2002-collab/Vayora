@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import {handleCloud} from '../_shared/bunny-cloud.ts';
 import { createClient } from "npm:@supabase/supabase-js@2.49.8";
 const url=Deno.env.get("SUPABASE_URL")!;
 const anon=Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -14,6 +15,7 @@ Deno.serve(async(req)=>{
  try{
   if(req.method!=="POST")return json({error:"method not allowed"},405);
   const {sb,user:u}=await user(req); const b=await req.json(); const action=String(b?.action??"");
+  const bunny=await handleCloud(req,b);if(bunny)return bunny;
   if(action==="upload"){
     const name=String(b?.name??"").trim(); const size=Number(b?.size??0);
     if(!name||!Number.isFinite(size)||size<=0)return json({error:"invalid file"},400);

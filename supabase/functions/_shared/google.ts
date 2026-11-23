@@ -3,8 +3,8 @@ export function base64url(bytes:Uint8Array):string{return btoa(String.fromCharCo
 export async function sha256(value:string):Promise<string>{
  return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",encoder.encode(value)))).map(x=>x.toString(16).padStart(2,"0")).join("");
 }
-export async function googleToken(scope:string):Promise<string>{
- const credentials=JSON.parse(Deno.env.get("GOOGLE_PLAY_SERVICE_ACCOUNT")??"{}");
+export async function googleToken(scope:string,secretName="GOOGLE_PLAY_SERVICE_ACCOUNT"):Promise<string>{
+ const credentials=JSON.parse(Deno.env.get(secretName)??"{}");
  if(!credentials.client_email||!credentials.private_key)throw new Error("Google service account is not configured");
  const now=Math.floor(Date.now()/1000);
  const header=base64url(encoder.encode(JSON.stringify({alg:"RS256",typ:"JWT"})));

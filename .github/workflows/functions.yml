@@ -27,3 +27,6 @@ jobs:
 
       - name: Verify consent-aware measurement payloads
         run: deno test supabase/functions/meta-send/payload_test.ts
+
+      - name: Verify Bunny preview and cleanup boundaries
+        run: deno test supabase/functions/_shared/bunny_test.ts

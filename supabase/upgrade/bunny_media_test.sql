@@ -1,0 +1,35 @@
+-- Synthetic fixtures; only the disposable upgrade rehearsal invokes this file.
+begin;
+create function pg_temp.check_(ok boolean,message text) returns void language plpgsql as $$begin if not coalesce(ok,false) then raise exception '%',message;end if;end$$;
+select pg_temp.check_((select count(*)=3 from public.profiles),'Accounts changed');
+select pg_temp.check_((select count(*)=2 from public.payment_orders),'Existing orders changed');
+select pg_temp.check_((select count(*)=1 from public.subscriptions),'Existing subscriptions changed');
+select pg_temp.check_(not has_table_privilege('authenticated','public.bunny_assets','select'),'Asset registry exposed');
+select pg_temp.check_(not has_function_privilege('authenticated','public.activate_bunny_processing()','execute'),'Cron key exposed');
+select pg_temp.check_((select bool_and(not enabled) from public.push_automations),'Unconfigured automations enabled');
+select pg_temp.check_((select bool_and(md5(pg_get_functiondef(oid_))=hash_) from private.upgrade_rule_snapshot),'Existing access rule changed');
+select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated","is_anonymous":false}',true);
+update public.app_mode set free_mode=false,plans_visible_for='everyone',free_plans_for='none';
+update public.payment_settings set enabled=true,upi_id='test@bank',activation_mode='instant';
+do $$declare a jsonb;b jsonb;n bigint;begin
+ select count(*) into n from public.subscriptions;
+ a:=public.create_order((select id from public.plans where code='trial'));
+ perform public.report_result((a->>'order_id')::uuid,'Status=SUBMITTED');
+ perform public.report_result((a->>'order_id')::uuid,'Status=FAILURE');
+ b:=public.create_order((select id from public.plans where code='gold'));
+ if (select status from public.payment_orders where id=(a->>'order_id')::uuid)<>'submitted' then raise exception 'Submitted payment was overwritten';end if;
+ perform public.submit_payment_utr((b->>'order_id')::uuid,'123456789012');
+ if (select status from public.payment_orders where id=(b->>'order_id')::uuid)<>'review' or (select count(*) from public.subscriptions)<>n then raise exception 'Customer UTR granted entitlement';end if;
+ begin perform public.submit_payment_utr((a->>'order_id')::uuid,null);raise exception 'Null UTR accepted';exception when raise_exception then if sqlerrm='Null UTR accepted' then raise;end if;end;
+end $$;
+insert into public.posts(id,channel_id,title,status) values('50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','Processing test','draft');
+insert into public.post_items(id,post_id,media_key,mime,bunny_video_id,processing_status) values('60000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001/bunny/70000000-0000-0000-0000-000000000001','video/mp4','70000000-0000-0000-0000-000000000001','processing');
+insert into public.bunny_assets(video_id,item_id,slot) values('70000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001','main');
+update public.posts set status='published' where id='50000000-0000-0000-0000-000000000001';
+select pg_temp.check_((select status='draft' and bunny_publish_requested from public.posts where id='50000000-0000-0000-0000-000000000001'),'Processing video published early');
+update public.post_items set processing_status='ready' where id='60000000-0000-0000-0000-000000000001';
+update public.posts set status='published' where id='50000000-0000-0000-0000-000000000001';
+select pg_temp.check_((select status='published' and publish_at=now() from public.posts where id='50000000-0000-0000-0000-000000000001'),'Publication timestamp missing');
+delete from public.posts where id='50000000-0000-0000-0000-000000000001';
+select pg_temp.check_((select item_id is null and status='cleanup_queued' from public.bunny_assets where video_id='70000000-0000-0000-0000-000000000001'),'Removed media not queued safely');
+rollback;
