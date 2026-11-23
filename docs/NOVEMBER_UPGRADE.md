@@ -38,3 +38,9 @@ Latest instruction: preserve the current Vayora app/admin theme colors. Dark-ora
 - Production web/admin deployment 2ef8dcbf799f7050bd075b1399209a18249f455b is READY. No Puffle resources were changed.
 - Bunny/FCM credentials remain deferred. No real-provider media or notification success is claimed. Automatic notifications are seeded disabled; Bunny processing starts only on a configured reservation.
 - Version 1.0.13 (22) signing workflow is running. GitHub CLI's stored accounts cannot create the Vayora draft release; browser control was stopped because it could not verify the Windows browser URL. Continue checking the pipeline before choosing a delivery fallback.
+
+## Release completed
+- Signing and publishing workflow 45263555652 completed successfully. Public release: https://github.com/smitkhachariya2002-collab/Vayora/releases/tag/v1.0.13
+- Verified both APKs use the existing certificate and version 1.0.13/code 22; both AAB manifests use com.vayora.play/code 22. The release includes direct organic/ads APKs, standard Play AAB, plans-enabled Play AAB, checksums, setup notes, store artwork and the full ZIP.
+- Browser/CLI draft creation was unavailable, but the repository's release pipeline successfully created and published the complete release itself; no publishing blocker remains.
+- Website default and campaign downloads now point to the corresponding version 1.0.13 organic/ads APKs.
