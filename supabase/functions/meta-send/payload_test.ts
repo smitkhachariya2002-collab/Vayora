@@ -9,3 +9,12 @@ Deno.test("expired events are rejected",()=>rejects({...base(),created_at:new Da
 Deno.test("non-positive Purchase rejected",()=>rejects({...base(),value_inr:0}));
 Deno.test("website event uses same dedup ID",async()=>{const r=await buildEvent({...base(),event_name:"Lead",action_source:"website",event_id:"web-123",value_inr:null,source_url:"https://vayora-eta.vercel.app/d"});ok(r.event_id==="web-123"&&!r.app_data);ok((r.custom_data as Record<string,string>).content_name==="apk_download");});
 
+
+Deno.test("Play app payload uses its own Android package",async()=>{
+ const app=base();
+ const ext=[...((app.app_data as Record<string,unknown>).extinfo as string[])];
+ ext[1]="com.vayora.play";
+ app.app_data={advertiser_tracking_enabled:1,application_tracking_enabled:1,extinfo:ext};
+ const r=await buildEvent(app,null);
+ ok(((r.app_data as Record<string,unknown>).extinfo as string[])[1]==="com.vayora.play");
+});
