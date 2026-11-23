@@ -70,7 +70,7 @@ Deno.serve(async req=>{
    const pixel=String(body.pixel_id??"").trim(),token=String(body.capi_token??"").trim();
    const testCode=String(body.test_event_code??"").trim();
    if(!/^\\d{5,20}$/.test(pixel)||!token)return json({ok:false,message:"A valid Pixel ID and access token are required."});
-   const event={event_name:"PageView",event_time:Math.floor(Date.now()/1000),event_id:"vayora-credential-check-"+crypto.randomUUID(),
+   const event={event_name:"ConnectionCheck",event_time:Math.floor(Date.now()/1000),event_id:"vayora-credential-check-"+crypto.randomUUID(),
     action_source:"website",event_source_url:"https://vayora-eta.vercel.app/d",
     user_data:{external_id:[await hash("vayora-credential-validation")]}};
    try{
