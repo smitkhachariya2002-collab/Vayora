@@ -35,6 +35,7 @@ class AppState extends ChangeNotifier {
       } catch (_) {/* guest session unavailable: browse with the public guest status */}
     }
     await _recordInstallOnce();
+    await _linkInstallTouch();
     await refresh();
     unawaited(Measurement.instance.start());
     flushPending();
@@ -45,7 +46,7 @@ class AppState extends ChangeNotifier {
     _poll = Timer.periodic(const Duration(seconds:60),(_){refresh();Measurement.instance.flush();});
     sb.auth.onAuthStateChange.listen((event) async {
       await refresh();
-      if(event.event==AuthChangeEvent.signedIn||event.event==AuthChangeEvent.userUpdated){await _recordInstallOnce();await Measurement.instance.start();}
+      if(event.event==AuthChangeEvent.signedIn||event.event==AuthChangeEvent.userUpdated){await _recordInstallOnce();await _linkInstallTouch();await Measurement.instance.start();}
     });
   }
 
@@ -67,6 +68,20 @@ class AppState extends ChangeNotifier {
       });
       if (attribution['status'] != 'unavailable') await p.setString('install_recorded_v2_user', uid);
     } catch (_) {/* retried next launch */}
+  }
+
+  Future<void> _linkInstallTouch() async {
+    if (sb.auth.currentSession == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString('install_recorded_v2_user') != sb.auth.currentUser?.id) return;
+    final id = prefs.getString('install_id');
+    final secret = prefs.getString('install_secret');
+    if (id == null || secret == null) return;
+    try {
+      await sb.rpc('link_install_touch_v2', params: {
+        'p_install_id': id, 'p_install_secret': secret,
+      });
+    } catch (_) {/* Login never depends on analytics availability. */}
   }
 
   /// Makes sure there is an auth session (a guest/anonymous one if needed). Returns false if none could be created.
