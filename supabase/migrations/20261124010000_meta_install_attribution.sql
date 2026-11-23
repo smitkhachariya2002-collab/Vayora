@@ -200,3 +200,43 @@ end
 $$;
 revoke all on function public.link_install_attribution(text,text) from public,anon;
 grant execute on function public.link_install_attribution(text,text) to authenticated;
+
+-- Deduplicated web Lead: one browser event_id maps to one server event_id
+-- (the existing record_web_measurement RPC prefixes "web-" consistently).
+alter table public.ad_clicks
+  add column if not exists event_id uuid unique,
+  add column if not exists utm_source text,
+  add column if not exists utm_medium text,
+  add column if not exists utm_campaign text,
+  add column if not exists utm_content text,
+  add column if not exists page_url text;
+
+create or replace function public.record_web_ad_click(
+ p_event_id uuid,p_consent boolean,p_fbclid text default '',
+ p_fbc text default '',p_fbp text default '',p_url text default '',
+ p_utm_source text default '',p_utm_medium text default '',
+ p_utm_campaign text default '',p_utm_content text default ''
+) returns boolean language plpgsql security definer set search_path = ''
+as $$
+declare did_record boolean;
+begin
+ if p_event_id is null then return false; end if;
+ -- The existing measurement RPC checks consent, settings, allowed page origin,
+ -- IP availability and rate limits, and enqueues exactly one deduped Lead.
+ did_record:=public.record_web_measurement(
+   'Lead',p_event_id,p_consent,p_fbclid,p_fbc,p_fbp,p_url);
+ if not did_record then return false; end if;
+ insert into public.ad_clicks(event_id,fbclid,fbc,fbp,ip,user_agent,
+   utm_source,utm_medium,utm_campaign,utm_content,page_url)
+ values(p_event_id,left(p_fbclid,500),left(p_fbc,600),left(p_fbp,200),
+   private.req_ip(),left(private.req_header('user-agent'),400),
+   left(p_utm_source,100),left(p_utm_medium,100),
+   left(p_utm_campaign,200),left(p_utm_content,200),left(p_url,500))
+ on conflict(event_id) do nothing;
+ return true;
+end
+$$;
+revoke all on function public.record_web_ad_click(uuid,boolean,text,text,text,text,text,text,text,text)
+  from public;
+grant execute on function public.record_web_ad_click(uuid,boolean,text,text,text,text,text,text,text,text)
+  to anon,authenticated;
