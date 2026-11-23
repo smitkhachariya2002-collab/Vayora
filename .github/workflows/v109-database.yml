@@ -3,6 +3,8 @@ on:
   push:
     branches: [feature/puffle-parity-no-google-ads]
     paths: ['supabase/**', '.github/workflows/v109-database.yml']
+  pull_request:
+    paths: ['supabase/**', '.github/workflows/v109-database.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,6 +27,7 @@ jobs:
           mv supabase/migrations/*_play_install_attribution.sql /tmp/vayora-reviewed-upgrade/
           mv supabase/migrations/*_play_measurement_context.sql /tmp/vayora-reviewed-upgrade/
           mv supabase/migrations/*_retry_install_evidence.sql /tmp/vayora-reviewed-upgrade/
+          mv supabase/migrations/*_meta_campaign_attribution.sql /tmp/vayora-reviewed-upgrade/
           cmp /tmp/vayora-reviewed-upgrade/20261115114110_puffle_v109_preserving_upgrade.sql supabase/upgrade/DRAFT_puffle_v109_preserving_upgrade.sql
           supabase start
       - run: python3 supabase/upgrade/verify.py

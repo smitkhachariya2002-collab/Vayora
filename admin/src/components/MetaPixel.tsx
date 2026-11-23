@@ -35,7 +35,18 @@ export async function trackWebEvent(event:"PageView"|"Lead"|"PlanViewed",eventId
  const q=new URLSearchParams(location.search);
  let click=q.get("fbclid")??"";
  try{if(click){sessionStorage.setItem("vayora_fbclid",click);sessionStorage.setItem("vayora_ad","1");}else click=sessionStorage.getItem("vayora_fbclid")??"";}catch{}
- await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL+"/rest/v1/rpc/record_web_measurement",{method:"POST",keepalive:true,headers:{"apikey":process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,"content-type":"application/json"},body:JSON.stringify({p_event:event,p_event_id:eventId,p_consent:true,p_fbclid:click,p_fbc:cookie("_fbc"),p_fbp:cookie("_fbp"),p_url:location.origin+location.pathname})}).then(()=>{},()=>{});
+ const endpoint=event==="Lead"?"record_web_ad_click":"record_web_measurement";
+ const payload:Record<string,unknown>={p_event_id:eventId,p_consent:true,p_fbclid:click,
+  p_fbc:cookie("_fbc"),p_fbp:cookie("_fbp"),p_url:location.origin+location.pathname};
+ if(event==="Lead"){
+  payload.p_utm_source=q.get("utm_source")??"";
+  payload.p_utm_medium=q.get("utm_medium")??"";
+  payload.p_utm_campaign=q.get("utm_campaign")??"";
+  payload.p_utm_content=q.get("utm_content")??"";
+ }else payload.p_event=event;
+ await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL+"/rest/v1/rpc/"+endpoint,{method:"POST",keepalive:true,
+  headers:{"apikey":process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,"content-type":"application/json"},
+  body:JSON.stringify(payload)}).then(()=>{},()=>{});
 }
 export default function MetaPixel(){
  const path=usePathname();
