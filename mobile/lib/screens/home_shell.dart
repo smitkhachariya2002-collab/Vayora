@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../services/app_scope.dart';
 import '../services/measurement.dart';
+import '../services/push_notifications.dart';
 import 'channels_screen.dart';
 import 'cloud_screen.dart';
 import 'explore_screen.dart';
-import 'home_screen.dart';
+import 'feed_screen.dart';
 import 'profile_screen.dart';
 import '../widgets/vayora_nav_bar.dart';
 
@@ -16,13 +17,14 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
-  int _i = 1;
-  void _tab(int index){setState(()=>_i=index);Measurement.instance.track('ScreenView',{'screen':['Cloud','Home','Explore','Channel','Profile'][index]});}
+  int _i = 2;
+  void _tab(int index){setState(()=>_i=index);Measurement.instance.track('ScreenView',{'screen':['Cloud','Feed','Explore','Channels','Profile'][index]});}
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_)=>PushNotifications.instance.drainPending());
   }
 
   @override
@@ -37,6 +39,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     if (s == AppLifecycleState.resumed) {
       final app = AppScope.of(context);
       Measurement.instance.resumed();
+      PushNotifications.instance.refreshRegistration();
       app.flushPending();
       app.refresh();
     }
@@ -46,11 +49,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     if (!app.loaded) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    // Plans-first users see a crown "Premium" tab; plan holders / hidden-plans users see "Profile".
-    final premiumTab = app.showPremiumEntry && !app.status.isPremium;
+    // Explore is the default tab; profile retains the existing account and Premium actions.
     final pages = [
       const CloudScreen(),
-      HomeScreen(onSearch: () => _tab(2), onProfile: () => _tab(4), onSeeAllChannels: () => _tab(3)),
+      const FeedScreen(),
       const ExploreScreen(),
       const ChannelsScreen(),
       const ProfileScreen(),
@@ -62,10 +64,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         onTap: _tab,
         items: [
           const NavItem(Icons.cloud_outlined, 'Cloud', Icons.cloud),
-          const NavItem(Icons.grid_view_outlined, 'Home', Icons.grid_view_rounded),
+          const NavItem(Icons.grid_view_outlined, 'Feed', Icons.grid_view_rounded),
           const NavItem(Icons.explore_outlined, 'Explore', Icons.explore),
-          const NavItem(Icons.live_tv_outlined, 'Channel', Icons.live_tv),
-          premiumTab ? const NavItem(Icons.workspace_premium_outlined, 'Premium', Icons.workspace_premium) : const NavItem(Icons.person_outline, 'Profile', Icons.person),
+          const NavItem(Icons.live_tv_outlined, 'Channels', Icons.live_tv),
+          const NavItem(Icons.person_outline, 'Profile', Icons.person),
         ],
       ),
     );

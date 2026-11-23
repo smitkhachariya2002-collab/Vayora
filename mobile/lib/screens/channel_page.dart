@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import 'package:video_thumbnail/video_thumbnail.dart' as vt;
 
 import '../services/app_state.dart';
+import '../services/bunny_media.dart';
 import '../config.dart';
 import '../services/measurement.dart';
 import '../theme.dart';
@@ -36,7 +37,7 @@ class _ChannelPageState extends State<ChannelPage> {
 
   Future<void> _load() async {
     try {
-      final c = await sb.from('channels').select('id,name,description,members_count,review_status,created_by').eq('id', widget.channelId).maybeSingle();
+      final c = await sb.from('channels').select('id,name,description,members_count,display_followers,review_status,created_by').eq('id', widget.channelId).maybeSingle();
       final uid = sb.auth.currentUser?.id;
       var joined = false;
       if (uid != null && c != null) {
@@ -102,7 +103,7 @@ class _ChannelPageState extends State<ChannelPage> {
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                           const SizedBox(height: 2),
-                          Text(_approved ? '${c['members_count'] ?? 0} members' : (c['review_status'] == 'rejected' ? 'Not approved' : 'Waiting for approval'), style: const TextStyle(color: Tokens.muted, fontSize: 12)),
+                          Text(_approved ? '${compactFollowers((c['display_followers'] as num?)??0)} followers' : (c['review_status'] == 'rejected' ? 'Not approved' : 'Waiting for approval'), style: const TextStyle(color: Tokens.muted, fontSize: 12)),
                           if (((c['description'] as String?) ?? '').isNotEmpty)
                             Padding(padding: const EdgeInsets.only(top: 6), child: Text(c['description'] as String, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Tokens.muted, fontSize: 13))),
                         ]),
@@ -149,7 +150,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
   final _desc = TextEditingController();
   PlatformFile? _file, _trailer, _thumb;
   bool _premium = false, _busy = false;
-  String? _err, _stage;
+  String? _err, _stage, _postId, _itemId;
+  bool _mainDone=false,_trailerDone=false,_bunny=false;
 
   @override
   void dispose() {
@@ -198,17 +200,31 @@ class _NewPostScreenState extends State<NewPostScreen> {
     final uploaded = <String>[];
     try {
       await sb.rpc('accept_consent', params: {'p_policy': Config.consentPolicy});
-      await media.upload(key, File(f.path!), fileOptions: FileOptions(contentType: _mimeOf(ext)));
-      uploaded.add(key);
+      if(_postId==null) {
+        final post=await sb.from('posts').insert({'channel_id':widget.channelId,'title':_title.text.trim(),'description':_desc.text.trim(),'status':'draft'}).select('id').single();
+        _postId=post['id'] as String;
+        _itemId=const Uuid().v4();
+        await sb.from('post_items').insert({'id':_itemId,'post_id':_postId,'media_key':'${widget.channelId}/pending/$_itemId','mime':_mimeOf(ext),'is_premium':_premium,'size_bytes':f.size});
+      }
+      final existingItem=await sb.from('post_items').select('id').eq('id',_itemId!).maybeSingle();
+      if(existingItem==null)await sb.from('post_items').insert({'id':_itemId,'post_id':_postId,'media_key':'${widget.channelId}/pending/$_itemId','mime':_mimeOf(ext),'is_premium':_premium,'size_bytes':f.size});
+      if(!_mainDone) {
+        _bunny=await BunnyMedia.upload(_itemId!,File(f.path!),progress:(v){if(mounted)setState(()=>_stage='Uploading video ${(v*100).round()}%');});
+        if(!_bunny){await media.upload(key,File(f.path!),fileOptions:FileOptions(contentType:_mimeOf(ext)));uploaded.add(key);await sb.from('post_items').update({'media_key':key}).eq('id',_itemId!);}
+        _mainDone=true;
+      }
 
       String? trailerKey;
       final t = _trailer;
-      if (t != null && t.path != null) {
+      if (t != null && t.path != null && !_trailerDone) {
         if (mounted) setState(() => _stage = 'Uploading trailer…');
         final te = _ext(t, 'mp4');
         trailerKey = '${widget.channelId}/${const Uuid().v4()}.$te';
-        await media.upload(trailerKey, File(t.path!), fileOptions: FileOptions(contentType: _mimeOf(te)));
-        uploaded.add(trailerKey);
+        if(_bunny) {
+          final ok=await BunnyMedia.upload(_itemId!,File(t.path!),slot:'trailer',progress:(v){if(mounted)setState(()=>_stage='Uploading trailer ${(v*100).round()}%');});
+          if(!ok)throw Exception('Trailer service is not configured');
+        } else {await media.upload(trailerKey, File(t.path!), fileOptions: FileOptions(contentType: _mimeOf(te)));uploaded.add(trailerKey);await sb.from('post_items').update({'trailer_key':trailerKey}).eq('id',_itemId!);}
+        _trailerDone=true;
       }
 
       // Thumbnail: the chosen picture, or a frame from the video. A post still publishes if neither works.
@@ -235,21 +251,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
       }
 
       if (mounted) setState(() => _stage = 'Submitting…');
-      final post = await sb.from('posts').insert({
-        'channel_id': widget.channelId,
-        'title': _title.text.trim(),
-        'description': _desc.text.trim(),
-        'status': 'draft',
-      }).select('id').single();
-      try {
-        await sb.from('post_items').insert({
-          'post_id': post['id'], 'media_key': key, 'mime': _mimeOf(ext), 'is_premium': _premium, 'size_bytes': f.size,
-          'trailer_key': trailerKey, 'thumbnail_key': thumbKey,
-        });
-      } catch (_) {
-        await sb.from('posts').delete().eq('id', post['id'] as String);
-        rethrow;
-      }
+      await sb.from('posts').update({'title':_title.text.trim(),'description':_desc.text.trim()}).eq('id',_postId!);
+      await sb.from('post_items').update({'is_premium':_premium,if(thumbKey!=null)'thumbnail_key':thumbKey}).eq('id',_itemId!);
       Measurement.instance.track('VideoUploaded',{'media_type':'video'});
       if (mounted) Navigator.pop(context, true);
       return;
@@ -260,9 +263,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
     } catch (_) {
       _err = 'Could not submit. Check your connection and try again.';
     }
-    if (uploaded.isNotEmpty) {
-      try { await media.remove(uploaded); } catch (_) {}
-    }
+    // Keep the saved draft and uploaded files intact for Retry.
     if (mounted) setState(() { _busy = false; _stage = null; });
   }
 
@@ -288,8 +289,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
           title: 'Main video',
           subtitle: f == null ? 'Choose the video to publish' : _size(f),
           chosen: f != null,
-          onTap: _busy ? null : _pick,
-          onClear: _busy ? null : () => setState(() => _file = null),
+          onTap: _busy || _postId!=null ? null : _pick,
+          onClear: _busy || _postId!=null ? null : () => setState(() => _file = null),
         ),
         const SizedBox(height: 8),
         PickTile(
@@ -299,8 +300,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
           badge: 'OPTIONAL',
           subtitle: t == null ? 'A short clip anyone can watch before they join' : _size(t),
           chosen: t != null,
-          onTap: _busy ? null : _pickTrailer,
-          onClear: _busy ? null : () => setState(() => _trailer = null),
+          onTap: _busy || _postId!=null ? null : _pickTrailer,
+          onClear: _busy || _postId!=null ? null : () => setState(() => _trailer = null),
         ),
         const SizedBox(height: 8),
         PickTile(

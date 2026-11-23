@@ -52,7 +52,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
     final generation = ++_loadGeneration;
     try {
       // RLS returns only approved, visible, audience-matching channels (plus the user's own pending ones).
-      final data = await sb.from('channels').select('id,name,description,category,members_count,review_status,created_by').order('members_count', ascending: false);
+      final data = await sb.from('channels').select('id,name,description,category,members_count,display_followers,review_status,created_by').order('members_count', ascending: false);
       if (!mounted || generation != _loadGeneration) return;
       _rows = List<Map<String, dynamic>>.from(data);
       final uid = sb.auth.currentUser?.id;
@@ -139,7 +139,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                               leading: InitialAvatar(name: (r['name'] as String?) ?? '', size: 42),
                               title: Text(r['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
                               subtitle: Text(
-                                r['review_status'] == 'pending' ? 'Waiting for approval' : r['review_status'] == 'rejected' ? 'Not approved' : '${r['members_count'] ?? 0} members',
+                                r['review_status'] == 'pending' ? 'Waiting for approval' : r['review_status'] == 'rejected' ? 'Not approved' : '${compactFollowers((r['display_followers'] as num?)??0)} followers',
                                 style: TextStyle(color: r['review_status'] == 'pending' ? Tokens.warning : r['review_status'] == 'rejected' ? Tokens.danger : Tokens.muted, fontSize: 12),
                               ),
                               trailing: r['review_status'] != 'approved'

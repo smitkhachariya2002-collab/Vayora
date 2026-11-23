@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { PageHeader, Card, Field, Input, Textarea, Select, Hidden, LinkButton, StatusBadge } from "@/components/admin/ui";
 import { SubmitButton } from "@/components/admin/client";
-import { saveChannel } from "../../actions";
+import { deleteChannel,saveChannel } from "../../actions";
 import IconUpload from "./IconUpload";
 
 const CATS = ["Movies", "Music", "Education", "Gaming", "Lifestyle", "Tech", "Other"];
@@ -30,11 +30,13 @@ export default async function ChannelEdit({ params: pending }: { params: Promise
         {c && <StatusBadge value={c.review_status} />}
         {c && <LinkButton href={`/workspace/posts/bulk?channel=${c.id}`} variant="primary">Bulk upload to channel</LinkButton>}<LinkButton href="/workspace/channels">Back to channels</LinkButton>
       </PageHeader>
+      {c&&role==="owner"&&<form action={deleteChannel} className="mb-4"><Hidden name="id" value={c.id}/><SubmitButton variant="danger" confirm="Permanently delete this channel, all its posts and hosted videos?">Delete channel and videos</SubmitButton></form>}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <form action={saveChannel} className="space-y-3">
             <Hidden name="id" value={c?.id ?? ""} />
             <Field label="Name"><Input name="name" defaultValue={c?.name ?? ""} required minLength={2} maxLength={80} /></Field>
+            {role==="owner"&&<Field label="Displayed followers" hint="Public display count; does not change membership or permissions"><Input name="display_followers" type="number" min={0} defaultValue={c?.display_followers??0}/></Field>}
             <Field label="Description"><Textarea name="description" rows={3} defaultValue={c?.description ?? ""} /></Field>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Category">

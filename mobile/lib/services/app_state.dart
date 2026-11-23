@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import '../config.dart';
 import 'measurement.dart';
+import 'push_notifications.dart';
 import 'install_attribution.dart';
 import '../models/status.dart';
 import '../payments/pending_queue.dart';
@@ -37,6 +38,7 @@ class AppState extends ChangeNotifier {
     await _recordInstallOnce();
     await refresh();
     unawaited(Measurement.instance.start());
+    unawaited(PushNotifications.instance.start());
     flushPending();
     _rt = sb
         .channel('mode')
@@ -45,7 +47,7 @@ class AppState extends ChangeNotifier {
     _poll = Timer.periodic(const Duration(seconds:60),(_){refresh();Measurement.instance.flush();});
     sb.auth.onAuthStateChange.listen((event) async {
       await refresh();
-      if(event.event==AuthChangeEvent.signedIn||event.event==AuthChangeEvent.userUpdated){await _recordInstallOnce();await Measurement.instance.start();}
+      if(event.event==AuthChangeEvent.signedIn||event.event==AuthChangeEvent.userUpdated){await _recordInstallOnce();await Measurement.instance.start();await PushNotifications.instance.refreshRegistration();}
     });
   }
 
@@ -85,7 +87,7 @@ class AppState extends ChangeNotifier {
     try {
       final r = await sb.rpc(sb.auth.currentSession == null ? 'guest_status' : 'my_status');
       status = AppStatus(Map<String, dynamic>.from(r as Map));
-      if (status.plansVisible && !Config.playStore) {
+      if (status.plansVisible && !Config.restrictPlayPurchases) {
         final o = await sb.rpc('plan_offers');
         freePlanIds = {...((o as Map)['free_plan_ids'] as List? ?? const []).map((e) => e.toString())};
       }
@@ -103,7 +105,7 @@ class AppState extends ChangeNotifier {
   }
 
   // ---- premium visibility rules (Part D) -------------------------------------------------
-  bool get showPrices => !Config.playStore && !status.freeMode && status.plansVisible;
+  bool get showPrices => !Config.restrictPlayPurchases && !status.freeMode && status.plansVisible;
   bool get showPremiumEntry => showPrices;
 
   // ---- payments -------------------------------------------------------------------------

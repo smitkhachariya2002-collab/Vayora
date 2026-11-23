@@ -46,8 +46,22 @@ class _LoginSheetState extends State<LoginSheet> {
   bool _busy = false, _hide = true;
   String? _err, _info;
   StreamSubscription<AuthState>? _googleSubscription;
+  bool _googleFallback=false;
+  Future<void> _recoverGoogle(Object error) async {
+    if(!mounted)return;
+    final code=error is AuthException?error.code:null;
+    if(!['identity_already_exists','identity_already_linked','email_exists'].contains(code)||_googleFallback){setState(()=>_err="Google login didn't finish. Please try again.");return;}
+    _googleFallback=true;
+    if(AppScope.of(context).status.isPremium&&sb.auth.currentUser?.isAnonymous==true){
+      final proceed=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:const Text('Use your existing Google account?'),content:const Text('This Google account already has a Vayora account. Logging in restores that account. The plan on this guest session is not automatically merged; contact support before switching if you need to retain it.'),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('Keep this guest session')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:const Text('Log in to existing account'))]));
+      if(proceed!=true){_googleFallback=false;return;}
+    }
+    try{await sb.auth.signInWithOAuth(OAuthProvider.google,redirectTo:'${Config.authScheme}://login-callback',authScreenLaunchMode:LaunchMode.externalApplication,queryParams:{'prompt':'select_account'});if(mounted)setState(()=>_info='Choose your existing Google account to restore it.');}
+    catch(_){if(mounted)setState(()=>_err="Google login didn't finish. Please try again.");}
+  }
 
   Future<void> _google() async {
+    _googleFallback=false;
     setState(() { _busy = true; _err = null; _info = null; });
     await _googleSubscription?.cancel();
     if (!mounted) { return; }
@@ -61,7 +75,7 @@ class _LoginSheetState extends State<LoginSheet> {
       _googleSubscription = null;
       Navigator.pop(context, true);
     }, onError: (Object error) {
-      if (mounted) setState(() { _err = 'Google sign-in could not finish. Please try again.'; _info = null; });
+      unawaited(_recoverGoogle(error));
     });
     try {
       final launched = linkGuest
@@ -76,6 +90,7 @@ class _LoginSheetState extends State<LoginSheet> {
       if (!launched) { throw const AuthException('Could not open your browser. Please try again.'); }
       if (mounted) setState(() => _info = 'Finish signing in with Google in your browser. If you cancelled, tap Google again to retry.');
     } on AuthException catch (e) {
+      if(['identity_already_exists','identity_already_linked','email_exists'].contains(e.code)){await _recoverGoogle(e);return;}
       await _googleSubscription?.cancel();
       _googleSubscription = null;
       if (mounted) setState(() => _err = e.code == 'identity_already_exists'
@@ -272,4 +287,3 @@ class _Tabs extends StatelessWidget {
         ]),
       );
 }
-

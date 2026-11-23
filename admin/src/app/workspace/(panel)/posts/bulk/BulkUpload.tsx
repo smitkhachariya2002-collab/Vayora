@@ -1,4 +1,5 @@
 "use client";
+import { uploadBunnyVideo } from "@/lib/bunny-upload";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import BulkMediaPreview from "./BulkMediaPreview";
@@ -6,7 +7,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { upload, probe } from "../[id]/MediaEditor";
 
 type Channel = { id: string; name: string; audience: string; review_status: string; status: string; hidden: boolean };
-type Entry = { id: string; file?: File; thumbnail?: File; trailer?: File; title: string; description: string; state: "ready" | "uploading" | "done" | "error"; progress: number; error?: string; postId?: string; mediaDone?: boolean };
+type Entry = { id: string; file?: File; thumbnail?: File; trailer?: File; title: string; description: string; state: "ready" | "uploading" | "done" | "error"; progress: number; error?: string; postId?: string; mediaDone?: boolean; itemId?: string };
 const audienceName = (value: string) => value === "ads" ? "Ads users" : value === "organic" ? "Organic users" : "Both ads and organic";
 const mediaType = (file: File) => file.type || (/\.(mp4|m4v|mov|webm|mkv)$/i.test(file.name) ? "video/mp4" : /\.(png|jpg|jpeg|webp|gif)$/i.test(file.name) ? "image/" + (file.name.split(".").pop() === "jpg" ? "jpeg" : file.name.split(".").pop()) : "");
 
@@ -38,7 +39,7 @@ export default function BulkUpload({ channels, initialChannelId }: { channels: C
       accepted.push({ id: crypto.randomUUID(), file, title: file.name.replace(/\.[^.]+$/, "").slice(0, 160), description: "", state: "ready", progress: 0 });
     }
     setEntries(rows => [...rows, ...accepted]);
-    setMessage(invalid.length ? `Skipped unsupported files: ${invalid.join(", ")}. Choose videos or images; use Add text post for written content.` : "");
+    setMessage(invalid.length ? `Skipped unsupported files: ${invalid.join(", ")}. Choose videos or images; use + Add another content for written content.` : "");
   };
 
   const start = async () => {
@@ -74,9 +75,26 @@ export default function BulkUpload({ channels, initialChannelId }: { channels: C
             if (error || !data) throw new Error(error?.message ?? "Could not create this post.");
           }
           if (row.file && !mediaDone) {
-            const { data: existing, error: lookupError } = await sb.from("post_items").select("id").eq("post_id", postId).limit(1);
+            const { data: existing, error: lookupError } = await sb.from("post_items").select("id,media_key,bunny_video_id,processing_status").eq("post_id", postId).limit(1);
             if (lookupError) throw new Error(lookupError.message);
-            if (existing?.length) { mediaDone = true; patch(row.id, { mediaDone: true }); }
+            if (existing?.length) {
+              const item=existing[0];
+              if(item.bunny_video_id||item.processing_status==="uploading"||String(item.media_key).includes("/pending/")){row.itemId=item.id;patch(row.id,{itemId:item.id});}
+              else {mediaDone=true;patch(row.id,{mediaDone:true});}
+            }
+          }
+          if(row.file&&!mediaDone&&mediaType(row.file).startsWith("video/")) {
+            const itemId=row.itemId??crypto.randomUUID();
+            if(!row.itemId) {
+              const {error}=await sb.from("post_items").insert({id:itemId,post_id:postId,media_key:`${channel.id}/pending/${itemId}`,mime:mediaType(row.file),is_premium:premium,size_bytes:row.file.size,position:0});
+              if(error)throw new Error(error.message);row.itemId=itemId;patch(row.id,{itemId});
+            }
+            const bunny=await uploadBunnyVideo(itemId,row.file,pct=>patch(row.id,{progress:pct}));
+            if(bunny) {
+              if(row.trailer&&!await uploadBunnyVideo(itemId,row.trailer,pct=>patch(row.id,{progress:pct}),"trailer"))throw new Error("Bunny trailer upload is not configured");
+              if(row.thumbnail){try{const key=`${channel.id}/${crypto.randomUUID()}.jpg`;await upload(key,row.thumbnail,row.thumbnail.type,()=>{});const {error}=await sb.from("post_items").update({thumbnail_key:key}).eq("id",itemId);if(error)throw error;}catch{/* The encoded video supplies its own thumbnail. */}}
+              mediaDone=true;patch(row.id,{mediaDone:true});
+            }else {const {error}=await sb.from("post_items").delete().eq("id",itemId);if(error)throw new Error(error.message);row.itemId=undefined;patch(row.id,{itemId:undefined});}
           }
           if (row.file && !mediaDone) {
             const file = row.file;
@@ -105,7 +123,7 @@ export default function BulkUpload({ channels, initialChannelId }: { channels: C
               const thumbExt = thumbnailMime === "image/png" ? "png" : thumbnailMime === "image/webp" ? "webp" : "jpg";
               thumbnail = `${channel.id}/${crypto.randomUUID()}.${thumbExt}`;
               filesToClean.push(thumbnail);
-              await upload(thumbnail, thumb, thumbnailMime, () => {});
+              try {await upload(thumbnail, thumb, thumbnailMime, () => {});} catch {thumbnail=null;}
             }
             let trailerKey: string | null = null;
             if (row.trailer) {
@@ -131,7 +149,7 @@ export default function BulkUpload({ channels, initialChannelId }: { channels: C
           patch(row.id, { state: "error", error: error instanceof Error ? error.message : "Upload failed. Retry this item." }); failed++;
         }
       }
-      setMessage(`${succeeded} saved, ${failed} failed.${stop.current ? " Paused after the current file." : ""} Published posts appear after the app refreshes, within the channel’s audience.`);
+      setMessage(`${succeeded} saved, ${failed} failed.${stop.current ? " Paused after the current file." : ""} Uploaded successfully. Videos appear after encoding and the app refreshes, within the channel’s audience.`);
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not start upload."); }
     finally { running.current = false; setBusy(false); }
   };
@@ -155,12 +173,12 @@ export default function BulkUpload({ channels, initialChannelId }: { channels: C
     </section>
     <div className="flex flex-wrap gap-3 items-center rounded-2xl border border-dashed border-blue-300 bg-blue-50/50 p-5">
       <label className="btn cursor-pointer">Select videos and images<input type="file" accept="video/*,image/*" multiple disabled={busy} className="sr-only" onChange={e => { choose(e.target.files); e.target.value = ""; }} /></label>
-      <button type="button" className="rounded-lg border px-4 py-2" disabled={busy} onClick={() => setEntries(rows => [...rows, { id: crypto.randomUUID(), title: "", description: "", state: "ready", progress: 0 }])}>Add text post</button>
+      <button type="button" className="rounded-lg border px-4 py-2" disabled={busy} onClick={() => setEntries(rows => [...rows, { id: crypto.randomUUID(), title: "", description: "", state: "ready", progress: 0 }])}>+ Add another content</button>
       <p className="text-sm text-gray-600">One post per file. Keep this page open until the batch finishes.</p>
     </div>
     {entries.length > 0 && <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-base font-semibold text-slate-900">Upload queue <span className="ml-1 text-sm font-normal text-slate-400">{entries.length} items</span></h2><p className="text-xs text-slate-500">{entries.filter(row => row.state === "done").length} saved · {entries.filter(row => row.state === "error").length} need retry</p></div>}
     <div className="space-y-4">{entries.map(row => <article key={row.id} className="rounded-xl border bg-white p-4 space-y-2">
-      <div className="flex flex-wrap justify-between gap-2"><span className="text-sm text-gray-600 break-all">{row.file ? `${row.file.name} · ${(row.file.size / 1048576).toFixed(1)} MB` : "Text post"}</span><span className="text-sm font-medium" role="status">{row.state === "uploading" ? `Uploading ${row.progress}%` : row.state === "done" ? publish ? "Published" : "Draft saved" : row.state === "error" ? "Needs retry" : "Ready"}</span></div>
+      <div className="flex flex-wrap justify-between gap-2"><span className="text-sm text-gray-600 break-all">{row.file ? `${row.file.name} · ${(row.file.size / 1048576).toFixed(1)} MB` : "Text post"}</span><span className="text-sm font-medium" role="status">{row.state === "uploading" ? `Uploading ${row.progress}%` : row.state === "done" ? publish ? "Saved; processing videos publish when ready" : "Draft saved" : row.state === "error" ? "Needs retry" : "Ready"}</span></div>
       {row.file && <BulkMediaPreview file={row.file} thumbnail={row.thumbnail} trailer={row.trailer} video={mediaType(row.file).startsWith("video/")} />}
       <label className="block text-sm">Title<input className={cls} maxLength={160} value={row.title} disabled={busy || row.state === "done"} onChange={e => patch(row.id, { title: e.target.value })} /></label>
       <label className="block text-sm">{row.file ? "Description / content" : "Content"}<textarea className={cls} rows={3} value={row.description} disabled={busy || row.state === "done"} onChange={e => patch(row.id, { description: e.target.value })} /></label>

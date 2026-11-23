@@ -3,8 +3,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Advertising ID is excluded. No Google advertising SDK is included. -->
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+    <!-- Meta advertising identifier support stays disabled until explicitly configured and consented. No AdMob or Google Ads monetization. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
     <queries>
         <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="upi" /></intent>
@@ -26,10 +26,17 @@
 
     <application
         android:label="Vayora"
-        android:name="${applicationName}"
+        android:name="com.vayora.app.VayoraApplication"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
         android:usesCleartextTraffic="false">
+        <meta-data android:name="com.facebook.sdk.AutoInitEnabled" android:value="false" />
+        <meta-data android:name="com.facebook.sdk.AutoLogAppEventsEnabled" android:value="false" />
+        <meta-data android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled" android:value="false" />
+        <meta-data android:name="com.facebook.sdk.AutoLogMetaDataEnabled" android:value="false" />
+        <meta-data android:name="com.facebook.sdk.AutoLogProductImprovementEnabled" android:value="false" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="new_releases_offers" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

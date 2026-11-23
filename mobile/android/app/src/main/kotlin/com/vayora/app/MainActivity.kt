@@ -9,6 +9,11 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
+import com.facebook.FacebookSdk
+import com.facebook.appevents.AppEventsLogger
+import com.google.android.gms.ads.identifier.AdvertisingIdClient
+import com.google.android.play.core.integrity.IntegrityManagerFactory
+import com.google.android.play.core.integrity.StandardIntegrityManager
 
 /**
  * UPI intent launcher. Never decides "no UPI app" from queryIntentActivities (unreliable on
@@ -20,6 +25,74 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "app/integrations").setMethodCallHandler { call, result ->
+            val prefs = getSharedPreferences("vayora_integrations", MODE_PRIVATE)
+            when (call.method) {
+                "play-integrity" -> {
+                    val project = call.argument<Number>("cloud_project_number")?.toLong()
+                    val hash = call.argument<String>("request_hash")
+                    if (project == null || hash.isNullOrBlank()) result.error("CONFIG", "Play Integrity is not configured", null)
+                    else IntegrityManagerFactory.createStandard(applicationContext).prepareIntegrityToken(
+                        StandardIntegrityManager.PrepareIntegrityTokenRequest.builder().setCloudProjectNumber(project).build()
+                    ).addOnSuccessListener { provider ->
+                        provider.request(StandardIntegrityManager.StandardIntegrityTokenRequest.builder().setRequestHash(hash).build())
+                            .addOnSuccessListener { token -> result.success(token.token()) }
+                            .addOnFailureListener { result.error("INTEGRITY", "Install verification is unavailable. Please retry.", null) }
+                    }.addOnFailureListener { result.error("INTEGRITY", "Install verification is unavailable. Please retry.", null) }
+                }
+                "meta-context" -> {
+                    val enabled = call.argument<Boolean>("enabled") == true
+                    prefs.edit().putBoolean("meta_sharing", enabled).apply()
+                    if (!enabled) {
+                        if (FacebookSdk.isInitialized()) {
+                            FacebookSdk.setAutoLogAppEventsEnabled(false)
+                            FacebookSdk.setAdvertiserIDCollectionEnabled(false)
+                        }
+                        result.success(emptyMap<String,String>())
+                    } else {
+                        val appId = call.argument<String>("app_id") ?: ""
+                        val clientToken = call.argument<String>("client_token") ?: ""
+                        if (!appId.matches(Regex("^[0-9]{5,30}$")) || clientToken.isBlank()) result.success(emptyMap<String,String>())
+                        else try {
+                            FacebookSdk.setApplicationId(appId)
+                            FacebookSdk.setClientToken(clientToken)
+                            FacebookSdk.setAutoLogAppEventsEnabled(false)
+                            FacebookSdk.setAdvertiserIDCollectionEnabled(true)
+                            @Suppress("DEPRECATION")
+                            FacebookSdk.sdkInitialize(applicationContext)
+                            val sdkOwnsInstall = call.argument<Boolean>("sdk_install") == true
+                            if (sdkOwnsInstall) {
+                                FacebookSdk.setAutoLogAppEventsEnabled(true)
+                                AppEventsLogger.activateApp(application)
+                            }
+                            val anonId = AppEventsLogger.getAnonymousAppDeviceGUID(applicationContext)
+                            Thread {
+                                var adId: String? = null
+                                try {
+                                    val info = AdvertisingIdClient.getAdvertisingIdInfo(applicationContext)
+                                    if (!info.isLimitAdTrackingEnabled && info.id != "00000000-0000-0000-0000-000000000000") adId = info.id
+                                } catch (_: Exception) { }
+                                runOnUiThread {
+                                    if (prefs.getBoolean("meta_sharing", false)) result.success(mapOf("anon_id" to anonId, "madid" to adId, "sdk_initialized" to true))
+                                    else result.success(emptyMap<String,String>())
+                                }
+                            }.start()
+                        } catch (_: Exception) { result.success(emptyMap<String,String>()) }
+                    }
+                }
+                "configure-firebase" -> {
+                    val fields = listOf("apiKey", "appId", "messagingSenderId", "projectId")
+                    if (fields.any { call.argument<String>(it).isNullOrBlank() }) result.error("CONFIG", "Public Firebase options are incomplete", null)
+                    else {
+                        val editor = prefs.edit().putBoolean("push_enabled", true)
+                        for (field in fields) editor.putString(field, call.argument<String>(field))
+                        editor.apply(); result.success(true)
+                    }
+                }
+                "pause-firebase" -> { prefs.edit().putBoolean("push_enabled", false).apply(); result.success(true) }
+                else -> result.notImplemented()
+            }
+        }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "app/install-referrer").setMethodCallHandler { call, result ->
             if (call.method == "read") readInstallReferrer(result) else result.notImplemented()
         }

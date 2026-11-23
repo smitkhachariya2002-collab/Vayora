@@ -33,6 +33,7 @@ export async function saveChannel(fd: FormData) {
     name,
     description: str(fd, "description"),
     category: str(fd, "category") || null,
+    ...(role==="owner"?{display_followers:Math.max(0,Math.floor(Number(str(fd,"display_followers"))||0))}:{}),
     tags: str(fd, "tags").split(",").map((t) => t.trim()).filter(Boolean).slice(0, 12),
   };
   if (role === "owner" || id) { row.audience = str(fd, "audience") || "all"; row.status = str(fd, "status") === "draft" ? "draft" : "published"; }
@@ -96,9 +97,9 @@ export async function savePost(fd: FormData) {
 }
 
 export async function deletePost(fd: FormData) {
-  const { sb } = await requireAdmin();
+  const { sb } = await requireAdmin(true);
   const id = str(fd, "id");
-  const { error } = await sb.functions.invoke("post-delete", { body: { post_id: id } });
+  const { error } = await sb.functions.invoke("post-delete", { body: { post_id: id,confirm:true } });
   const e = await fnError(error);
   if (e) flash(`/workspace/posts/${id}`, e, "");
   flash("/workspace/posts", null, "Post and its files deleted.");
@@ -123,18 +124,18 @@ export async function grantPremium(fd: FormData) {
 export async function savePaymentSettings(fd: FormData) {
   const { sb } = await requireAdmin(true);
   const upi = str(fd, "upi_id");
-  if (upi && !/^[A-Za-z0-9._-]{2,256}@[A-Za-z0-9]{2,64}$/.test(upi)) flash("/workspace/payments", { message: "UPI ID must look like name@bank." }, "");
+  if (upi && !/^[A-Za-z0-9._-]{2,256}@[A-Za-z0-9]{2,64}$/.test(upi)) flash("/workspace/plans", { message: "UPI ID must look like name@bank." }, "");
   const enabled = fd.get("enabled") === "on" && upi !== "";
   const { error } = await sb.from("payment_settings").update({
     upi_id: upi, payee_name: str(fd, "payee_name"), enabled, activation_mode: str(fd, "activation_mode") === "manual" ? "manual" : "instant",
   }).eq("id", 1);
-  flash("/workspace/payments", error, enabled ? `Saved. New payments go to ${upi}.` : "Saved. Payments are off.");
+  flash("/workspace/plans", error, enabled ? `Saved. New payments go to ${upi}.` : "Saved. Payments are off.");
 }
 
 export async function clearUpi() {
   const { sb } = await requireAdmin(true);
   const { error } = await sb.from("payment_settings").update({ upi_id: "", enabled: false }).eq("id", 1);
-  flash("/workspace/payments", error, "UPI ID cleared. Payments are off.");
+  flash("/workspace/plans", error, "UPI ID cleared. Payments are off.");
 }
 
 export async function orderAction(fd: FormData) {
@@ -280,3 +281,7 @@ export async function removeAdmin(fd: FormData) {
 }
 
 
+
+export async function setRecommended(fd:FormData){const {sb}=await requireAdmin(true);const {error}=await sb.rpc("set_recommended_plan",{p_plan:str(fd,"id"),p_label:str(fd,"label")});flash("/workspace/plans",error,"Recommended plan updated.");}
+
+export async function deleteChannel(fd:FormData){const {sb}=await requireAdmin(true);const {error}=await sb.functions.invoke("bunny-stream-delete",{body:{channel_id:str(fd,"id"),confirm:true}});flash("/workspace/channels",await fnError(error),"Channel and videos deleted.");}

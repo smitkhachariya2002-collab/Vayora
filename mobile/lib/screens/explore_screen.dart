@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/app_scope.dart';
 import '../services/app_state.dart';
 import '../services/measurement.dart';
+import '../services/bunny_media.dart';
 import '../theme.dart';
 import '../widgets/ui.dart';
 import 'post_page.dart';
@@ -73,7 +74,7 @@ class _PostListState extends State<PostList> {
       }
       // !inner so a category filter really filters the posts (not just the embedded channel).
       final ch = widget.category != null ? 'channels!inner(name,category)' : 'channels(name,category)';
-      var q = sb.from('posts').select('id,title,description,created_at,channel_id,$ch,post_items(thumbnail_key,is_premium,duration_s,position)');
+      var q = sb.from('posts').select('id,title,description,created_at,channel_id,$ch,post_items(id,thumbnail_key,is_premium,duration_s,position,bunny_video_id,processing_status)');
       if (widget.channelId != null) q = q.eq('channel_id', widget.channelId!);
       if (widget.category != null) q = q.eq('channels.category', widget.category!);
       if (joined != null) q = q.inFilter('channel_id', joined);
@@ -106,6 +107,12 @@ class _PostListState extends State<PostList> {
       for (final r in rows)
         if (_first(r)?['thumbnail_key'] is String) _first(r)!['thumbnail_key'] as String,
     }..removeAll(_thumbs.keys);
+    for(final row in rows) {
+      final item=_first(row);
+      if(item?['bunny_video_id']!=null && item?['thumbnail_key']==null) {
+        try {final url=await BunnyMedia.playback(item!['id'] as String,thumbnail:true);if(url!=null)_thumbs['bunny:${item['id']}']=url;}catch(_){/* Processing thumbnail not ready. */}
+      }
+    }
     if (keys.isEmpty) return;
     try {
       final res = await sb.storage.from('media').createSignedUrls(keys.toList(), 3600);
@@ -136,8 +143,8 @@ class _PostListState extends State<PostList> {
                 final first = _first(post);
                 return VideoCard(
                   title: post['title'] as String? ?? '',
-                  channel: (post['channels'] as Map?)?['name'] as String? ?? '',
-                  url: _thumbs[first?['thumbnail_key']],
+                  channel: widget.joinedOnly ? ((post['channels'] as Map?)?['name'] as String? ?? '') : '',
+                  url: _thumbs[first?['thumbnail_key']] ?? _thumbs['bunny:${first?['id']}'],
                   seconds: first?['duration_s'] as int?,
                   premium: ((post['post_items'] as List?) ?? []).any((item) => item['is_premium'] == true),
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PostPage(postId: post['id'] as String))),
@@ -151,7 +158,7 @@ class _PostListState extends State<PostList> {
 class _Skeleton extends StatelessWidget {
   const _Skeleton();
   @override
-  Widget build(BuildContext context) => AspectRatio(aspectRatio: 16 / 9, child: Container(decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(14))));
+  Widget build(BuildContext context) => AspectRatio(aspectRatio: 2 / 3, child: Container(decoration: BoxDecoration(color: Tokens.surface, borderRadius: BorderRadius.circular(14))));
 }
 
 class ExploreScreen extends StatefulWidget {

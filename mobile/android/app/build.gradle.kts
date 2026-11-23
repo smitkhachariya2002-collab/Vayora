@@ -8,6 +8,7 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -68,6 +69,11 @@ android {
 flutter { source = "../.." }
 
 dependencies {
+ implementation("com.facebook.android:facebook-core:19.0.1")
+ implementation("com.google.android.gms:play-services-ads-identifier:18.2.0")
+ implementation(platform("com.google.firebase:firebase-bom:35.2.0"))
+ implementation("com.google.firebase:firebase-messaging")
+ coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
  implementation("com.android.installreferrer:installreferrer:2.2")
  testImplementation("junit:junit:4.13.2")
  testImplementation("org.robolectric:robolectric:4.17")

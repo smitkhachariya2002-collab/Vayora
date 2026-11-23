@@ -9,6 +9,7 @@ import '../services/app_scope.dart';
 import '../services/app_state.dart';
 import '../services/measurement.dart';
 import '../theme.dart';
+import '../config.dart';
 import 'login_sheet.dart';
 import 'premium_screen.dart';
 
@@ -54,7 +55,7 @@ class _CloudScreenState extends State<CloudScreen> {
       _files = [];
     } else {
       try {
-        final d = await sb.from('cloud_files').select('id,name,size_bytes,mime,created_at').order('created_at', ascending: false);
+        final d = await sb.from('cloud_files').select('id,name,size_bytes,mime,created_at').eq('upload_status','ready').order('created_at', ascending: false);
         _files = List<Map<String, dynamic>>.from(d);
       } catch (_) {}
     }
@@ -74,10 +75,22 @@ class _CloudScreenState extends State<CloudScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _progress = 0);
     try {
-      final reg = await _fn({'action': 'upload', 'name': f.name, 'size': f.size});
+      final reg = await _fn({'action': 'upload', 'name': f.name, 'size': f.size, 'supports_bunny': true});
       final up = reg['upload'] as Map;
       final file = reg['file'] as Map;
-      await sb.storage.from('cloud').uploadToSignedUrl(up['path'] as String, up['token'] as String, File(f.path!));
+      if(up['provider']=='bunny') {
+        final client=HttpClient();
+        try {
+          final request=await client.putUrl(Uri.parse(up['url'] as String));
+          request.headers.set('Authorization','Bearer ${sb.auth.currentSession!.accessToken}');
+          request.headers.set('apikey',Config.supabaseKey);request.headers.set('x-upload-size','${f.size}');
+          request.contentLength=f.size;var sent=0;
+          await request.addStream(File(f.path!).openRead().map((bytes){sent+=bytes.length;if(mounted)setState(()=>_progress=sent/f.size);return bytes;}));
+          final reply=await request.close();await reply.drain<void>();if(reply.statusCode!=200)throw Exception('Upload failed');
+        } finally {client.close(force:true);}
+      } else {
+        await sb.storage.from('cloud').uploadToSignedUrl(up['path'] as String, up['token'] as String, File(f.path!));
+      }
       await _fn({'action': 'finalize', 'id': file['id']});
       Measurement.instance.track('CloudUploaded',{'media_type':'file'});
       messenger.showSnackBar(const SnackBar(content: Text('Uploaded')));

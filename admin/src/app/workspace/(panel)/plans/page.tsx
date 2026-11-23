@@ -3,6 +3,8 @@ import type {ReportQuery} from "@/lib/reporting";
 import { requireAdmin } from "@/lib/admin";
 import { PageHeader, Card, Field, Input, Textarea, Select, Hidden, Badge, ErrorNote } from "@/components/admin/ui";
 import { SubmitButton } from "@/components/admin/client";
+import UpiSettings from "./UpiSettings";
+import {setRecommended} from "../actions";
 import { saveMode, savePlan, addPlan } from "../actions";
 
 const helper = (d: number, h: number) => {
@@ -50,11 +52,12 @@ function PlanForm({ p, impact }: { p?: Record<string, any>; impact?: { subscribe
 export default async function Plans({ searchParams: pending }: { searchParams: Promise<ReportQuery> }) {
  const q=await pending;
   const { sb } = await requireAdmin(true);
-  const [mode, plans, impact, claims] = await Promise.all([
+  const [mode, plans, impact, claims, payment] = await Promise.all([
     sb.from("app_mode").select("*").eq("id", 1).single(),
     sb.from("plans").select("*").order("position"),
     sb.rpc("admin_plan_impact"),
     sb.rpc("admin_free_plan_claims"),
+    sb.from("payment_settings").select("*").eq("id",1).single(),
   ]);
   const m = (mode.data ?? {}) as Record<string, any>;
   const imp = (impact.data ?? {}) as Record<string, { subscribers: number; orders: number }>;
@@ -84,6 +87,7 @@ export default async function Plans({ searchParams: pending }: { searchParams: P
           </form>
         </Card>
       </div>
+      <div className="my-6"><UpiSettings s={payment.data}/></div>
       <h2 className="mb-2 mt-6 text-sm font-semibold text-gray-900">Plans</h2><form className="mb-4 grid gap-2 sm:grid-cols-4"><Input name="q" defaultValue={q.q??""} placeholder="Search plan" aria-label="Search plan"/><Select name="visibility" defaultValue={q.visibility??""} aria-label="Visibility"><option value="">All plans</option><option value="active">Shown in app</option><option value="hidden">Hidden</option></Select><Select name="sort" defaultValue={q.sort??""} aria-label="Sort"><option value="">Display order</option><option value="price_low">Price: low to high</option><option value="price_high">Price: high to low</option><option value="duration">Duration: shortest first</option><option value="name">Name</option></Select><Button variant="secondary">Apply</Button></form>
       <div className="grid gap-4 lg:grid-cols-2">
         {visible.map((p) => (
@@ -93,6 +97,7 @@ export default async function Plans({ searchParams: pending }: { searchParams: P
               <Badge tone={p.active ? "green" : "gray"}>{p.active ? "Shown in app" : "Hidden"}</Badge>
               {p.free_eligible && <Badge tone="blue">Free-eligible</Badge>}
             </div>
+            <form action={setRecommended} className="mb-4 flex flex-wrap items-end gap-3"><Hidden name="id" value={p.id}/><label>Recommendation<Select name="label" defaultValue={p.recommendation_label??"MOST POPULAR"}><option>MOST POPULAR</option><option>BEST VALUE</option></Select></label><SubmitButton>{p.recommended?"Update recommended plan":"Make recommended"}</SubmitButton></form>
             <PlanForm p={p} impact={imp[p.id] ?? { subscribers: 0, orders: 0 }} />
           </Card>
         ))}

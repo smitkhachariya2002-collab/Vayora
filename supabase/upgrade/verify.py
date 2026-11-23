@@ -52,6 +52,9 @@ features=list((root.parent/'migrations').glob('*_cinematic_bunny_notifications.s
 assert len(features)==1
 run("create table private.upgrade_rule_snapshot as select oid as oid_,md5(pg_get_functiondef(oid)) as hash_ from pg_proc where pronamespace in ('public'::regnamespace,'private'::regnamespace) and proname in ('has_ads_access','can_full_premium','source_of','can_see_audience','can_post_to_channel','guard_posts');")
 run(features[0].read_text())
+controls=list((root.parent/'migrations').glob('*_media_owner_controls.sql')) or list(pathlib.Path('/tmp/vayora-reviewed-upgrade').glob('*_media_owner_controls.sql'))
+assert len(controls)==1
+run(controls[0].read_text())
 run((root/'bunny_media_test.sql').read_text())
 print('PASS media readiness, cleanup protection, payment recovery and legacy access preservation')
 run((root/'rollback.sql').read_text())

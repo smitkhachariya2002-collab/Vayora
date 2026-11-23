@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../config.dart';
+import '../services/push_notifications.dart';
 import '../services/measurement.dart';
 import '../theme.dart';
 
@@ -40,6 +41,7 @@ class _ConsentGateState extends State<ConsentGate> {
     );
     if (choice != null) {
       await Measurement.instance.saveInitialChoice(choice.analytics,choice.advertising);
+      await PushNotifications.instance.requestPermission();
     }
   }
 

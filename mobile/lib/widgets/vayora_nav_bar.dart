@@ -18,7 +18,8 @@ class VayoraNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        decoration: const BoxDecoration(color: Tokens.surface, border: Border(top: BorderSide(color: Tokens.border))),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+        decoration: BoxDecoration(color: Tokens.surface, border: Border.all(color: Tokens.border),borderRadius:BorderRadius.circular(26)),
         child: SafeArea(
           top: false,
           child: Padding(

@@ -32,4 +32,11 @@ update public.posts set status='published' where id='50000000-0000-0000-0000-000
 select pg_temp.check_((select status='published' and publish_at=now() from public.posts where id='50000000-0000-0000-0000-000000000001'),'Publication timestamp missing');
 delete from public.posts where id='50000000-0000-0000-0000-000000000001';
 select pg_temp.check_((select item_id is null and status='cleanup_queued' from public.bunny_assets where video_id='70000000-0000-0000-0000-000000000001'),'Removed media not queued safely');
+insert into public.channels(id,name,created_by,status,review_status,audience) values('40000000-0000-0000-0000-000000000002','Display protection','10000000-0000-0000-0000-000000000002','draft','pending','all');
+select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated","is_anonymous":false}',true);
+set local role authenticated;
+do $$begin
+ begin update public.channels set display_followers=999 where id='40000000-0000-0000-0000-000000000002';raise exception 'Non-owner changed displayed count';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
 rollback;

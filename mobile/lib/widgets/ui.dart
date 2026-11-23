@@ -149,7 +149,7 @@ class VideoThumb extends StatelessWidget {
             if (seconds != null && seconds! > 0)
               Positioned(
                 right: 8,
-                bottom: 8,
+                top: 8,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(color: Colors.black.withValues(alpha: .7), borderRadius: BorderRadius.circular(6)),
@@ -206,7 +206,7 @@ class VideoCard extends StatelessWidget {
         const SizedBox(height: 8),
         SizedBox(height: MediaQuery.textScalerOf(context).scale(14) * 2.6, child: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, height: 1.3, fontWeight: FontWeight.w600))),
         const SizedBox(height: 3),
-        Text(channel, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, height: 1.3, color: Tokens.muted)),
+        if(channel.isNotEmpty) Text(channel, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, height: 1.3, color: Tokens.muted)),
       ]),
     ),
   );
@@ -247,3 +247,12 @@ class _AttentionIconState extends State<_AttentionIcon> with SingleTickerProvide
     })));
 }
 
+
+String compactFollowers(num count) => count>=1000000 ? '${(count/1000000).toStringAsFixed(1).replaceAll('.0','')}M' : count>=1000 ? '${(count/1000).toStringAsFixed(1).replaceAll('.0','')}K' : '$count';
+class ReadMoreText extends StatefulWidget {
+ const ReadMoreText(this.text,{super.key});final String text;
+ @override State<ReadMoreText> createState()=>_ReadMoreTextState();
+}
+class _ReadMoreTextState extends State<ReadMoreText>{bool expanded=false;
+ @override Widget build(BuildContext context)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(widget.text,maxLines:expanded?null:3,overflow:expanded?TextOverflow.visible:TextOverflow.ellipsis,style:const TextStyle(color:Tokens.muted,fontSize:13,height:1.4)),if(widget.text.length>120)TextButton(onPressed:()=>setState(()=>expanded=!expanded),child:Text(expanded?'See less':'See more'))]);
+}

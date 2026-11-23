@@ -28,3 +28,9 @@ Deno.test('Cleanup excludes attached, recent and undated videos',()=>{
  assertEquals(cleanupReason({},false,now),null);
  assertEquals(cleanupReason({dateUploaded:'2026-11-20T11:00:00Z',status:5},false,now),'Processing failed');
 });
+
+Deno.test('Browser preflight permits the Supabase client header without authenticating an operation',async()=>{
+ const {handleBunny}=await import('./bunny-handler.ts');
+ const response=await handleBunny(new Request('https://example.test',{method:'OPTIONS'}),'bunny-status');
+ assertEquals(response.status,200);assertEquals(response.headers.get('Access-Control-Allow-Headers')?.includes('x-client-info'),true);
+});

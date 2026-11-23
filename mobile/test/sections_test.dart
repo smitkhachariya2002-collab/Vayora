@@ -46,7 +46,7 @@ Future<List<Map<String, dynamic>>> fakePlans() async => [
 
 AppState appWith(Map<String, dynamic> m) => AppState()..status = AppStatus(m);
 
-const playBuild = bool.fromEnvironment('PLAY_STORE');
+const playBuild = bool.fromEnvironment('PLAY_STORE') && !bool.fromEnvironment('PLAY_SELLS_UPI');
 
 void main() {
   scopeAboveNavigatorTests();
@@ -79,7 +79,7 @@ void main() {
           expect(find.textContaining('Gold active until'), findsOneWidget);
         } else {
           expect(find.byKey(const Key('plans_page')), findsOneWidget);
-          expect(find.text('Get Gold Plan · ₹259'), findsOneWidget);
+          expect(find.text('Continue with Gold · ₹259'), findsOneWidget);
           expect(find.byKey(const Key('account_button')), findsOneWidget);
           expect(find.byKey(const Key('login_link')), t['guest']! ? findsOneWidget : findsNothing);
         }

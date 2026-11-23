@@ -2,16 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:video_player/video_player.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-import '../config.dart';
 import '../services/app_scope.dart';
 import '../services/app_state.dart';
 import '../services/playback_access.dart';
+import '../services/bunny_media.dart';
 import '../services/measurement.dart';
 import '../theme.dart';
 import '../widgets/ui.dart';
@@ -84,7 +83,7 @@ class _PostPageState extends State<PostPage> {
   Future<void> _load() async {
     try {
       final p = await sb.from('posts').select('id,title,description,channel_id').eq('id', _postId).maybeSingle();
-      final items = await sb.from('post_items').select('id,media_key,trailer_key,thumbnail_key,mime,is_premium,duration_s').eq('post_id', _postId).order('position');
+      final items = await sb.from('post_items').select('id,media_key,trailer_key,thumbnail_key,mime,is_premium,duration_s,bunny_video_id,trailer_bunny_video_id,processing_status,trailer_processing_status').eq('post_id', _postId).order('position');
       final tk = items.isEmpty ? null : items.first['thumbnail_key'] as String?;
       final poster = tk == null ? null : await _signed(tk);
       if (!mounted) return;
@@ -135,22 +134,24 @@ class _PostPageState extends State<PostPage> {
   Future<void> _play(Map<String, dynamic> it) async {
     final app = AppScope.of(context);
     final premium = it['is_premium'] == true;
-    var access = playbackAccess(app.status, premium: premium, hasTrailer: it['trailer_key'] != null);
+    var access = playbackAccess(app.status, premium: premium, hasTrailer: it['trailer_key'] != null || it['bunny_video_id'] != null);
     if (access == PlaybackAccess.login) {
       if (!await requireAccount(context) || !mounted) return;
-      access = playbackAccess(app.status, premium: premium, hasTrailer: it['trailer_key'] != null);
+      access = playbackAccess(app.status, premium: premium, hasTrailer: it['trailer_key'] != null || it['bunny_video_id'] != null);
       if (access == PlaybackAccess.login) return;
     }
     final allowed = access == PlaybackAccess.full;
     // Ads users who are not premium get the trailer; everyone else without access sees the lock.
-    final key = (allowed ? it['media_key'] : it['trailer_key']) as String?;
+    final key = (allowed ? it['media_key'] : (it['trailer_key'] ?? (it['bunny_video_id']!=null?it['media_key']:null))) as String?;
+    final bunny=allowed?it['bunny_video_id']!=null:(it['trailer_bunny_video_id']!=null||(it['trailer_key']==null&&it['bunny_video_id']!=null));
     if (key == null) {
       _lockedMessage(app);
       return;
     }
     if (_opening) return;
     setState(() => _opening = true);
-    final url = await _signed(key);
+    String? url;
+    try {url = bunny ? await BunnyMedia.playback(it['id'] as String,preview:!allowed) : await _signed(key);} catch (_) {url=null;}
     if (!mounted) return;
     if (url == null) {
       setState(() => _opening = false);
@@ -163,7 +164,7 @@ class _PostPageState extends State<PostPage> {
       await old?.dispose();
       return;
     }
-    final c = VideoPlayerController.networkUrl(Uri.parse(url));
+    final c = VideoPlayerController.networkUrl(Uri.parse(url),formatHint:bunny?VideoFormat.hls:null);
     try {
       await c.initialize();
     } catch (_) {
@@ -327,7 +328,6 @@ class _PostPageState extends State<PostPage> {
     }
     return Scaffold(
       appBar: AppBar(title: Text(p?['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis), actions: [
-        IconButton(tooltip: 'Share', icon: const Icon(Icons.share), onPressed: () => Share.share('${Config.websiteUrl}/p/$_postId')),
         PopupMenuButton<String>(
           onSelected: (v) => v == 'report' ? _report() : _block(),
           itemBuilder: (_) => const [PopupMenuItem(value: 'report', child: Text('Report')), PopupMenuItem(value: 'block', child: Text('Block channel'))],
@@ -371,7 +371,7 @@ class _PostPageState extends State<PostPage> {
                   const SizedBox(height: 14),
                   Text((p['title'] as String?) ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                   if (((p['description'] as String?) ?? '').isNotEmpty)
-                    Padding(padding: const EdgeInsets.only(top: 6), child: Text(p['description'] as String, style: const TextStyle(color: Tokens.muted, fontSize: 13, height: 1.4))),
+                    Padding(padding: const EdgeInsets.only(top: 6), child: ReadMoreText(p['description'] as String)),
                   const SizedBox(height: 14),
                   if (_items.isEmpty && ((p['description'] as String?) ?? '').isEmpty) const EmptyState(icon: Icons.hourglass_empty_rounded, title: 'No video yet', message: 'The creator has not added a video to this post.'),
                   if (_suggestions.isNotEmpty) ...[

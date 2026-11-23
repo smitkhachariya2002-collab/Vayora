@@ -1,12 +1,13 @@
 "use client";
-import { useState } from "react";
+import { uploadBunnyVideo } from "@/lib/bunny-upload";
+import { useRef, useState } from "react";
 import SavedMediaPreview from "./SavedMediaPreview";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 export type Item = {
   id: string; media_key: string; thumbnail_key: string | null; trailer_key: string | null; mime: string;
-  is_premium: boolean; duration_s: number | null; position: number; size_bytes: number;
+  bunny_video_id?:string|null; processing_status?:string; trailer_processing_status?:string; is_premium: boolean; duration_s: number | null; position: number; size_bytes: number;
 };
 
 const mb = (b: number) => (b / (1 << 20)).toFixed(1) + " MB";
@@ -69,17 +70,18 @@ export function probe(file: File): Promise<{ duration: number | null; thumb: Blo
   });
 }
 
-export default function MediaEditor({ postId, channelId, items, thumbs }: { postId: string; channelId: string; items: Item[]; thumbs: Record<string, string> }) {
+export default function MediaEditor({ postId, channelId, items, thumbs, owner }: { owner:boolean; postId: string; channelId: string; items: Item[]; thumbs: Record<string, string> }) {
   const router = useRouter();
+  const pendingItems=useRef(new Map<string,string>());
   const [pct, setPct] = useState<number | null>(null);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const busy = pct !== null;
   const sb = supabaseBrowser();
 
-  const run = async (label: string, fn: () => Promise<void>) => {
+  const run = async (label: string, fn: () => Promise<void|string>) => {
     setErr(""); setMsg(label); setPct(0);
-    try { await fn(); setMsg("Saved."); router.refresh(); }
+    try { const message=await fn(); setMsg(message||"Saved."); router.refresh(); }
     catch (e) { setErr(e instanceof Error ? e.message : "Something went wrong."); setMsg(""); }
     setPct(null);
   };
@@ -89,9 +91,18 @@ export default function MediaEditor({ postId, channelId, items, thumbs }: { post
     const key = `${channelId}/${uid()}.${extOf(file)}`;
     const isVideo = file.type.startsWith("video");
     const info = isVideo ? await probe(file) : { duration: null, thumb: null };
+    if (isVideo) {
+      const fingerprint=`${file.name}:${file.size}:${file.lastModified}`;
+      const previous=pendingItems.current.get(fingerprint),itemId=previous??crypto.randomUUID();
+      if(!previous)fail((await sb.from("post_items").insert({id:itemId,post_id:postId,media_key:`${channelId}/pending/${itemId}`,mime:file.type||"video/mp4",position:items.length,size_bytes:file.size})).error);
+      pendingItems.current.set(fingerprint,itemId);
+      const bunny=await uploadBunnyVideo(itemId,file,setPct);
+      if(bunny){pendingItems.current.delete(fingerprint);return "Uploaded successfully. Video is processing; publish after encoding is verified.";}
+      fail((await sb.from("post_items").delete().eq("id",itemId)).error);pendingItems.current.delete(fingerprint);
+    }
     await upload(key, file, file.type, setPct);
     let thumbKey: string | null = null;
-    if (info.thumb) { thumbKey = `${channelId}/${uid()}.jpg`; await upload(thumbKey, info.thumb, "image/jpeg", () => {}); }
+    if (info.thumb) { try {thumbKey = `${channelId}/${uid()}.jpg`; await upload(thumbKey, info.thumb, "image/jpeg", () => {});}catch{thumbKey=null;} }
     else if (file.type.startsWith("image")) thumbKey = key;
     const { error } = await sb.from("post_items").insert({
       post_id: postId, media_key: key, thumbnail_key: thumbKey, mime: file.type || "video/mp4", duration_s: info.duration,
@@ -102,6 +113,7 @@ export default function MediaEditor({ postId, channelId, items, thumbs }: { post
 
   const attach = (it: Item, field: "trailer_key" | "thumbnail_key", file: File) => run(`Uploading ${file.name}…`, async () => {
     const key = `${channelId}/${uid()}.${extOf(file)}`;
+    if(field==="trailer_key"&&await uploadBunnyVideo(it.id,file,setPct,"trailer"))return;
     await upload(key, file, file.type, setPct);
     const old = it[field];
     const { error } = await sb.from("post_items").update({ [field]: key }).eq("id", it.id);
@@ -123,8 +135,7 @@ export default function MediaEditor({ postId, channelId, items, thumbs }: { post
   const remove = (it: Item) => {
     if (!window.confirm("Remove this media item and delete its files?")) return;
     return run("Removing…", async () => {
-      fail((await sb.from("post_items").delete().eq("id", it.id)).error);
-      await sb.storage.from("media").remove([...new Set([it.media_key, it.thumbnail_key, it.trailer_key].filter(Boolean) as string[])]);
+      const {error}=await sb.functions.invoke('bunny-stream-delete',{body:{item_id:it.id,confirm:true}});fail(error);
     });
   };
 
@@ -141,19 +152,19 @@ export default function MediaEditor({ postId, channelId, items, thumbs }: { post
           <div className="flex gap-3">
             <div className="grid h-16 w-28 shrink-0 place-items-center overflow-hidden rounded-md bg-gray-100 text-[10px] text-gray-400">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              {it.thumbnail_key && thumbs[it.thumbnail_key] ? <img src={thumbs[it.thumbnail_key]} alt="" className="h-full w-full object-cover" /> : "No thumbnail"}
+              {(thumbs[it.id]||(it.thumbnail_key&&thumbs[it.thumbnail_key])) ? <img src={thumbs[it.id]||(it.thumbnail_key?thumbs[it.thumbnail_key]:undefined)} alt="" className="h-full w-full object-cover" /> : "No thumbnail"}
             </div>
             <div className="min-w-0 flex-1 text-xs text-gray-600">
               <div className="font-medium text-gray-900">{it.mime.startsWith("video") ? "Video" : "Image"} · {mb(it.size_bytes)}{it.duration_s ? ` · ${Math.floor(it.duration_s / 60)}:${String(it.duration_s % 60).padStart(2, "0")}` : ""}</div>
-              <div className="mt-0.5">{it.trailer_key ? "Trailer added" : "No trailer"} · {it.is_premium ? "Premium" : "Free"}</div>
+              <div className="mt-0.5">{it.processing_status&&it.processing_status!=="ready"?`Video ${it.processing_status}`:(it.trailer_key ? "Trailer added" : "No trailer")} · {it.is_premium ? "Premium" : "Free"}</div>
               <label className="mt-2 flex items-center gap-2 text-sm text-gray-800">
                 <input type="checkbox" checked={it.is_premium} disabled={busy} onChange={(e) => patch(it, { is_premium: e.target.checked })} />
                 Premium (only plan holders watch the full video)
               </label>
             </div>
           </div>
-          <SavedMediaPreview key={it.media_key} storageKey={it.media_key} label={it.mime.startsWith("video") ? "Preview full video" : "Preview image"} mime={it.mime} poster={it.thumbnail_key ? thumbs[it.thumbnail_key] : undefined} />
-          {it.trailer_key && <SavedMediaPreview key={it.trailer_key} storageKey={it.trailer_key} label="Preview trailer" mime="video/mp4" />}
+          <SavedMediaPreview key={it.media_key} storageKey={it.media_key} itemId={it.id} label={it.mime.startsWith("video") ? "Preview full video" : "Preview image"} mime={it.mime} poster={it.thumbnail_key ? thumbs[it.thumbnail_key] : undefined} />
+          {it.trailer_key && <SavedMediaPreview key={it.trailer_key} storageKey={it.trailer_key} itemId={it.id} trailer label="Preview trailer" mime="video/mp4" />}
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <label className={fileBtn} aria-disabled={busy}>{it.trailer_key ? "Replace trailer" : "Add trailer"}{pick("video/*", (f) => attach(it, "trailer_key", f))}</label>
             <label className={fileBtn} aria-disabled={busy}>{it.thumbnail_key ? "Replace thumbnail" : "Add thumbnail"}{pick("image/*", (f) => attach(it, "thumbnail_key", f))}</label>
@@ -163,7 +174,8 @@ export default function MediaEditor({ postId, channelId, items, thumbs }: { post
             </label>
             <button type="button" className={fileBtn} disabled={busy || i === 0} onClick={() => move(i, -1)} aria-label="Move up">↑</button>
             <button type="button" className={fileBtn} disabled={busy || i === items.length - 1} onClick={() => move(i, 1)} aria-label="Move down">↓</button>
-            <button type="button" className="inline-flex items-center rounded-lg bg-red-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50" disabled={busy} onClick={() => remove(it)}>Remove</button>
+            {it.bunny_video_id&&it.processing_status!=="ready"&&<label className={fileBtn}>Resume main upload{pick("video/*",file=>run("Resuming upload…",async()=>{await uploadBunnyVideo(it.id,file,setPct);}))}</label>}
+            {owner&&<button type="button" className="inline-flex items-center rounded-lg bg-red-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50" disabled={busy} onClick={() => remove(it)}>Remove</button>}
           </div>
         </div>
       ))}

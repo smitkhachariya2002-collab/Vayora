@@ -43,12 +43,12 @@ export default async function Dashboard() {
       {owner && <><Stat label="Installs from ads" value={n(s.ads_installs)} /><Stat label="Organic installs" value={n(s.organic_installs)} /><Stat label="Logged-in users" value={n(s.logged_in)} /><Stat label="Free plans claimed" value={n(s.free_claims)} /></>}
     </div>
     <div className="mb-8 grid gap-4 lg:grid-cols-3">
-      <Card title="Content library" sub="Manage videos, images, previews and thumbnails."><Link href="/workspace/posts" className="inline-block text-sm font-semibold text-blue-700 hover:underline">Open library →</Link></Card>
-      <Card title="Channels" sub="Review channel requests and manage their audience."><Link href="/workspace/channels" className="inline-block text-sm font-semibold text-blue-700 hover:underline">Manage channels →</Link></Card>
-      <Card title="Bulk upload" sub="Preview your files and publish a batch to any channel you manage."><Link href="/workspace/posts/bulk" className="inline-block text-sm font-semibold text-blue-700 hover:underline">Upload a batch →</Link></Card>
+      <Card title="Content library" sub="Manage videos, images, previews and thumbnails."><Link href="/workspace/posts" className="inline-block text-sm font-semibold text-blue-700 hover:underline">Open library</Link></Card>
+      <Card title="Channels" sub="Review channel requests and manage their audience."><Link href="/workspace/channels" className="inline-block text-sm font-semibold text-blue-700 hover:underline">Manage channels</Link></Card>
+      <Card title="Bulk upload" sub="Preview your files and publish a batch to any channel you manage."><Link href="/workspace/posts/bulk" className="inline-block text-sm font-semibold text-blue-700 hover:underline">Upload a batch</Link></Card>
     </div>
     {owner && <section>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div><h2 className="text-base font-semibold text-slate-900">Audience acquisition</h2><p className="mt-1 text-xs text-slate-500">Installs, registrations and buyers by source and campaign.</p></div><Link href="/workspace/meta" className="text-xs font-medium text-blue-700 hover:underline">View Meta Pixel →</Link></div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div><h2 className="text-base font-semibold text-slate-900">Audience acquisition</h2><p className="mt-1 text-xs text-slate-500">Installs, registrations and buyers by source and campaign.</p></div><Link href="/workspace/meta" className="text-xs font-medium text-blue-700 hover:underline">View Meta Pixel</Link></div>
       {rows.length === 0 ? <Empty>No installs recorded yet. Campaign activity will appear here.</Empty> : <Table>
         <thead><tr><Th>Source</Th><Th>Campaign</Th><Th>Installs</Th><Th>Registrations</Th><Th>Buyers</Th></tr></thead>
         <tbody>{rows.map((r,i) => <tr key={i}><Td><SourceBadge value={r.source as string} /></Td><Td>{String(r.campaign)}</Td><Td>{n(r.installs)}</Td><Td>{n(r.registrations)}</Td><Td>{n(r.buyers)}</Td></tr>)}</tbody>

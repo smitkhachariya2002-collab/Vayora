@@ -1,6 +1,6 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.49.8';
 import {requiredEnv,signedCdnUrl} from './bunny.ts';
-const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-upload-size','Access-Control-Allow-Methods':'POST,PUT,OPTIONS'};
+const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info,x-upload-size','Access-Control-Allow-Methods':'POST,PUT,OPTIONS'};
 const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{...cors,'Content-Type':'application/json'}});
 export const cloudConfigured=()=>['BUNNY_STORAGE_ZONE','BUNNY_STORAGE_PASSWORD','BUNNY_STORAGE_HOST','BUNNY_STORAGE_CDN_HOST','BUNNY_STORAGE_TOKEN_KEY'].every(n=>Boolean(Deno.env.get(n)?.trim()));
 function storageUrl(path:string) {

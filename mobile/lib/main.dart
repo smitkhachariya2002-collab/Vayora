@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config.dart';
+import 'services/push_notifications.dart';
 import 'screens/consent_gate.dart';
 import 'screens/home_shell.dart';
 import 'services/app_scope.dart';
@@ -26,6 +27,7 @@ class VayoraApp extends StatelessWidget {
       state: state,
       child: MaterialApp(
         title: Config.appName,
+        navigatorKey: PushNotifications.navigator,
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
         builder: (context, child) => MediaQuery(

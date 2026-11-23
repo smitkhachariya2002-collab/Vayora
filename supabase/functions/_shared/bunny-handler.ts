@@ -1,7 +1,7 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.49.8';
 import {BunnyNotConfigured,requiredEnv,videoId,tusAuthorization,signedCdnUrl,streamApi,cleanupReason,cdnOrigin} from './bunny.ts';
 import {cutPreview} from './bunny-preview.ts';
-const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-cron-key','Access-Control-Allow-Methods':'GET,POST,PUT,OPTIONS'};
+const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info,x-cron-key','Access-Control-Allow-Methods':'GET,POST,PUT,OPTIONS'};
 const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{...cors,'Content-Type':'application/json','Cache-Control':'no-store'}});
 const admin=()=>createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}});
 async function caller(req:Request) {
@@ -75,7 +75,8 @@ export async function handleBunny(req:Request,operation:string):Promise<Response
   }
   if(operation==='bunny-stream-create') {
    const c=await caller(req),itemId=String(b.item_id??''),slot=b.slot==='trailer'?'trailer':'main';
-   const {data:item}=await c.sb.from('post_items').select('post_id').eq('id',itemId).single();if(!item)throw new Error('AUTH: Content unavailable');
+   const {data:item}=await c.sb.from('post_items').select('post_id,mime').eq('id',itemId).single();if(!item)throw new Error('AUTH: Content unavailable');
+   if(!item.mime?.startsWith('video/')||!Number.isSafeInteger(Number(b.size))||Number(b.size)<=0)throw new Error('Choose a non-empty video file');
    const {data:allowed}=await c.sb.rpc('can_edit_post',{p_post:item.post_id});if(!allowed)throw new Error('AUTH: Upload not allowed');
    const {data:post}=await c.sb.from('posts').select('channel_id,title').eq('id',item.post_id).single();if(!post)throw new Error('AUTH: Post unavailable');
    const env=requiredEnv(['BUNNY_STREAM_LIBRARY_ID','BUNNY_STREAM_API_KEY','BUNNY_STREAM_CDN_HOST','BUNNY_STREAM_TOKEN_KEY']);

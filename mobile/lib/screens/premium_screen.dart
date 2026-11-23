@@ -1,3 +1,4 @@
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -36,7 +37,7 @@ class PremiumScreen extends StatelessWidget {
         builder: (context, _) {
           final s = app.status;
           // 1) Free mode, or Play build: no prices anywhere.
-          if (Config.playStore || s.freeMode) return const FreeAccountCard();
+          if (Config.restrictPlayPurchases || s.freeMode) return const FreeAccountCard();
           // 2) Plans hidden for this user.
           if (!s.plansVisible) {
             return s.isPremium ? const _ActivePlan() : const Center(child: Text('Premium is not available right now.'));
@@ -201,6 +202,8 @@ Future<void> startPurchase(BuildContext context, String planId) async {
       messenger.showSnackBar(SnackBar(content: Text('Plan activated${end != null ? ' until ${DateTime.parse(end as String).toLocal().toString().split(' ').first}' : ''}')));
       return;
     }
+    final agreed=await showModalBottomSheet<bool>(context:context,isScrollControlled:true,builder:(c)=>SafeArea(child:Padding(padding:const EdgeInsets.all(24),child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.stretch,children:[Text('${plan['name']} · ₹${plan['price_inr']}',style:const TextStyle(fontSize:22,fontWeight:FontWeight.w700)),const SizedBox(height:12),const Text('Continue to your UPI app to pay. Your plan follows the terms shown here.'),Wrap(children:[TextButton(onPressed:()=>launchUrl(Uri.parse('${Config.websiteUrl}/terms'),mode:LaunchMode.externalApplication),child:const Text('Terms & Conditions')),TextButton(onPressed:()=>launchUrl(Uri.parse('${Config.websiteUrl}/refund'),mode:LaunchMode.externalApplication),child:const Text('Refund policy'))]),FilledButton(onPressed:()=>Navigator.pop(c,true),child:const Text('Accept terms and continue')),TextButton(onPressed:()=>launchUrl(Uri(scheme:'mailto',path:Config.supportEmail)),child:const Text('Need help? Email us'))]))));
+    if(agreed!=true||!context.mounted)return;
     final shown = (plan['price_inr'] as num);
     final order = await app.createOrder(planId);
     final amount = order['amount_inr'] as num;

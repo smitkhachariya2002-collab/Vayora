@@ -20,6 +20,7 @@ export default async function PostEdit({ params: pending }: { params: Promise<{ 
     const { data } = await sb.storage.from("media").createSignedUrls(keys, 3600);
     for (const s of data ?? []) if (s.path && s.signedUrl) thumbs[s.path] = s.signedUrl;
   }
+  await Promise.all((items??[]).filter(i=>i.bunny_video_id&&!i.thumbnail_key).map(async i=>{const {data}=await sb.functions.invoke('bunny-stream-url',{body:{item_id:i.id,thumbnail:true}});if(data?.url)thumbs[i.id]=data.url;}));
   const ch = p.channels as { name?: string } | null;
   return (
     <>
@@ -36,7 +37,7 @@ export default async function PostEdit({ params: pending }: { params: Promise<{ 
           </form>
         </Card>
         <Card title="Media" sub="The main video or image, an optional trailer for non-premium viewers, and a thumbnail.">
-          <MediaEditor postId={p.id} channelId={p.channel_id} items={(items ?? []) as Item[]} thumbs={thumbs} />
+          <MediaEditor owner={role==="owner"} postId={p.id} channelId={p.channel_id} items={(items ?? []) as Item[]} thumbs={thumbs} />
         </Card>
       </div>
       <Card title="Danger zone" className="mt-4">
@@ -47,10 +48,10 @@ export default async function PostEdit({ params: pending }: { params: Promise<{ 
               <SubmitButton variant="secondary" confirm={p.hidden ? undefined : "Hide this post from the app?"}>{p.hidden ? "Unhide post" : "Hide post"}</SubmitButton>
             </form>
           )}
-          <form action={deletePost}>
+          {role==="owner"&&<form action={deletePost}>
             <Hidden name="id" value={p.id} />
             <SubmitButton variant="danger" confirm="Delete this post and all its video files? This cannot be undone.">Delete post</SubmitButton>
-          </form>
+          </form>}
         </div>
       </Card>
     </>

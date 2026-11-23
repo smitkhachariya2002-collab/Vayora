@@ -3,7 +3,7 @@ export const inr = (n: number | string | null | undefined) =>
 
 export const ist = (d: string | null | undefined) =>
   d
-    ? new Intl.DateTimeFormat("en-IN", {
+    && Number.isFinite(Date.parse(d)) ? new Intl.DateTimeFormat("en-IN", {
         timeZone: "Asia/Kolkata",
         day: "2-digit",
         month: "short",

@@ -75,7 +75,8 @@ class _PlansPageState extends State<PlansPage> {
       final l = await (widget.plansLoader ?? defaultPlansLoader)();
       l.sort((a, b) => ((a['position'] as num?) ?? 0).compareTo((b['position'] as num?) ?? 0));
       _plans = l;
-      final pop = l.where((p) => p['badge'] == 'Popular');
+      final configured=l.where((p)=>p['recommended']==true);
+      final pop = configured.isNotEmpty ? configured : l.where((p) => p['badge'] == 'Popular');
       _selected = (pop.isNotEmpty ? pop.first : (l.isNotEmpty ? l.first : null))?['id'] as String?;
     } catch (_) {
       _error = true;
@@ -88,6 +89,18 @@ class _PlansPageState extends State<PlansPage> {
       if (p['id'] == _selected) return p;
     }
     return null;
+  }
+
+  int _saving(Map<String,dynamic> plan) {
+    double rate(Map<String,dynamic> p) {
+      final hours=((p['duration_hours']??0) as num).toDouble();
+      final days=hours>0?hours/24:((p['duration_days']??0) as num).toDouble();
+      return days>0?((p['price_inr']??0) as num)/days:0;
+    }
+    final rates=_plans.where((p)=>!widget.freeIds.contains(p['id'])).map(rate).where((r)=>r>0).toList();
+    if(rates.isEmpty||widget.freeIds.contains(plan['id']))return 0;
+    final baseline=rates.reduce((a,b)=>a>b?a:b),current=rate(plan);
+    return current<=0?0:((1-current/baseline)*100).floor().clamp(0,99);
   }
 
   Future<void> _buy() async {
@@ -111,7 +124,7 @@ class _PlansPageState extends State<PlansPage> {
         ? 'Choose a plan'
         : isFree
             ? 'Claim free ${sel['name']} Plan'
-            : 'Get ${sel['name']} Plan · ₹${sel['price_inr']}';
+            : 'Continue with ${sel['name']} · ₹${sel['price_inr']}';
     return Container(
       key: const Key('plans_page'),
       decoration: BoxDecoration(
@@ -156,7 +169,7 @@ class _PlansPageState extends State<PlansPage> {
               ]))
             else
               for (final p in _plans)
-                _PlanTile(plan: p, selected: p['id'] == _selected, free: widget.freeIds.contains(p['id']), onTap: () => setState(() => _selected = p['id'] as String)),
+                _PlanTile(plan: p, saving: _saving(p), selected: p['id'] == _selected, free: widget.freeIds.contains(p['id']), onTap: () => setState(() => _selected = p['id'] as String)),
           ]),
         ),
         Padding(
@@ -193,9 +206,10 @@ class _Perk extends StatelessWidget {
 }
 
 class _PlanTile extends StatelessWidget {
-  const _PlanTile({required this.plan, required this.selected, required this.free, required this.onTap});
+  const _PlanTile({required this.plan, required this.saving, required this.selected, required this.free, required this.onTap});
   final Map<String, dynamic> plan;
   final bool selected, free;
+  final int saving;
   final VoidCallback onTap;
 
   @override
@@ -203,7 +217,7 @@ class _PlanTile extends StatelessWidget {
     final days = (plan['duration_days'] as num).toInt();
     final hours = ((plan['duration_hours'] ?? 0) as num).toInt();
     final price = plan['price_inr'] as num;
-    final badge = plan['badge'] as String?;
+    final badge = plan['recommended']==true ? '${plan['recommendation_label']??'MOST POPULAR'}' : plan['badge'] as String?;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
@@ -227,6 +241,7 @@ class _PlanTile extends StatelessWidget {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, children: [
                       Text('${plan['name']} Plan', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      if(saving>0) Text('SAVE $saving%',style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,color:selected?Colors.white:Tokens.success)),
                       if (badge != null)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

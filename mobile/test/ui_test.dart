@@ -78,11 +78,11 @@ void main() {
       expect(find.text('Trial Plan'), findsOneWidget);
       expect(find.text('Diamond Plan'), findsOneWidget);
       expect(find.text('Best value'), findsOneWidget);
-      expect(find.text('Get Gold Plan · ₹259'), findsOneWidget);
+      expect(find.text('Continue with Gold · ₹259'), findsOneWidget);
       await tester.tap(find.text('Silver Plan'));
       await tester.pump();
-      expect(find.text('Get Silver Plan · ₹129'), findsOneWidget);
-      await tester.tap(find.text('Get Silver Plan · ₹129'));
+      expect(find.text('Continue with Silver · ₹129'), findsOneWidget);
+      await tester.tap(find.text('Continue with Silver · ₹129'));
       await tester.pumpAndSettle();
       expect(bought, 'p2');
     });

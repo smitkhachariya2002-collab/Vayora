@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
+import '../config.dart';
 
 import 'package:flutter/material.dart';
 
@@ -53,6 +55,14 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
     } catch (_) {/* try again on the next tick */}
   }
 
+  Future<void> _enterUtr() async {
+    final input=TextEditingController();
+    final value=await showDialog<String>(context:context,builder:(c)=>AlertDialog(title:const Text('I’ve paid - enter UTR'),content:TextField(controller:input,keyboardType:TextInputType.number,maxLength:12,decoration:const InputDecoration(labelText:'12-digit bank reference',helperText:'Find it in your UPI app payment details.')),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Cancel')),FilledButton(onPressed:(){if(RegExp(r'^[0-9]{12}$').hasMatch(input.text.trim()))Navigator.pop(c,input.text.trim());},child:const Text('Submit'))]));
+    input.dispose();if(value==null)return;
+    try {await sb.rpc('submit_payment_utr',params:{'p_order':widget.orderId,'p_utr':value});await _check();if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Reference saved for review.')));}
+    catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not save the reference. Please retry.')));}
+  }
+
   @override
   Widget build(BuildContext context) {
     final st = (_o?['status'] as String?) ?? 'pending';
@@ -65,7 +75,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
       case 'failed':
       case 'cancelled':
       case 'rejected':
-        icon = Icons.error; color = Tokens.danger; text = 'Payment failed or cancelled';
+        icon = Icons.error; color = Tokens.danger; text = 'Payment not completed';
       default:
         icon = Icons.sync; color = Tokens.muted; text = 'Waiting for confirmation…';
     }
@@ -82,6 +92,9 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
           const SizedBox(height: 10),
           OutlinedButton(onPressed: () => showLoginSheet(context, signup: true, saveMode: true), child: const Text('Add email & password')),
         ],
+        const SizedBox(height: 16),
+        if(!['paid','revoked'].contains(st))OutlinedButton(onPressed:_enterUtr,child:const Text('I’ve paid - enter UTR')),
+        TextButton(onPressed:()=>launchUrl(Uri(scheme:'mailto',path:Config.supportEmail,queryParameters:{'subject':'Payment help - ${_o?['reference']??widget.orderId}'})),child:const Text('Get help')),
         const SizedBox(height: 24),
         if (st == 'failed' || st == 'cancelled' || st == 'rejected')
           GradientButton(label: 'Try again', onPressed: () => Navigator.pop(context))
