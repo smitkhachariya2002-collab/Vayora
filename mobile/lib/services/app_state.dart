@@ -60,7 +60,7 @@ class AppState extends ChangeNotifier {
     String raw = '';
     int? clickTs;
     int? installTs;
-    if (Config.playStore) {
+    if (Config.playStore || Config.authScheme == 'com.vayora.play') {
       // The Google Play referrer is authoritative; never infer an ad from a
       // browser URL or from the package's installation source alone.
       try {
@@ -79,6 +79,12 @@ class AppState extends ChangeNotifier {
       raw = Config.apkReferrer;
     }
 
+    // Exhausted referrer retries become ordinary organic Play installs.
+    final priorAttempts = p.getInt('install_referrer_attempts') ?? 0;
+    if ((status == 'unavailable' || status == 'not_available') && priorAttempts >= 4) {
+      status = 'ok';
+      raw = '';
+    }
     try {
       await sb.rpc('record_install_attributed', params: {
         'p_install_id': id,
