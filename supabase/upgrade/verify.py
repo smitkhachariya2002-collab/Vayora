@@ -48,6 +48,11 @@ assert len(contexts)==1
 run(contexts[0].read_text())
 run((root/'play_measurement_test.sql').read_text())
 print('PASS Play consent context and withdrawal')
+campaign=list((root.parent/'migrations').glob('*_meta_campaign_attribution.sql')) or list(pathlib.Path('/tmp/vayora-reviewed-upgrade').glob('*_meta_campaign_attribution.sql'))
+assert len(campaign)==1
+run(campaign[0].read_text())
+run((root/'meta_campaign_test.sql').read_text())
+print('PASS Meta web campaign click, consent boundary and first/last-touch linking')
 run((root/'rollback.sql').read_text())
 run("do $$begin if (select count(*) from public.profiles)<>3 or (select count(*) from public.payment_orders)<>2 or (select count(*) from public.subscriptions)<>1 or not has_schema_privilege('authenticated','public','usage') then raise exception 'Rollback mismatch';end if;end$$;")
 print('PASS rollback preserves original data and access')
