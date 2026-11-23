@@ -17,7 +17,7 @@ export default function SiteShell({children,bare=false}:{children:React.ReactNod
     <div><Logo/><p className="mt-5 max-w-sm leading-relaxed text-slate-400">Your personal cloud and creator channels. More room for the things you keep. More ways to discover what you love.</p><p className="mt-4 text-xs text-slate-500">Vayora by As Enterprice</p></div>
     <div><h2 className="font-semibold text-white">Help & information</h2><ul className="mt-4 space-y-3"><li><Link href="/d">Download for Android</Link></li><li><Link href="/report-content">Support & report content</Link></li><li><Link href="/delete-account">Delete account</Link></li><li><a href={`mailto:${email}`}>{email}</a></li></ul></div>
     <div><h2 className="font-semibold text-white">Policies & choices</h2><ul className="mt-4 space-y-3"><li><Link href="/privacy">Privacy Policy</Link></li><li><Link href="/terms">Terms and Conditions</Link></li><li><Link href="/refund">Refund Policy</Link></li><li><Link href="/community-guidelines">Community Guidelines</Link></li><li><PrivacyChoicesButton/></li></ul></div>
-   </div><div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-3 border-t border-white/10 px-5 py-6 text-xs text-slate-500"><span>Â© {new Date().getFullYear()} Vayora. All rights reserved.</span><span>For adults aged 18 and over.</span></div>
+   </div><div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-3 border-t border-white/10 px-5 py-6 text-xs text-slate-500"><span>© {new Date().getFullYear()} Vayora. All rights reserved.</span><span>For adults aged 18 and over.</span></div>
   </footer><PrivacyChoices/>
  </div>;
 }

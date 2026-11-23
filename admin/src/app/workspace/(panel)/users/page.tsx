@@ -48,7 +48,7 @@ export default async function Users({ searchParams: pending }: { searchParams: P
                   <Td><SourceBadge value={r.source as string} />{r.campaign ? <div className="mt-1 text-xs text-gray-500">{String(r.campaign)}</div> : null}</Td>
                   <Td>{r.plan_name ? <><Badge tone="amber">{String(r.plan_name)}</Badge><div className="mt-1 text-xs text-gray-500">until {ist(r.plan_ends_at as string)}</div></> : <span className="text-gray-400">None</span>}</Td>
                   <Td>{r.source === "ads" ? <Badge tone="green">full (ads)</Badge> : <StatusBadge value={r.ads_access_status as string} />}</Td>
-                  <Td className="whitespace-nowrap text-xs text-gray-500">{ist(r.created_at as string)}<div>Last activity: {r.last_seen?ist(r.last_seen as string):"Not measured"}</div></Td><Td>{Number(r.paid_orders)} paid Â· {inr(Number(r.spent))}</Td>
+                  <Td className="whitespace-nowrap text-xs text-gray-500">{ist(r.created_at as string)}<div>Last activity: {r.last_seen?ist(r.last_seen as string):"Not measured"}</div></Td><Td>{Number(r.paid_orders)} paid · {inr(Number(r.spent))}</Td>
                   <Td>
                     <details>
                       <summary className="cursor-pointer text-sm font-medium text-violet-700">Manage</summary>

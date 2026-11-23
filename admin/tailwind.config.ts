@@ -16,7 +16,7 @@ const config: Config = {
         warning: "#FFB020",
         danger: "#FF4D5E",
       },
-      fontFamily: { sans: ["Poppins", "system-ui", "sans-serif"] },
+      fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] },
       backgroundImage: {
         brand: "linear-gradient(135deg,#3478F6,#245ED1)",
       },

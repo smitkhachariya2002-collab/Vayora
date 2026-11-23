@@ -21,7 +21,7 @@ export function SubmitButton({ children, confirm, variant = "primary", small }: 
       onClick={(e) => { if (confirm && !window.confirm(confirm)) e.preventDefault(); }}
       className={"inline-flex items-center justify-center rounded-xl font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:opacity-50 " + (small ? "px-2.5 py-1 text-xs " : "px-3.5 py-2 text-sm ") + BTN[variant]}
     >
-      {pending ? "Workingâ€¦" : children}
+      {pending ? "Working…" : children}
     </button>
   );
 }

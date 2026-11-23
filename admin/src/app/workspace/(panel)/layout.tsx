@@ -30,12 +30,12 @@ export default async function PanelLayout({ children }: { children: React.ReactN
     <div className="admin-main">
       <header className="admin-topbar">
         <div><span className="text-sm font-semibold text-slate-800">Administration</span><span className="ml-3 hidden text-xs text-slate-400 sm:inline">Content, community & growth</span></div>
-        <div className="flex items-center gap-3"><Link href="/" target="_blank" rel="noreferrer" className="text-xs font-medium text-slate-600 hover:text-blue-700">View website â†—</Link><span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold capitalize text-blue-800">{role}</span></div>
+        <div className="flex items-center gap-3"><Link href="/" target="_blank" rel="noreferrer" className="text-xs font-medium text-slate-600 hover:text-blue-700">View website ↗</Link><span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold capitalize text-blue-800">{role}</span></div>
       </header>
       <main id="admin-content" className="admin-content" tabIndex={-1}>
         <Suspense fallback={null}><Flash /></Suspense>
         {children}
-        <footer className="mt-10 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-5 text-[11px] text-slate-400"><span>Vayora Â· Admin workspace</span><span>Dates and totals in India time (IST)</span></footer>
+        <footer className="mt-10 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-5 text-[11px] text-slate-400"><span>Vayora · Admin workspace</span><span>Dates and totals in India time (IST)</span></footer>
         <div className="mt-5 md:hidden"><SignOut /></div>
       </main>
     </div>

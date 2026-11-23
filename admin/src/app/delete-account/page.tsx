@@ -57,7 +57,7 @@ export default function DeleteAccount() {
           <h1 className="text-3xl font-bold text-slate-900">Delete your Vayora account</h1>
           <p className="text-slate-600">
             Deleting removes your profile, cloud files, channels and posts. Payment records are kept without any link to you for up to 8 years, as tax and
-            accounting rules require. In the app you can also go to Profile â†’ Delete account.
+            accounting rules require. In the app you can also go to Profile → Delete account.
           </p>
         </section>
 
