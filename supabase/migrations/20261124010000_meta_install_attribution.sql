@@ -159,3 +159,44 @@ revoke all on function private.classify_install_referrer(text,text) from public,
 
 -- Only source_of remains authoritative for user-facing ads/organic segmentation.
 -- Existing Meta purchase, consent, and payment verification remain unchanged.
+
+-- A previously installed app may sign in to an existing account. The locally
+-- persisted secret proves possession of that installation; do not change its
+-- owner or mutate an existing account's original acquisition source.
+create or replace function public.link_install_attribution(p_install_id text,p_install_secret text)
+returns text language plpgsql security definer set search_path = ''
+as $$
+declare uid uuid:=auth.uid(); i public.installs%rowtype; cls text;
+begin
+ if uid is null then raise exception 'session required' using errcode='42501'; end if;
+ select * into i from public.installs where install_id=p_install_id;
+ if not found or i.install_secret is distinct from p_install_secret then
+   raise exception 'invalid install credentials' using errcode='42501';
+ end if;
+ cls:=coalesce(i.attribution_class,case when i.source='ads' then 'meta' else 'organic' end);
+ insert into private.user_sources(user_id,source) values(uid,i.source)
+ on conflict(user_id) do nothing;
+ insert into private.user_attribution as ua(
+   user_id,first_touch_source,first_touch_medium,first_touch_campaign,first_touch_content,
+   first_touch_install_id,first_touch_at,last_touch_source,last_touch_medium,
+   last_touch_campaign,last_touch_content,last_touch_install_id,last_touch_at)
+ values(uid,cls,i.utm_medium,i.utm_campaign,i.utm_content,i.install_id,now(),
+   cls,i.utm_medium,i.utm_campaign,i.utm_content,i.install_id,now())
+ on conflict(user_id) do update set
+   first_touch_source=coalesce(ua.first_touch_source,excluded.first_touch_source),
+   first_touch_medium=coalesce(ua.first_touch_medium,excluded.first_touch_medium),
+   first_touch_campaign=coalesce(ua.first_touch_campaign,excluded.first_touch_campaign),
+   first_touch_content=coalesce(ua.first_touch_content,excluded.first_touch_content),
+   first_touch_install_id=coalesce(ua.first_touch_install_id,excluded.first_touch_install_id),
+   first_touch_at=coalesce(ua.first_touch_at,excluded.first_touch_at),
+   last_touch_source=excluded.last_touch_source,
+   last_touch_medium=excluded.last_touch_medium,
+   last_touch_campaign=excluded.last_touch_campaign,
+   last_touch_content=excluded.last_touch_content,
+   last_touch_install_id=excluded.last_touch_install_id,
+   last_touch_at=now(),updated_at=now();
+ return private.source_of(uid);
+end
+$$;
+revoke all on function public.link_install_attribution(text,text) from public,anon;
+grant execute on function public.link_install_attribution(text,text) to authenticated;
