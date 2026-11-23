@@ -1,0 +1,52 @@
+name: Meta attribution and Android release verification
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/meta_attribution.test.sql'
+      - 'mobile/**'
+      - '.github/workflows/meta-attribution.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.1.0
+      - run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Start disposable local Supabase (never production)
+        run: supabase start
+      - name: Execute actual attribution functions with test identities
+        env:
+          PGPASSWORD: postgres
+        run: psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f supabase/tests/meta_attribution.test.sql
+      - if: always()
+        run: supabase stop --no-backup
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Resolve pinned Flutter dependencies
+        working-directory: mobile
+        run: flutter pub get
+      - name: Static analysis
+        working-directory: mobile
+        run: flutter analyze
+      - name: Flutter tests
+        working-directory: mobile
+        run: flutter test
+      - name: Compile Play-flavor debug APK
+        working-directory: mobile
+        run: flutter build apk --debug --flavor play
