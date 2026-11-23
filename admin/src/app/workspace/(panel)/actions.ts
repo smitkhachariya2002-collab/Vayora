@@ -227,21 +227,36 @@ export async function addPlan(fd: FormData) {
 // ---------------- meta ----------------
 export async function saveMeta(fd: FormData) {
   const { sb } = await requireAdmin(true);
-  const pixel = str(fd, "pixel_id").replace(/\s+/g, "");
-  if (pixel && !/^\d{5,20}$/.test(pixel)) flash("/workspace/meta", { message: "The Pixel ID is a number of about 15 or 16 digits. Copy it from Events Manager." }, "");
-  // Not-null text columns: empty string means "not set".
-  const patch: Record<string, unknown> = { pixel_id: pixel, test_event_code: str(fd, "test_event_code"), enabled: fd.get("enabled") === "on", updated_at: new Date().toISOString() };
-  const token = str(fd, "capi_token").replace(/\s+/g, "");
-  if (token) patch.capi_token = token; // write-only: an empty box keeps the saved token
-  if (fd.get("clear_token") === "on") patch.capi_token = "";
+  const pixel = str(fd, "pixel_id").replace(/\\s+/g, "");
+  const token = str(fd, "capi_token").replace(/\\s+/g, "");
+  const testCode = str(fd, "test_event_code");
+  const enabled = fd.get("enabled") === "on";
+  if (pixel && !/^\\d{5,20}$/.test(pixel)) flash("/workspace/meta", { message: "Enter a valid numeric Pixel ID (5–20 digits)." }, "");
+  const { data: current, error: readError } = await sb.from("meta_settings").select("capi_token").eq("id", 1).single();
+  if (readError) flash("/workspace/meta", readError, "");
+  const candidateToken = fd.get("clear_token") === "on" ? "" : (token || current?.capi_token || "");
+  if (enabled) {
+    if (!pixel || !candidateToken) flash("/workspace/meta", { message: "Pixel ID and access token are required before enabling Meta tracking." }, "");
+    // This is a real Conversions API PageView from the trusted Edge Function.
+    // Never save on rejection; only a genuine timeout is allowed through as unverified.
+    const { data, error } = await sb.functions.invoke("meta-send", {
+      body: { action: "validate_candidate", pixel_id: pixel, capi_token: candidateToken, test_event_code: testCode },
+    });
+    const result = (data ?? {}) as { ok?: boolean; timed_out?: boolean; message?: string };
+    if (error || !result.ok) {
+      flash("/workspace/meta", { message: "Not saved. Meta rejected the credentials: " + (result.message ?? (await fnError(error))?.message ?? "no response") }, "");
+    }
+    const patch: Record<string, unknown> = { pixel_id: pixel, test_event_code: testCode, enabled, updated_at: new Date().toISOString() };
+    if (token || fd.get("clear_token") === "on") patch.capi_token = candidateToken;
+    const { error: saveError } = await sb.from("meta_settings").update(patch).eq("id", 1);
+    flash("/workspace/meta", saveError, result.timed_out
+      ? "Saved after a Meta timeout; connection remains unverified. Run a test event before starting ads."
+      : "Meta accepted a real test event. Settings saved.");
+  }
+  const patch: Record<string, unknown> = { pixel_id: pixel, test_event_code: testCode, enabled: false, updated_at: new Date().toISOString() };
+  if (token || fd.get("clear_token") === "on") patch.capi_token = candidateToken;
   const { error } = await sb.from("meta_settings").update(patch).eq("id", 1);
-  if (error) flash("/workspace/meta", error, "");
-  if(!patch.enabled) flash("/workspace/meta",null,"Settings saved. Meta event delivery is off.");
-  // Check the new Pixel ID and token with Meta straight away, so a typo shows up now and not after ads are running.
-  const { data, error: fe } = await sb.functions.invoke("meta-send", { body: { action: "verify" } });
-  const d = (data ?? {}) as { ok?: boolean; name?: string; message?: string };
-  if (fe || !d.ok) flash("/workspace/meta", { message: "Saved, but Meta did not accept this Pixel ID and token: " + (d.message ?? (await fnError(fe))?.message ?? "no answer") }, "");
-  flash("/workspace/meta", null, `Saved and connected to pixel “${d.name ?? pixel}”. The website and eligible, consented app events now use these central settings. Check Test Events before starting ads.`);
+  flash("/workspace/meta", error, "Meta tracking switched off; settings saved.");
 }
 
 export async function metaSend(fd: FormData) {
